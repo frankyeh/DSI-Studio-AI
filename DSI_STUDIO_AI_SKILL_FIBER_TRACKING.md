@@ -153,7 +153,9 @@ After tracking finishes:
    `["check_tract","<whole-brain-index>","0"]`.
 6. Display one mapped bundle with
    `["show_only_tracts","<target-index>"]`.
-7. Add anatomical context using the subject-mapped built-in white-matter
+7. Turn off slice rendering so it does not obscure the tract and surface:
+   `["set_param","show_slice",0]`.
+8. Add anatomical context using the subject-mapped built-in white-matter
    isosurface: `["add_surface","0","25"]`.
 
 Choose a useful inspection view for each bundle rather than reusing one camera.
