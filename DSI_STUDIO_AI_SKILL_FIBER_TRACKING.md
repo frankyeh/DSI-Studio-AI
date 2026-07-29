@@ -119,24 +119,41 @@ If it is reached first, fewer than 50,000 tracts may be produced. Adjust
 AutoTrack tolerance cautiously: larger values accept more variation and false
 positives; smaller values may reject distorted or variable anatomy.
 
-## TIP Cleanup
+## Dense-Bundle Cleanup
 
-Topology-informed pruning removes isolated, noisy trajectories and works best
-on dense bundles.
+Topology-informed pruning and repeated-trajectory deletion are recommended for
+a dense, anatomically coherent pathway bundle. Apply them only when the target
+bundle has more than 10,000 tracts; approximately 50,000 tracts before cleanup
+is preferred.
 
-- Bundles below 1,000 tracts are generally unsuitable for TIP.
+Do not routinely apply either operation to whole-brain tractography. A
+whole-brain tract set contains many pathways rather than one coherent bundle and
+generally does not need bundle-specific trimming or repeated-tract deletion.
+Likewise, leave a bundle with 10,000 or fewer tracts intact unless the user
+specifically requests cleanup.
+
 - AutoTrack applies its configured `tip_iteration` automatically.
-- `trim_tract` applies one additional iteration to **every checked bundle**.
+- `trim_tract` performs one additional TIP iteration on every checked bundle.
+  Use `['trim_tract']`, or `['trim_tract','<index>']` to target an explicit
+  bundle index.
+- The exact repeated-tract command is `delete_repeated_tract`. Use
+  `['delete_repeated_tract','1']` to remove near-duplicate trajectories from
+  every checked bundle using a 1-voxel distance threshold.
+- Uncheck all non-target bundles before either operation. This is mandatory for
+  `delete_repeated_tract`, whose first parameter is the distance threshold, not
+  a bundle index.
 
-Recommended cleanup:
+Recommended cleanup for a dense named bundle:
 
 1. Set the limits and disable automatic TIP, then run AutoTrack:
    `["set_params","max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"]`.
-2. Uncheck every non-target bundle.
-3. Apply `["trim_tract"]` four or five times, inspecting the result after each
+2. Confirm that the target bundle has more than 10,000 tracts, preferably close
+   to 50,000. Otherwise skip cleanup.
+3. Uncheck every non-target bundle, including any whole-brain tract set.
+4. Apply `["trim_tract"]` four or five times, inspecting the result after each
    round.
-4. Run `["delete_repeated_tract","1"]`; `1` voxel is the default distance.
-5. Apply secondary `["trim_tract"]` rounds one at a time until approximately
+5. Run `["delete_repeated_tract","1"]` once.
+6. Apply secondary `["trim_tract"]` rounds one at a time until approximately
    10,000 clean trajectories remain. Stop earlier if the valid tract core
    deteriorates.
 
@@ -145,9 +162,12 @@ Recommended cleanup:
 After tracking finishes:
 
 1. Poll `["list_tract","status"]` until `status=done`.
-2. Use `list_tract` to identify the target and whole-brain bundle indices.
-3. Complete the TIP and repeated-tract cleanup above with only the target
-   checked.
+2. Use `list_tract` to identify the target and whole-brain bundle indices and
+   tract counts.
+3. Only for a dense named target bundle with more than 10,000 tracts, preferably
+   approximately 50,000, complete the cleanup above with only that target
+   checked. Skip `trim_tract` and `delete_repeated_tract` for whole-brain or
+   sparse tract sets.
 4. Run `["color_all_cluster"]` to assign distinct bundle colors.
 5. Hide the whole-brain bundle with
    `["check_tract","<whole-brain-index>","0"]`.
