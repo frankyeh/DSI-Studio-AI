@@ -1,5 +1,7 @@
 # DSI Studio
 
+This file is for Claude. `AGENTS.md` contains the same instructions with only the launcher changed for Codex, so do not read it.
+
 Learn DSI Studio by performing these requests in order.
 
 ## 1. Set the task title
