@@ -1,8 +1,8 @@
 # DSI Studio AI General Command Examples and Inventory
 
-Use these commands with the standard top-level `CMD` request and the **main**
-window ID returned by `LIST`. Command names and text or path parameters are
-strings. Send standalone numeric parameters as JSON numbers.
+Use these commands with the standard top-level `CMD` request targeting the fixed
+`main` window. Command names and text or path parameters are strings. Send
+standalone numeric parameters as JSON numbers.
 
 Do not send a filesystem path by itself as a named-pipe request. Supply paths
 only as parameters of the documented commands below.
@@ -88,17 +88,18 @@ may use their full documented argument lists:
 
 ## Important routing and response notes
 
-- Call top-level `LIST` and target `main`.
+- Target fixed `main` directly. Call top-level `LIST` only when a tracking or
+  image window ID is needed.
 - Do not invent aliases. Use `list_recent_fib` and `list_recent_src` exactly.
 - Supplying paths as documented command parameters is supported. Never send a
   path alone as the complete named-pipe request.
 - Commands without parameters may open a local picker. Cancellation can return
   without an immediate command error, so verify the resulting window, file, or
   application state.
-- A successful `CMD` result contains `output`; no captured text is represented as
-  `"command completed"`. A failed result contains `error`.
+- A successful `CMD` result includes `output` only when text was captured. When
+  no text was captured, the result contains `cmd` and `status` but no `output`.
 - Invalid template names, database-loading failures, and image-opening failures
-  now propagate through the `error` field.
+  propagate through the `error` field.
 - Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` before use
   because they immediately modify saved application state.
 - Use the appropriate `list_param` command in a tracking window before changing
