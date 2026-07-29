@@ -13,7 +13,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `run_tracking` | `["run_tracking","Whole Brain"]` | Start asynchronous tracking with the current tracking parameters and checked region settings; `command[1]` is the mandatory new bundle name. |
 | `run_tracking` | `["run_tracking","CST","0:3&1:0"]` | Start tracking with explicit region settings: region 0 as Seed and region 1 as ROI. The third element uses `index:type` entries separated by `&`. See **ROI settings syntax** and footnote 2. |
 | `list_auto_tract` | `["list_auto_tract"]` | List valid automatic tract names. |
-| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract`; never guess atlas labels. For a clean display bundle, generate about 50,000 tracts with `tip_iteration=0`, run `["trim_tract"]` 4–5 times, run `["delete_repeated_tract",1]`, then repeat `["trim_tract"]` until about 10,000 remain. |
+| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract`; never guess atlas labels. For a dense coherent named bundle, generate more than 10,000 tracts and preferably about 50,000 before optional cleanup. Do not routinely trim or delete repeated trajectories in whole-brain tractography. |
 | `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL","0:0&1:1"]` | Run automatic tracking while also applying explicit region 0 as ROI and region 1 as ROA. Use an exact name from `list_auto_tract`; see **ROI settings syntax** and footnote 2. |
 | `show_only_tracts` | `["show_only_tracts","0&2&5"]` | Show only listed `&`-separated tract indices and hide all others. |
 | `enable_auto_tract` | `["enable_auto_tract"]` | Load the symmetric tract atlas and enable automatic-tract controls. |
@@ -47,7 +47,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `delete_branch` | `["delete_branch","0&2"]` | Delete branch-like portions from tract bundles 0 and 2. Omit the index list to edit every checked bundle. |
 | `undo_tract` | `["undo_tract","0&2"]` | Undo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
 | `redo_tract` | `["redo_tract","0&2"]` | Redo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
-| `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0. Omit the index to use every checked bundle; bundles below 1,000 tracts are generally unsuitable. Start near 50,000, trim 4–5 times, run `["delete_repeated_tract",1]`, then repeat trimming until about 10,000 remain. |
+| `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0. Omit the index to use every checked bundle. Recommend only for a dense coherent named bundle with more than 10,000 tracts, preferably about 50,000 before cleanup. Skip routine use for whole-brain tractography and bundles with 10,000 or fewer tracts. |
 | `cut_tract_end_portion` | `["cut_tract_end_portion",0]` | Apply `cut_end_portion(0.25,0.75)` to tract bundle 0. |
 | `cut_tract_lps_end` | `["cut_tract_lps_end",0]` | Apply `cut_end_portion(0.25,1.0)` to tract bundle 0. |
 | `cut_tract_rai_end` | `["cut_tract_rai_end",0]` | Apply `cut_end_portion(0.0,0.75)` to tract bundle 0. |
@@ -81,7 +81,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `cluster_tract_by_km` | `["cluster_tract_by_km",0,"10 0"]` | Replace one bundle with k-means clusters. |
 | `cluster_tract_by_em` | `["cluster_tract_by_em",0,"10 0"]` | Replace one bundle with expectation-maximization clusters. |
 | `cluster_tract_by_hy` | `["cluster_tract_by_hy",0,"50 1.0"]` | Replace one bundle with hierarchical clusters and create an `others` bundle. |
-| `delete_repeated_tract` | `["delete_repeated_tract",1]` | Delete repeated trajectories in every checked bundle; the default distance threshold is `1` voxel. |
+| `delete_repeated_tract` | `["delete_repeated_tract",1]` | Delete repeated trajectories in every checked bundle using a 1-voxel distance threshold. Recommend only for a dense coherent named bundle; skip routine use for whole-brain tractography and sparse bundles. |
 | `resample_tract` | `["resample_tract",0.5]` | Resample checked bundles using a step size in voxels. |
 | `delete_tract_by_length` | `["delete_tract_by_length",20]` | Delete trajectories shorter than the supplied millimeter threshold from checked bundles. |
 | `separate_deleted_tract` | `["separate_deleted_tract",0]` | Move deleted trajectories into a new bundle. |
@@ -90,38 +90,23 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 
 ## `list_tract` output
 
-The full reply columns are:
-
 ```text
 index    status    shown    name    tracts    deleted    seeds
 ```
 
-Each row's `status` is:
-
-- `running` — that bundle still has an active tracking thread.
-- `done` — no tracking thread remains attached to that bundle.
-
-The compact form returns:
+Each row's `status` is `running` or `done`. Compact status returns:
 
 ```text
 status    bundles
-running   3
 ```
 
-or:
-
-```text
-status    bundles
-done      3
-```
-
-Here, `bundles` is the total number of tract rows, not the number of running jobs. Poll `["list_tract","status"]` until `status` is `done` before starting a dependent operation. The separate `shown` column remains a `1`/`0` visibility state and should not be confused with tracking status.
+`bundles` is the total number of tract rows, not the number of running jobs. Poll
+`["list_tract","status"]` until `status=done` before a dependent operation.
 
 ## Tract-index selection for edit commands
 
-Call `["list_tract"]` immediately before an indexed edit and use values from its `index` column.
-
-These four commands accept one numeric tract index or one string containing multiple `&`-separated indices:
+Call `["list_tract"]` immediately before an indexed edit. These commands accept
+one numeric index or one `&`-separated index list:
 
 ```json
 ["delete_branch","0&2&5"]
@@ -130,9 +115,9 @@ These four commands accept one numeric tract index or one string containing mult
 ["trim_tract","0&2&5"]
 ```
 
-When an index or index list is present, the command edits those bundle indices directly, regardless of their checked state. When it is omitted or empty, the command edits every checked bundle, preserving the original GUI behavior. Duplicate indices are applied only once. A nonnumeric or out-of-range value fails with `invalid tract index: <value>`.
-
-Do not assume every checked-bundle command accepts this index-list argument. `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`, `resample_tract`, and `delete_tract_by_length` currently use their second element for another parameter and still operate on checked bundles.
+With no index, they operate on checked bundles. `cut_tract_by_*`, `filter_tract`,
+`delete_repeated_tract`, `resample_tract`, and `delete_tract_by_length` use their
+second element for another parameter and always operate on checked bundles.
 
 ## ROI settings syntax
 
@@ -142,35 +127,45 @@ Tracking and filtering accept an `&`-separated list of `region-index:role` entri
 0:3&1:0&2:1
 ```
 
-This means region 0 is a Seed, region 1 is an ROI, and region 2 is an ROA. Role values are:
+Roles are `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, and
+`6=Limiting`. Use `list_region` immediately before constructing the string.
+Explicit settings use the supplied rows directly and do not require them to be
+checked.
 
-- `0` = ROI
-- `1` = ROA
-- `2` = End
-- `3` = Seed
-- `4` = Terminative
-- `5` = NotEnd
-- `6` = Limiting
+## Dense-bundle cleanup
 
-Use `list_region` immediately before constructing the string. Explicit settings use the supplied rows and roles directly; they do not require those rows to be checked in the table.
+Use cleanup only for a dense, anatomically coherent named bundle with more than
+10,000 tracts; about 50,000 before cleanup is preferred. Do not routinely use
+`trim_tract` or `delete_repeated_tract` for whole-brain tractography, which
+contains many pathways rather than one coherent bundle. Leave bundles with
+10,000 or fewer tracts intact unless the user explicitly requests cleanup.
+
+Recommended sequence:
+
+1. Set `max_tract_count=50000`, a sufficient seed limit, and `tip_iteration=0`.
+2. Run AutoTrack and verify the target has more than 10,000 tracts.
+3. Uncheck all non-target bundles, especially whole-brain tract sets.
+4. Run `["trim_tract"]` four or five times, inspecting after each round.
+5. Run `["delete_repeated_tract",1]` once.
+6. Continue one trim at a time until about 10,000 clean trajectories remain;
+   stop earlier if the valid bundle core deteriorates.
+
+`delete_repeated_tract` always operates on checked bundles; its first parameter
+is a distance threshold, not a tract index.
 
 ## Tracking workflow notes
 
-- `run_tracking` requires a nonempty bundle name in `command[1]`.
-- The two-element `run_tracking` form uses the current tracking parameters and the region settings currently checked in the table.
-- The three-element `run_tracking` form is recognized as the convenient explicit-ROI form when its third string is empty or contains `:`; DSI Studio inserts the current tracking parameter code internally.
-- Fiber tracking is asynchronous. A successful reply means tracking started; poll top-level `LIST` for general activity and `["list_tract","status"]` for definitive tract completion.
-- `list_tract` takes no required parameter. The optional literal `"status"` returns compact `status` and total bundle count.
-- `trim_tract`, `delete_branch`, `undo_tract`, and `redo_tract` accept an optional tract index or `&`-separated tract-index list; without it they operate on checked bundles.
-- `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`, `resample_tract`, and `delete_tract_by_length` operate on checked bundles.
-- `cut_tract_end_portion`, `cut_tract_lps_end`, `cut_tract_rai_end`, and `flip_tract_*` operate on one selected tract index.
-- Clustering commands delete the original bundle and replace it with newly created cluster bundles.
-- Confirm destructive operations such as deleting, trimming, cutting, clustering, reconnecting, and merging.
-- The removed generic names (`open_tracts`, `open_tract_dir`, `save_all_tracts_to_dir`, `rename_tract`, `merge_tract`, `trim_all_tracts`, `cut_tract`, `cut_by_slice`, `remove_repeated_tracts`, `recognize_tract`, `cluster_tract`, `cluster_all_tracts`, `set_tract_color`, `set_tract_color_style`, and `set_tract_visible`) had no command handler in the current dispatch chain. Use the exact commands documented above.
+- `run_tracking` requires a nonempty bundle name.
+- The two-element form uses current parameters and checked regions.
+- The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
+- Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
+- Clustering commands delete the original bundle and replace it with clusters.
+- Confirm deleting, trimming, cutting, clustering, reconnecting, and merging.
+- Removed generic names with no handler must not be used; copy exact commands from this file.
 
-## Tracking parameter reference
+## Tracking parameters
 
-These parameters are the `Tracking`, `Tracking_dT`, and `Tracking_adv` groups from the embedded `:/data/options.txt` resource. Use:
+Use live discovery rather than assuming resource defaults:
 
 ```json
 ["list_param","tracking"]
@@ -179,44 +174,19 @@ These parameters are the `Tracking`, `Tracking_dT`, and `Tracking_adv` groups fr
 ["set_params","fa_threshold=0.08&min_length=20&turning_angle=60"]
 ```
 
-`["list_param","tracking"]` returns every current tracking parameter and value from all three tracking groups. Use a single parameter ID only when one value is needed. Send numeric values as JSON numbers with `set_param`; `set_params` keeps its combined assignment expression as one string. Enum values are zero-based indices. The metric lists shown for `tracking_index`, `dt_index1`, and `dt_index2` are resource defaults and may be replaced by metrics available in the loaded FIB.
+`list_param tracking` returns current values from the basic, differential, and
+advanced tracking groups. Metric lists may depend on the loaded FIB.
 
-### Basic tracking
-
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `tracking_index` | Tracking Index | `0`=fa; `1`=adc | `0` (fa) |
-| `fa_threshold` | Tracking Threshold (0=random) | float `0–2`; step `0.01` | `0.0` |
-| `turning_angle` | Angular Threshold (0=random) | integer `0–90`; step `5` | `0` |
-| `step_size` | Step Size(mm)(0=random) | float `0.00–10`; step `0.1` | `0` |
-| `min_length` | Min Length(mm) | float `0–800`; step `10` | `30` |
-| `max_length` | Max Length(mm) | float `0–10000`; step `10` | `300` |
-| `max_seed_count` | Max Seeds(0=default) | integer `0–100000000`; step `1000` | `0` |
-| `max_tract_count` | Max Tracts(0=default) | integer `0–100000000`; step `1000` | `0` |
-| `track_voxel_ratio` | Tract-to-Voxel Ratio | float `0–2`; step `0.005` | `1.0` |
-| `tip_iteration` | Topology-Informed Pruning (iteration) | integer `0–100`; step `2` | `4` |
-| `tolerance` | Autotrack tolerance (mm) | float `0–100`; step `10` | `22` |
-
-### Differential tracking
-
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `dt_index1` | Metrics1(m1) | `0`=none; `1`=adc | `0` (none) |
-| `dt_index2` | Metrics2(m2) | `0`=none; `1`=adc | `0` (none) |
-| `dt_threshold_type` | Type | `0`=(m1-m2)÷m1; `1`=(m1-m2)÷m2; `2`=m1-m2; `3`=(m2-m1)÷m1; `4`=(m2-m1)÷m2; `5`=m2-m1; `6`=m1÷max(m1); `7`=m2÷max(m2) | `0` ((m1-m2)÷m1) |
-| `dt_threshold` | Threshold | float `0.0–2.0`; step `0.05` | `0.2` |
-
-### Advanced tracking
-
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `tracking_method` | Tracking Algorithm | `0`=Euler; `1`=RK4; `2`=Voxel tracking | `0` (Euler) |
-| `smoothing` | Smoothing (1=random) | float `-1.5–1`; step `0.1` | `0` |
-| `check_ending` | Check Ending | `0`=Off; `1`=On | `0` (Off) |
-| `otsu_threshold` | Default Otsu | float `0.1–1`; step `0.1` | `0.6` |
-| `track_format` | Output Format | `0`=tt.gz; `1`=trk.gz; `2`=txt | `0` (tt.gz) |
+Common parameter IDs include `tracking_index`, `fa_threshold`, `turning_angle`,
+`step_size`, `min_length`, `max_length`, `max_seed_count`, `max_tract_count`,
+`track_voxel_ratio`, `tip_iteration`, `tolerance`, `dt_index1`, `dt_index2`,
+`dt_threshold_type`, `dt_threshold`, `tracking_method`, `smoothing`,
+`check_ending`, `otsu_threshold`, and `track_format`.
 
 ## Footnotes
 
-1. The current transformed-endpoint implementation should not be relied on. `save_slice_tract_endpoint` first writes transformed endpoints and then falls through to native `save_end_points()` on the same path. `save_mni_tract_endpoint` calls `sub2mni()` on a temporary point but appends the original native `points1` coordinates to the output buffer, then also falls through to native `save_end_points()`. The examples document the accepted argument syntax only; verify or avoid the output until these branches are fixed.
-2. `run_tracking` creates and appends the new tract bundle and assigns its thread object before validating explicit ROI settings. If an `index:type` entry is invalid, the command returns failure without removing that newly appended bundle/thread entry. Validate every region index and role with `list_region` before sending the command.
+1. The current transformed-endpoint implementations should not be relied on.
+   `save_slice_tract_endpoint` falls through to native endpoint saving, and
+   `save_mni_tract_endpoint` appends native coordinates before the same fallthrough.
+2. `run_tracking` appends the new bundle/thread before validating explicit ROI
+   settings. Validate every region index and role with `list_region` first.
