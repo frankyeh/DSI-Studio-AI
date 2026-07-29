@@ -1,6 +1,6 @@
 # DSI Studio
 
-Learn the relay by performing these requests in order. Inspect each reply and use only exact values returned by DSI Studio.
+Learn the relay by performing these requests in order. Inspect each reply and use only exact values returned by DSI Studio or supplied by the user.
 
 ## 1. Set the task title
 
@@ -20,7 +20,16 @@ Learn the relay by performing these requests in order. Inspect each reply and us
 ./dsi LIST
 ```
 
-## 4. Open a recent FIB/FZ with `CMD`
+## 4. Open a local FIB/FZ with `CMD`
+
+When the user supplies a local file:
+
+```powershell
+./dsi main open_fib "C:/data/subject.fz"
+./dsi LIST
+```
+
+Replace the example path with the exact user-supplied path. If no path is supplied, inspect recent files instead:
 
 ```powershell
 ./dsi main list_recent_fib
@@ -28,14 +37,32 @@ Learn the relay by performing these requests in order. Inspect each reply and us
 ./dsi LIST
 ```
 
-If no relevant recent FIB/FZ is returned, do not invent a path; continue to the next step.
+Do not invent a path. Copy the exact new `tracking<hex-address>` key returned by `LIST`.
 
-## 5. Query Fiber Data Hub with `CMD`
+## 5. Run whole-brain fiber tracking with `CMD`
+
+Use the tracking-window key returned by `LIST`:
+
+```powershell
+./dsi tracking<hex-address> list_param tracking
+./dsi tracking<hex-address> run_tracking "Whole Brain"
+./dsi tracking<hex-address> list_tract status
+```
+
+Repeat `list_tract status` until it reports `status=done`, then inspect the result:
+
+```powershell
+./dsi tracking<hex-address> list_tract
+```
+
+## 6. Query Fiber Data Hub with `CMD`
 
 ```powershell
 ./dsi main hub_repo
 ./dsi main hub_tags "<exact repository returned by hub_repo>"
 ./dsi main hub_files "<exact repository>" "<exact tag returned by hub_tags>" ".fz" 0 20
 ```
+
+In `hub_files`, `.fz` filters filenames, `0` is the offset meaning start with the first matching file, and `20` is the maximum number of matching files to return. The first column in the reply is the actual file-row index used by commands such as `hub_open`.
 
 Do not copy placeholders literally. After completing the tutorial, read `DSI_STUDIO_AI_MANUAL.md` and only the topic-specific example file needed for the user's task, then continue using `./dsi`.
