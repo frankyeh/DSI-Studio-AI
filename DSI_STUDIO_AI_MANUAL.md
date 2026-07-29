@@ -6,56 +6,57 @@ DSI Studio starts the current agent in this DSI Studio AI directory and adds the
 user-selected project directory separately for project access. Do not copy the AI
 support files into the project directory.
 
-DSI Studio supplies:
+`DSI_STUDIO_AGENT` identifies the current provider. Codex supplies its thread ID
+through `CODEX_THREAD_ID`; DSI Studio sets the same variable to the Claude session
+UUID before launching Claude. Do not search for, guess, generate, or replace either
+value.
 
-- `DSI_STUDIO_AGENT` — the current provider name.
-- `CODEX_THREAD_ID` — the exact current DSI Studio session UUID.
-
-Never search for, guess, generate, or replace either value.
-
-Use the same launcher for Codex and Claude:
+Use the same launcher for both providers:
 
 ```powershell
 ./dsi <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
 ```
 
 `dsi.cmd` passes the provider and session to `dsi_agent.ps1`, applies a
-process-scoped PowerShell execution-policy bypass, opens one named-pipe
-connection, sends one request, reads the complete reply, and closes it. Use one
-invocation per request. Never access or reuse the pipe directly, inspect either
-wrapper, launch another DSI Studio instance, or modify GitHub Actions to operate
-these instructions.
+process-scoped PowerShell execution-policy bypass, opens one named-pipe connection,
+sends one request, reads the complete reply, and closes it. Use one invocation per
+request. Never access the pipe directly, inspect or bypass the wrappers, launch
+another DSI Studio instance, or modify GitHub Actions to operate these instructions.
 
 The wrapper maps the command line as follows:
 
-- `TITLE` joins later values as the title text.
-- `CHAT` joins later values as the chat text.
+- `TITLE` joins later values as title text.
+- `CHAT` joins later values as chat text.
 - `LIST` and `LOG` are top-level requests.
-- Any other target creates `CMD`; the first later value is the command name and
+- Any other target creates `CMD`; the first later value is the command name and the
   remaining values are parameters in command order.
-- Standalone integers and floating-point values become JSON numbers. Paths,
-  names, and composite values remain strings.
-- `-Chat "message"` may accompany a meaningful command. Silent polling may omit
-  it.
+- Standalone integers and floating-point values become JSON numbers. Paths, names,
+  and composite values remain strings.
+- `-Chat "message"` may accompany a meaningful command. Silent status polling may
+  omit it.
+
+The wrapper intentionally sends one command per invocation even though the server
+can execute command arrays. Use separate `./dsi` calls rather than bypassing the
+wrapper to batch requests.
 
 ## Request types
 
 ### `TITLE`
 
-After understanding the task, send one concise title:
+Send one concise title after understanding the task and another when the active task
+changes substantially:
 
 ```powershell
 ./dsi TITLE "Corticospinal tract analysis"
 ```
 
-Equivalent JSON:
+Emitted JSON:
 
 ```json
-{"session":"<session-uuid>","request":"TITLE","title":"Corticospinal tract analysis"}
+{"agent":"<Codex|Claude>","session":"<session-uuid>","request":"TITLE","title":"Corticospinal tract analysis"}
 ```
 
-Send another `TITLE` whenever the active task changes substantially. The `title`
-field is valid only for `TITLE`.
+The `title` field is valid only for `TITLE`.
 
 ### `CHAT`
 
@@ -65,10 +66,10 @@ Use standalone `CHAT` when no command is needed:
 ./dsi CHAT "Tracking completed and the output was verified."
 ```
 
-Equivalent JSON:
+Emitted JSON:
 
 ```json
-{"session":"<session-uuid>","request":"CHAT","chat":"Tracking completed and the output was verified."}
+{"agent":"<Codex|Claude>","session":"<session-uuid>","request":"CHAT","chat":"Tracking completed and the output was verified."}
 ```
 
 ### `LIST`
@@ -94,9 +95,9 @@ Example reply:
 }
 ```
 
-Tracking and image keys append a lowercase hexadecimal window address without
-`0x`. Copy the exact current key. Never construct an ID, substitute a title or
-filename, or reuse a stale ID after a window closes.
+Tracking and image keys append a lowercase hexadecimal window address without `0x`.
+Copy the current key; never construct one, substitute a title or filename, or reuse
+an ID after its window closes.
 
 | Window | Commands |
 |---|---|
@@ -112,17 +113,13 @@ Commands are accepted only by the window type that implements them.
 ./dsi tracking7ff6ab123410 list_region
 ```
 
-Equivalent JSON:
+Emitted JSON:
 
 ```json
-{"session":"<session-uuid>","request":"CMD","window":"tracking7ff6ab123410","command":{"cmd":"list_region"}}
+{"agent":"<Codex|Claude>","session":"<session-uuid>","request":"CMD","window":"tracking7ff6ab123410","command":{"cmd":"list_region"}}
 ```
 
-The JSON `command` field accepts one command object or an array of command
-objects. Each object requires `cmd`. Omit `param` when there is no parameter. Use
-a scalar for one parameter and an array for multiple parameters in command order.
-
-Send standalone numeric parameters as numbers:
+Send standalone numeric parameters without quotes:
 
 ```powershell
 ./dsi tracking7ff6ab123410 set_slice 7
@@ -144,13 +141,13 @@ multiple paths into an `&`-separated string.
 ./dsi LOG
 ```
 
-Use `LOG` only when the direct `CMD` response and targeted discovery cannot
+Use `LOG` only when the direct `CMD` reply and targeted discovery commands cannot
 explain a failure.
 
 ## Reply format
 
 Every reply has top-level `status`. A `CMD` reply contains one result per executed
-command. Each result has `cmd` and `status`.
+command, with `cmd` and `status` in each result.
 
 Text-producing command:
 
@@ -158,7 +155,7 @@ Text-producing command:
 {"status":"success","result":[{"cmd":"list_region","status":"success","output":"<command output>"}]}
 ```
 
-Successful command with no captured text:
+Successful command without captured text:
 
 ```json
 {"status":"success","result":[{"cmd":"set_slice","status":"success"}]}
@@ -170,15 +167,14 @@ Failed command:
 {"status":"error","result":[{"cmd":"set_slice","status":"error","error":"<reason>"}]}
 ```
 
-`output` is present only when text was captured. A batch stops after the first
-error. Success means the handler returned without an immediate error; it does not
-prove asynchronous or GUI-backed work finished. Verify the expected window,
-file, region, tract, slice status, or other state.
+`output` appears only when text was captured. Success means the handler returned
+without an immediate error; asynchronous or GUI-backed work may still be running.
+Use the relevant discovery or status command to confirm completion before a
+dependent operation.
 
 ## Opening files
 
-Never send a filesystem path by itself. Supply it as a documented command
-parameter.
+Never send a filesystem path by itself. Supply it as a documented command parameter.
 
 Open the first FIB/FZ from `main`:
 
@@ -198,13 +194,13 @@ Open ordinary images from `main`:
 ./dsi main open_image "C:/data/T1w.nii.gz"
 ```
 
-Use the tracking-window route for segmentation related to an open FIB so the
-resulting regions remain in the tractography workflow. Use an image window for
-standalone image editing or batch processing.
+Use the tracking-window route for segmentation related to an open FIB so the created
+regions remain in the tractography workflow. Use an image window for standalone
+image editing or batch processing.
 
-Many parameterless main-window commands open local pickers. Picker cancellation
-may return without an immediate command error; verify the resulting window,
-file, or application state.
+Many parameterless main-window commands open local pickers. Picker cancellation may
+return without an immediate error; check whether the expected window or file was
+created.
 
 ## Fiber Data Hub
 
@@ -217,12 +213,13 @@ All Hub commands target `main`:
 ./dsi main hub_open "<exact-repository>" "<exact-tag>" 12
 ```
 
-Use exact repositories, tags, filenames, and returned row indices. `hub_files`
-filters before applying offset and limit, while its first column remains the
-actual file-table row index. `hub_open` and `hub_download` accept an exact
-filename or returned row index. `hub_download` additionally requires a
-destination directory. Verify the created window or destination file after
-GUI-backed network work.
+In `hub_files`, the filter is applied first, `0` is the matching-file offset, and
+`20` is the maximum number of rows returned. The first reply column remains the
+actual file-table row index used by `hub_open` and `hub_download`.
+
+`hub_open` and `hub_download` also accept an exact filename. `hub_download` requires
+a destination directory. Network-backed work may continue after the immediate
+command reply; check the opened window or destination file.
 
 ## Critical discovery and status commands
 
@@ -230,40 +227,57 @@ GUI-backed network work.
 
 ```powershell
 ./dsi tracking7ff6ab123410 list_slice
+./dsi tracking7ff6ab123410 set_slice 7
+./dsi tracking7ff6ab123410 list_slice
 ```
 
-Columns:
+`list_slice` columns:
 
 ```text
 index    current    name    status
 ```
 
-Interpret `status` directly:
-
-- `available` — listed but not loaded locally.
+- `available` — a URL-backed slice is listed but not loaded locally.
 - `registering` — loading or registration is running.
 - `ready` — ready for a dependent operation.
 
-`current` is only the selected-state flag. After `set_slice`, poll until the
-selected row reports `ready`.
+`current` is only the selected-state flag. After `set_slice`, poll until the selected
+row reports `ready`.
 
 ### Segmentation
 
 ```powershell
 ./dsi tracking7ff6ab123410 list_unet
 ./dsi tracking7ff6ab123410 segment_brain "<model-ID>" 7
+./dsi tracking7ff6ab123410 list_region
 ```
 
-`list_unet` returns:
+`list_unet` columns:
 
 ```text
 index    available    model    name    description
 ```
 
-Use the internal `model` value, not the display `name`, and use only a row with
-`available=1`. The optional slice value selects an exact name or numeric index.
-Segmentation may outlast the client wait time; do not immediately resend it.
-Verify with `list_slice` and `list_region`.
+Use the internal `model` value, not the display `name`, and only a row with
+`available=1`. The optional slice argument accepts an exact slice name or numeric
+index. Segmentation is synchronous, but a client timeout does not prove inference
+stopped; do not immediately resend it.
+
+### Atlases and regions
+
+```powershell
+./dsi tracking7ff6ab123410 list_atlas
+./dsi tracking7ff6ab123410 add_region_from_atlas "<template-index> <atlas-index> <label-index>"
+./dsi tracking7ff6ab123410 list_region
+```
+
+`add_region_from_atlas` takes one quoted composite parameter. Join multiple label
+indices with `&`. Omitting label indices adds every label from the selected atlas.
+
+`list_atlas` reports template index, atlas index, atlas name, and region count, but
+not individual label IDs or names. Use label indices only when supplied by the user
+or another verified source. The verified BrainSeg thalamus example is shown in
+`AGENTS.md`.
 
 ### Tracts
 
@@ -284,9 +298,9 @@ Compact columns:
 status    bundles
 ```
 
-`status=done` means no tracking thread remains active. `bundles` is the total
-number of tract rows, not the number of running jobs. Poll until `done` before a
-dependent step.
+`status=done` means no tracking thread remains active. `bundles` is the total number
+of tract rows, not the number of running jobs. Poll until `done` before a dependent
+step.
 
 `run_tracking` requires a nonempty new bundle name:
 
@@ -295,8 +309,8 @@ dependent step.
 ./dsi tracking7ff6ab123410 run_tracking "CST"
 ```
 
-The two-value form uses current tracking parameters and checked regions. Use
-`list_region` only when the workflow actually uses regions. Follow
+This form uses the current tracking parameters and checked regions. Call
+`list_region` only when the workflow uses regions. Follow
 `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` for strategy, parameters, cleanup, and
 quality control.
 
@@ -310,22 +324,16 @@ quality control.
 ./dsi tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
 ```
 
-Use `list_param` before changing tracking or rendering values. `set_param` takes
-one numeric or textual value. `set_params` keeps its assignment expression as one
+Use `list_param` before changing tracking or rendering values. `set_param` takes one
+numeric or textual value. `set_params` keeps its assignment expression as one
 string.
 
 ## Current discovery limitations
 
-`list_atlas` reports template index, atlas index, atlas name, and region count. It
-does not list label IDs or label names. Do not claim that atlas label IDs can be
-discovered through the current command interface; use only IDs supplied by the
-user or another verified source.
-
-The device command interface currently has no `list_device`. Numeric device
-indices follow current table order and cannot be discovered remotely through a
-dedicated command. Prefer current-row operations when the correct row is already
-selected; otherwise ask the user to identify the target before an indexed
-mutation.
+The device interface currently has no `list_device`. Numeric device indices follow
+the current table order and cannot be discovered through a dedicated command.
+Prefer current-row operations when the correct row is already selected; otherwise
+ask the user to identify the target before an indexed mutation.
 
 ## Discovery quick reference
 
@@ -340,27 +348,33 @@ mutation.
 | Slices and readiness | `list_slice` | tracking |
 | Segmentation model IDs | `list_unet` | tracking |
 | Regions and roles | `list_region` | tracking |
+| Atlases and region counts | `list_atlas` | tracking |
 | Tracts and per-bundle status | `list_tract` | tracking |
 | Tracking completion | `list_tract status` | tracking |
 | Parameter IDs and values | `list_param` | tracking |
-| Atlases and region counts | `list_atlas` | tracking |
 | AutoTrack names | `list_auto_tract` | tracking |
 
 ## Operational rules
 
-- Use one `./dsi` invocation and one named-pipe connection per request.
-- Reuse the exact provider and session supplied by DSI Studio.
+- Use one `./dsi` invocation per request.
+- Do not alter the provider or session environment variables.
 - Send `TITLE` first and update it when the task changes substantially.
 - Target fixed `main` directly; call `LIST` only for tracking or image IDs.
-- Inspect each reply before deciding the next request.
-- Copy exact command names, paths, IDs, indices, model IDs, and parameter IDs.
+- Copy command names, paths, window IDs, indices, model IDs, and parameter IDs from
+  the user, current command output, or another verified source.
 - Confirm destructive operations, overwrites, and saved-history clearing.
 - Do not answer modal dialogs remotely; tell the user what must be selected.
-- A client timeout does not prove failure; verify state before retrying.
+- A client timeout does not prove failure; use the relevant status command before
+  retrying.
 - A disappeared window requires a new `LIST`; do not reopen it automatically.
 
-## Topic-specific command references
+## Related documents
 
+Use `DSI_STUDIO_AI_SKILL_*.md` for task workflows and
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` for exact command syntax and inventories. Read
+only files relevant to the current task.
+
+- [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
 - [Regions and tract-to-region analysis](DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md)
@@ -368,5 +382,3 @@ mutation.
 - [Devices and AC-PC locators](DSI_STUDIO_AI_COMMAND_EXAMPLES_DEVICE.md)
 - [Parameters, rendering, camera, surfaces, workspace, settings, and display](DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md)
 - [Standalone image-window processing](DSI_STUDIO_AI_COMMAND_EXAMPLES_IMAGE.md)
-
-Read only the topic file needed for the current task.
