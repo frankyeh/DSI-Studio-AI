@@ -7,38 +7,41 @@ topic-specific example file from this DSI Studio AI directory.
 
 Reuse the exact session UUID assigned to the current agent task.
 
-- Codex uses `$env:CODEX_THREAD_ID`; never search for, guess, or generate it.
+- Codex uses `$env:CODEX_THREAD_ID`, supplied automatically by `dsi_codex.cmd`.
 - Claude uses the exact session supplied by DSI Studio.
 
-Send the same session with every request.
+Never search for, guess, or generate a session ID.
 
 ## Agent wrapper
 
 DSI Studio starts Codex and Claude in this DSI Studio AI directory, where
-`AGENTS.md`, `CLAUDE.md`, `dsi_agent.ps1`, the manual, examples, and skills are
-located. The user-selected project directory is added separately for project
-access; do not copy the AI support files into it.
+`AGENTS.md`, `CLAUDE.md`, `dsi_codex.cmd`, `dsi_agent.ps1`, the manual,
+examples, and skills are located. The user-selected project directory is added
+separately for project access; do not copy the AI support files into it.
 
-Windows may block local PowerShell scripts. Claude invokes
-`./dsi_agent.ps1` directly. Codex prefixes each request with
-`Set-ExecutionPolicy -Scope Process Bypass -Force;`; this affects only the
-current PowerShell process and does not change user or system policy.
+Use one provider-specific command prefix:
 
 ```powershell
-# Claude
-./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+# Codex: supplies Agent=Codex, CODEX_THREAD_ID, and PowerShell bypass
+./dsi_codex
 
-# Codex
-Set-ExecutionPolicy -Scope Process Bypass -Force; ./dsi_agent.ps1 -Agent Codex -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+# Claude: supplies its DSI Studio session explicitly
+./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target
 ```
 
-The examples below use `& $dsi` as shorthand. For Claude, set
-`$dsi = "./dsi_agent.ps1"`. For Codex, replace each `& $dsi` with
-`Set-ExecutionPolicy -Scope Process Bypass -Force; ./dsi_agent.ps1`.
+All examples below use `<DSI>` for that prefix. Thus:
+
+```powershell
+# Codex
+./dsi_codex main list_recent_fib
+
+# Claude
+./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target main list_recent_fib
+```
 
 Use one invocation per request. The wrapper creates one named-pipe connection,
 sends one request, reads the complete reply, and closes it. Never access or
-reuse the pipe directly, inspect the wrapper, launch another DSI Studio
+reuse the pipe directly, inspect either wrapper, launch another DSI Studio
 instance, or modify GitHub Actions to operate these instructions.
 
 ## Initial requests
@@ -47,9 +50,9 @@ After understanding the task, send a concise title, a brief progress message,
 and a recent-FIB query:
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target TITLE "Corticospinal tract analysis"
-& $dsi -Agent <AGENT> -Session <SESSION> -Target CHAT "I am reading the DSI Studio instructions before continuing."
-& $dsi -Agent <AGENT> -Session <SESSION> -Target main list_recent_fib
+<DSI> TITLE "Corticospinal tract analysis"
+<DSI> CHAT "I am reading the DSI Studio instructions before continuing."
+<DSI> main list_recent_fib
 ```
 
 Derive the title and message from the task; do not copy placeholders literally.
@@ -71,25 +74,25 @@ Tracking and image IDs append a lowercase hexadecimal window address without
 `LIST`; it is valid only while that window remains open.
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target LIST
+<DSI> LIST
 ```
 
 ## Command parameters
 
-The first value after `Target` is the command name. Later values are parameters
+The first value after the target is the command name. Later values are parameters
 in command order. The wrapper converts standalone numbers to JSON numbers and
 preserves text, paths, and composite values as strings.
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target main hub_repo
-& $dsi -Agent <AGENT> -Session <SESSION> -Target main hub_tags data-hcp/lifespan
-& $dsi -Agent <AGENT> -Session <SESSION> -Target main hub_files data-hcp/lifespan tag 0 20
+<DSI> main hub_repo
+<DSI> main hub_tags data-hcp/lifespan
+<DSI> main hub_files data-hcp/lifespan tag 0 20
 ```
 
 A useful `-Chat` may accompany a meaningful command. Silent polling may omit it.
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_region -Chat "Checking the available regions before making changes."
+<DSI> tracking7ff6ab123410 list_region -Chat "Checking the available regions before making changes."
 ```
 
 ## Replies
@@ -123,13 +126,13 @@ an immediate error; asynchronous and GUI-backed work still requires verification
 Open the first FIB/FZ from `main`:
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target main open_fib C:/data/subject.fz
+<DSI> main open_fib C:/data/subject.fz
 ```
 
 Open an additional FIB/FZ from an existing tracking window:
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 open_fib C:/data/second_subject.fz
+<DSI> tracking7ff6ab123410 open_fib C:/data/second_subject.fz
 ```
 
 Use `open_image` only for ordinary image-window workflows, not for the FIB
@@ -141,7 +144,7 @@ require user interaction.
 For slices:
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_slice
+<DSI> tracking7ff6ab123410 list_slice
 ```
 
 `list_slice` reports `index`, `current`, `name`, and `status`. Use `status`
@@ -151,8 +154,8 @@ selection flag. After `set_slice`, poll until the selected row reports `ready`.
 For tracts:
 
 ```powershell
-& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_tract
-& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_tract status
+<DSI> tracking7ff6ab123410 list_tract
+<DSI> tracking7ff6ab123410 list_tract status
 ```
 
 The full table reports `index`, `status`, `shown`, `name`, `tracts`, `deleted`,
