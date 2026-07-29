@@ -1,6 +1,6 @@
 # DSI Studio
 
-Before reading any other file, use the copied `./dsi_agent.ps1` beside this `CLAUDE.md`. Then learn by doing these three requests in order:
+Before reading any other file, use `./dsi_agent.ps1` in this DSI Studio AI directory. DSI Studio starts Claude here and adds the user-selected project directory separately for project access. Then learn by doing these three requests in order:
 
 ```powershell
 ./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target TITLE "<concise title derived from the user's task>"
@@ -8,4 +8,4 @@ Before reading any other file, use the copied `./dsi_agent.ps1` beside this `CLA
 ./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target main list_recent_fib
 ```
 
-Use the exact session supplied by DSI Studio. Derive `TITLE` from the user's task and improvise the first `CHAT`. After all three complete, read `DSI_STUDIO_AI_MANUAL.md` and only the relevant examples from `$env:DSI_STUDIO_AI_DIR`, then continue the task. Use `./dsi_agent.ps1` for every request, one invocation per request. Never access or reuse the pipe directly, inspect the wrapper, or launch another shell. `main` is fixed; call `LIST` only for a tracking/image window ID. Update `TITLE` when the task changes substantially, verify completion, and ask before destructive actions.
+Use the exact session supplied by DSI Studio. Derive `TITLE` from the user's task and improvise the first `CHAT`. After all three complete, read `DSI_STUDIO_AI_MANUAL.md` and only the relevant examples from this directory, then continue the task using the added project directory for user files. Use `./dsi_agent.ps1` for every request, one invocation per request. Never access or reuse the pipe directly, inspect the wrapper, or launch another shell. `main` is fixed; call `LIST` only for a tracking/image window ID. Update `TITLE` when the task changes substantially, verify completion, and ask before destructive actions.
