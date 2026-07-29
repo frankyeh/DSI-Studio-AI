@@ -1,5 +1,7 @@
 # DSI Studio
 
+This file is for Codex. `CLAUDE.md` contains the same instructions with only the launcher changed for Claude, so do not read it.
+
 Learn DSI Studio by performing these requests in order.
 
 ## 1. Set the task title
