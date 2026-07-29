@@ -3,9 +3,7 @@ set -euo pipefail
 
 case "$(uname -s)" in
 MINGW*|MSYS*|CYGWIN*)
-    ps1=$(mktemp "${TMPDIR:-/tmp}/dsi.XXXXXX.ps1")
-    trap 'rm -f "$ps1"' EXIT
-    cat >"$ps1" <<'PS1'
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File - "$@" <<'PS1'
 param(
     [Parameter(Mandatory,Position=0)]
     [string]$Target,
@@ -74,8 +72,6 @@ finally
     }
 }
 PS1
-    powershell.exe -NoProfile -ExecutionPolicy Bypass \
-        -File "$(cygpath -w "$ps1")" "$@"
     exit $?
 ;;
 esac
