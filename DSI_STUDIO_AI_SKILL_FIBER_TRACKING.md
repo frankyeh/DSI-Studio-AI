@@ -134,10 +134,10 @@ specifically requests cleanup.
 
 - AutoTrack applies its configured `tip_iteration` automatically.
 - `trim_tract` performs one additional TIP iteration on every checked bundle.
-  Use `['trim_tract']`, or `['trim_tract','<index>']` to target an explicit
+  Use `["trim_tract"]`, or `["trim_tract","<index>"]` to target an explicit
   bundle index.
 - The exact repeated-tract command is `delete_repeated_tract`. Use
-  `['delete_repeated_tract','1']` to remove near-duplicate trajectories from
+  `["delete_repeated_tract","1"]` to remove near-duplicate trajectories from
   every checked bundle using a 1-voxel distance threshold.
 - Uncheck all non-target bundles before either operation. This is mandatory for
   `delete_repeated_tract`, whose first parameter is the distance threshold, not
