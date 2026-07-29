@@ -13,10 +13,14 @@ Send the same session with every request.
 
 ## Agent wrapper
 
-DSI Studio exposes the installed AI directory as `$env:DSI_STUDIO_AI_DIR`. Set the wrapper path once, then use one invocation per request:
+DSI Studio copies `dsi_agent.ps1` beside the provider instruction file in the selected work directory. Before using the examples below, set `$dsi` to that copied script:
+
+- Codex: locate `dsi_agent.ps1` in the same directory as the `AGENTS.md` that supplied the current instructions and assign its exact path to `$dsi`; do not derive it from the shell working directory.
+- Claude: use `$dsi = "./dsi_agent.ps1"`.
+
+Use one invocation per request:
 
 ```powershell
-$dsi = Join-Path $env:DSI_STUDIO_AI_DIR dsi_agent.ps1
 & $dsi -Agent <Codex|Claude> -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
 ```
 
