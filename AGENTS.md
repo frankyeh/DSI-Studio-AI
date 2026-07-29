@@ -1,6 +1,6 @@
 # DSI Studio
 
-Learn the relay by performing these requests in order. Inspect each reply and use only exact values returned by DSI Studio or supplied by the user.
+Learn the relay by performing these requests in order.
 
 ## 1. Set the task title
 
@@ -24,14 +24,16 @@ Learn the relay by performing these requests in order. Inspect each reply and us
 
 If this step does not apply to the user's task, study the commands and continue to the next step without running them.
 
-When the user supplies a local file:
+### 4.1 Open a user-supplied file
 
 ```powershell
 ./dsi main open_fib "C:/data/subject.fz"
 ./dsi LIST
 ```
 
-Replace the example path with the exact user-supplied path. If no path is supplied, inspect recent files instead:
+Replace the example path with the exact user-supplied path.
+
+### 4.2 Open a recent file when no path is supplied
 
 ```powershell
 ./dsi main list_recent_fib
@@ -39,21 +41,35 @@ Replace the example path with the exact user-supplied path. If no path is suppli
 ./dsi LIST
 ```
 
-Do not invent a path. Copy the exact new `tracking<hex-address>` key returned by `LIST`.
+Do not invent a path. Copy the new `tracking<hex-address>` key returned by `LIST`.
 
 ## 5. Run whole-brain fiber tracking with `CMD`
 
 If this step does not apply to the user's task, study the commands and continue to the next step without running them.
 
-Use the tracking-window key returned by `LIST`:
+Use the tracking-window key returned by `LIST`.
+
+### 5.1 Inspect tracking parameters
 
 ```powershell
 ./dsi tracking<hex-address> list_param tracking
+```
+
+### 5.2 Start tracking
+
+```powershell
 ./dsi tracking<hex-address> run_tracking "Whole Brain"
+```
+
+### 5.3 Wait for completion
+
+```powershell
 ./dsi tracking<hex-address> list_tract status
 ```
 
-Repeat `list_tract status` until it reports `status=done`, then inspect the result:
+Repeat until it reports `status=done`.
+
+### 5.4 Inspect the resulting bundle
 
 ```powershell
 ./dsi tracking<hex-address> list_tract
@@ -63,12 +79,24 @@ Repeat `list_tract status` until it reports `status=done`, then inspect the resu
 
 If this step does not apply to the user's task, study the commands and continue to the next step without running them.
 
+### 6.1 List repositories
+
 ```powershell
 ./dsi main hub_repo
+```
+
+### 6.2 List tags
+
+```powershell
 ./dsi main hub_tags "<exact repository returned by hub_repo>"
+```
+
+### 6.3 List matching files
+
+```powershell
 ./dsi main hub_files "<exact repository>" "<exact tag returned by hub_tags>" ".fz" 0 20
 ```
 
-In `hub_files`, `.fz` filters filenames, `0` is the offset meaning start with the first matching file, and `20` is the maximum number of matching files to return. The first column in the reply is the actual file-row index used by commands such as `hub_open`.
+In `hub_files`, `.fz` filters filenames, `0` starts with the first matching file, and `20` returns at most 20 matching files. The first reply column is the file-row index used by commands such as `hub_open`.
 
 Do not copy placeholders literally. After completing the tutorial, read `DSI_STUDIO_AI_MANUAL.md` and only the topic-specific example file needed for the user's task, then continue using `./dsi`.
