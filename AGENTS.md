@@ -20,7 +20,7 @@ Learn the relay by performing these requests in order.
 ./dsi LIST
 ```
 
-## 4. Open a local FIB/FZ with `CMD`
+## 4. Work with a FIB/FZ tracking window
 
 If this step does not apply to the user's task, study the commands and continue to the next step without running them.
 
@@ -42,6 +42,38 @@ Replace the example path with the exact user-supplied path.
 ```
 
 Do not invent a path. Copy the new `tracking<hex-address>` key returned by `LIST`.
+
+### 4.3 Switch the displayed slice
+
+```powershell
+./dsi tracking<hex-address> list_slice
+./dsi tracking<hex-address> set_slice <slice-index>
+./dsi tracking<hex-address> list_slice
+```
+
+Use an index returned by `list_slice`. A Hub-provided slice may initially report `available` because its source is HTTP. `set_slice` downloads and registers it; repeat `list_slice` until the selected row reports `ready` before using it.
+
+### 4.4 Segment a brain with SynthSeg
+
+Select a suitable anatomical slice with Step 4.3, then discover the available models:
+
+```powershell
+./dsi tracking<hex-address> list_unet
+./dsi tracking<hex-address> segment_brain human_synthseg <slice-index>
+./dsi tracking<hex-address> list_region
+```
+
+Run `human_synthseg` only when its `list_unet` row reports `available=1`. The final command confirms the regions created by SynthSeg.
+
+### 4.5 Add the bilateral thalamus from BrainSeg
+
+```powershell
+./dsi tracking<hex-address> list_atlas
+./dsi tracking<hex-address> add_region_from_atlas "0 1 3&4"
+./dsi tracking<hex-address> list_region
+```
+
+First confirm that `list_atlas` reports `template=0`, `atlas=1`, and `name=BrainSeg`. In the current BrainSeg label table, `3&4` are the zero-based label indices for `Thalamus_Left` and `Thalamus_Right`.
 
 ## 5. Run whole-brain fiber tracking with `CMD`
 
@@ -99,4 +131,17 @@ If this step does not apply to the user's task, study the commands and continue 
 
 In `hub_files`, `.fz` filters filenames, `0` starts with the first matching file, and `20` returns at most 20 matching files. The first reply column is the file-row index used by commands such as `hub_open`.
 
-Do not copy placeholders literally. After completing the tutorial, read `DSI_STUDIO_AI_MANUAL.md` and only the topic-specific example file needed for the user's task, then continue using `./dsi`.
+### 6.4 Open a Hub file
+
+```powershell
+./dsi main hub_open "<exact repository>" "<exact tag>" <file-row-index>
+./dsi LIST
+```
+
+Use the row index returned by `hub_files`. After the tracking window opens, use Step 4.3 to load any HTTP-backed slice needed for the task.
+
+Do not copy placeholders literally.
+
+## Continue with the task
+
+The same folder contains `DSI_STUDIO_AI_MANUAL.md` for relay rules, `DSI_STUDIO_AI_SKILL_*.md` for task workflows, and `DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` for command syntax and inventories. Read only the files relevant to the user's task, then continue using `./dsi`.
