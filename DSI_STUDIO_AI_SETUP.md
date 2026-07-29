@@ -1,6 +1,6 @@
 # DSI Studio AI Setup
 
-Read this file once, then use `DSI_STUDIO_AI_MANUAL.md` and the topic-specific example files from `$env:DSI_STUDIO_AI_DIR` only as needed.
+Read this file once, then use `DSI_STUDIO_AI_MANUAL.md` and the topic-specific example files from this DSI Studio AI directory only as needed.
 
 ## Identity
 
@@ -13,21 +13,18 @@ Send the same session with every request.
 
 ## Agent wrapper
 
-DSI Studio copies `dsi_agent.ps1` beside the provider instruction file in the selected work directory.
+DSI Studio starts both Codex and Claude with this DSI Studio AI directory as their working directory. `AGENTS.md`, `CLAUDE.md`, `dsi_agent.ps1`, the manual, examples, and skills remain here. The user-selected project directory is added separately for project access; do not copy the AI support files into it.
 
-- Codex: locate the script beside `AGENTS.md`, assign its exact path to `$dsi`, and do not derive it from the shell working directory.
-- Claude: invoke the copied script exactly as `./dsi_agent.ps1` so it matches DSI Studio's `PowerShell(./dsi_agent.ps1 -Agent Claude *)` allowlist. Do not use `$dsi`, an absolute path, or `$env:DSI_STUDIO_AI_DIR` for the wrapper.
+Use the local wrapper for both providers:
 
-The examples below use `& $dsi` as compact Codex notation. Claude must replace every `& $dsi` with `./dsi_agent.ps1`.
+```powershell
+$dsi = "./dsi_agent.ps1"
+```
 
 Use one invocation per request:
 
 ```powershell
-# Codex
-& $dsi -Agent Codex -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
-
-# Claude
-./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+& $dsi -Agent <Codex|Claude> -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
 ```
 
 The wrapper creates a new named-pipe connection, sends one request, reads the complete reply, and closes it. Do not access or reuse the pipe directly, inspect the wrapper, launch another DSI Studio instance, or modify GitHub Actions to operate these instructions.
@@ -222,7 +219,7 @@ Call `LIST` only when a tracking or image window ID must be obtained or refreshe
 
 ## Where to find commands
 
-The concise protocol and critical syntax are in `$env:DSI_STUDIO_AI_DIR\DSI_STUDIO_AI_MANUAL.md`.
+The concise protocol and critical syntax are in `DSI_STUDIO_AI_MANUAL.md` in this directory.
 
 Source-verified command examples are in the same directory and separated by topic:
 
