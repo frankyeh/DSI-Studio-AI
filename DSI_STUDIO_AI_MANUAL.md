@@ -1,9 +1,5 @@
 # DSI Studio AI Command Manual
 
-Read `DSI_STUDIO_AI_SETUP.md` first. This manual keeps only protocol and
-high-risk syntax. Retrieve one topic-specific example file when its commands are
-needed.
-
 ## Start with `TITLE`
 
 After understanding the task, send one concise title:
