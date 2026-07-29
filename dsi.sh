@@ -1,19 +1,95 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+case "$(uname -s)" in
+MINGW*|MSYS*|CYGWIN*)
+    ps1=$(mktemp "${TMPDIR:-/tmp}/dsi.XXXXXX.ps1")
+    trap 'rm -f "$ps1"' EXIT
+    cat >"$ps1" <<'PS1'
+param(
+    [Parameter(Mandatory,Position=0)]
+    [string]$Target,
+
+    [Parameter(Position=1,ValueFromRemainingArguments)]
+    [string[]]$Value,
+
+    [string]$Chat
+)
+
+$ErrorActionPreference = 'Stop'
+$Agent = $env:DSI_STUDIO_AGENT
+$Session = $env:CODEX_THREAD_ID
+if(!$Agent) { throw 'Missing DSI_STUDIO_AGENT.' }
+if(!$Session) { throw 'Missing CODEX_THREAD_ID.' }
+
+function Convert-DsiValue([string]$Text)
+{
+    $integer = 0L
+    if([long]::TryParse($Text,[ref]$integer)) { return $integer }
+    $number = 0.0
+    if([double]::TryParse($Text,
+        [Globalization.NumberStyles]::Float,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [ref]$number)) { return $number }
+    return $Text
+}
+
+$request = [ordered]@{agent=$Agent;session=$Session}
+switch($Target.ToUpperInvariant())
+{
+    'LIST'  {$request.request = 'LIST'}
+    'LOG'   {$request.request = 'LOG'}
+    'CHAT'  {$request.request = 'CHAT';  $request.chat = $Value -join ' '}
+    'TITLE' {$request.request = 'TITLE'; $request.title = $Value -join ' '}
+    default
+    {
+        if(!$Value.Count) { throw 'Missing command name.' }
+        $request.request = 'CMD'
+        $request.window = $Target
+        $request.command = [ordered]@{cmd=$Value[0]}
+        $param = @($Value | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
+        if($param.Count -eq 1) { $request.command.param = $param[0] }
+        elseif($param.Count -gt 1) { $request.command.param = $param }
+    }
+}
+if($Chat) { $request.chat = $Chat }
+
+$pipe = $writer = $reader = $null
+try
+{
+    $pipe = [IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio')
+    $pipe.Connect(5000)
+    $utf8 = [Text.UTF8Encoding]::new($false)
+    $writer = [IO.StreamWriter]::new($pipe,$utf8,1024,$true)
+    $reader = [IO.StreamReader]::new($pipe,$utf8,$false,1024,$true)
+    $writer.Write(($request | ConvertTo-Json -Compress -Depth 8))
+    $writer.Flush()
+    $reader.ReadToEnd()
+}
+finally
+{
+    foreach($stream in @($reader,$writer,$pipe))
+    {
+        if($stream) { try {$stream.Dispose()} catch [IO.IOException] {} }
+    }
+}
+PS1
+    powershell.exe -NoProfile -ExecutionPolicy Bypass \
+        -File "$(cygpath -w "$ps1")" "$@"
+    exit $?
+;;
+esac
+
 if command -v python3 >/dev/null 2>&1; then
     py=(python3)
 elif command -v python >/dev/null 2>&1; then
     py=(python)
-elif command -v py >/dev/null 2>&1; then
-    py=(py -3)
 else
-    echo "dsi.sh requires Python 3." >&2
+    echo "dsi.sh requires Python 3 on macOS/Linux." >&2
     exit 1
 fi
 
 exec "${py[@]}" - "$@" <<'PY'
-import ctypes
 import json
 import math
 import os
@@ -91,100 +167,40 @@ if chat is not None:
     request["chat"] = chat
 
 payload = json.dumps(request, separators=(",", ":"), ensure_ascii=False).encode()
+paths = []
+override = os.environ.get("DSI_STUDIO_SOCKET")
+if override:
+    paths.append(override)
+for base in (
+    os.environ.get("TMPDIR"), os.environ.get("TMP"),
+    os.environ.get("TEMP"), tempfile.gettempdir(), "/tmp",
+):
+    if base:
+        path = os.path.join(base, "dsi-studio")
+        if path not in paths:
+            paths.append(path)
 
-
-def windows_pipe():
-    from ctypes import wintypes
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    pipe_name = r"\\.\pipe\dsi-studio"
-    kernel32.WaitNamedPipeW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD]
-    kernel32.WaitNamedPipeW.restype = wintypes.BOOL
-    kernel32.CreateFileW.argtypes = [
-        wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
-        wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
-    ]
-    kernel32.CreateFileW.restype = wintypes.HANDLE
-    kernel32.WriteFile.argtypes = [
-        wintypes.HANDLE, wintypes.LPCVOID, wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID,
-    ]
-    kernel32.WriteFile.restype = wintypes.BOOL
-    kernel32.ReadFile.argtypes = [
-        wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID,
-    ]
-    kernel32.ReadFile.restype = wintypes.BOOL
-    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-    kernel32.CloseHandle.restype = wintypes.BOOL
-
-    if not kernel32.WaitNamedPipeW(pipe_name, 5000):
-        fail(f"Cannot connect to {pipe_name}: Windows error {ctypes.get_last_error()}.")
-    handle = kernel32.CreateFileW(pipe_name, 0xC0000000, 0, None, 3, 0, None)
-    if handle == wintypes.HANDLE(-1).value:
-        fail(f"Cannot open {pipe_name}: Windows error {ctypes.get_last_error()}.")
+errors = []
+for endpoint in paths + ["\0dsi-studio"]:
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
-        written = wintypes.DWORD()
-        data = ctypes.create_string_buffer(payload)
-        if not kernel32.WriteFile(handle, data, len(payload), ctypes.byref(written), None):
-            fail(f"Cannot write to {pipe_name}: Windows error {ctypes.get_last_error()}.")
+        client.settimeout(5)
+        client.connect(endpoint)
+        client.sendall(payload)
+        client.shutdown(socket.SHUT_WR)
         chunks = []
         while True:
-            buffer = ctypes.create_string_buffer(4096)
-            read = wintypes.DWORD()
-            okay = kernel32.ReadFile(handle, buffer, len(buffer), ctypes.byref(read), None)
-            if read.value:
-                chunks.append(buffer.raw[:read.value])
-            if okay:
-                continue
-            error = ctypes.get_last_error()
-            if error == 234:
-                continue
-            if error in {109, 232, 233}:
-                break
-            fail(f"Cannot read from {pipe_name}: Windows error {error}.")
-        return b"".join(chunks)
+            chunk = client.recv(4096)
+            if not chunk:
+                reply = b"".join(chunks)
+                sys.stdout.buffer.write(reply)
+                if reply and not reply.endswith(b"\n"):
+                    sys.stdout.buffer.write(b"\n")
+                raise SystemExit
+            chunks.append(chunk)
+    except OSError as error:
+        errors.append(f"{endpoint!r}: {error}")
     finally:
-        kernel32.CloseHandle(handle)
-
-
-def unix_socket():
-    paths = []
-    override = os.environ.get("DSI_STUDIO_SOCKET")
-    if override:
-        paths.append(override)
-    for base in (
-        os.environ.get("TMPDIR"), os.environ.get("TMP"),
-        os.environ.get("TEMP"), tempfile.gettempdir(), "/tmp",
-    ):
-        if base:
-            path = os.path.join(base, "dsi-studio")
-            if path not in paths:
-                paths.append(path)
-    endpoints = paths + ["\0dsi-studio"]
-    errors = []
-    for endpoint in endpoints:
-        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        try:
-            client.settimeout(5)
-            client.connect(endpoint)
-            client.sendall(payload)
-            client.shutdown(socket.SHUT_WR)
-            chunks = []
-            while True:
-                chunk = client.recv(4096)
-                if not chunk:
-                    return b"".join(chunks)
-                chunks.append(chunk)
-        except OSError as error:
-            errors.append(f"{endpoint!r}: {error}")
-        finally:
-            client.close()
-    fail("Cannot connect to DSI Studio local socket:\n" + "\n".join(errors))
-
-
-reply = windows_pipe() if os.name == "nt" else unix_socket()
-sys.stdout.buffer.write(reply)
-if reply and not reply.endswith(b"\n"):
-    sys.stdout.buffer.write(b"\n")
+        client.close()
+fail("Cannot connect to DSI Studio local socket:\n" + "\n".join(errors))
 PY
