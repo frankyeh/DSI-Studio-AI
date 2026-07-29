@@ -4,7 +4,10 @@ Use these with the standard top-level `CMD` request. Command names and text,
 path, or composite parameters are strings. Send standalone numeric parameters
 as JSON numbers.
 
-This file contains the complete device inventory confirmed in the current source.
+This file contains the complete device command inventory confirmed in the
+current source. The current command interface has no `list_device` command.
+Device indices follow current table order and cannot be discovered remotely
+through a dedicated request.
 
 | Command | Common example | Important behavior |
 |---|---|---|
@@ -25,6 +28,8 @@ This file contains the complete device inventory confirmed in the current source
 - Device positions supplied to `new_device` and `move_device` are voxel coordinates in current FIB space.
 - `push_device` and `pull_device` use a physical 0.5 mm movement converted using voxel size.
 - `move_device`, `push_device`, `pull_device`, `copy_device`, and `delete_device` use the current row when the index is omitted.
+- Because `list_device` does not exist, prefer current-row operations when the user has selected the intended device. Otherwise ask the user to identify the target rather than guessing an index.
 - `set_acpc` removes existing locator entries before creating replacements.
 - `save_all_devices` writes only checked devices.
 - Modal `show_device_statistics` is unsuitable for unattended operation; prefer `save_device_statistics`.
+- Confirm `delete_device`, `delete_all_devices`, and replacement of existing AC/PC/Inter locators before use.
