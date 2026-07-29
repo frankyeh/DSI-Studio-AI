@@ -3,18 +3,39 @@ set -euo pipefail
 
 case "$(uname -s)" in
 MINGW*|MSYS*|CYGWIN*)
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File - "$@" <<'PS1'
-param(
-    [Parameter(Mandatory,Position=0)]
-    [string]$Target,
-
-    [Parameter(Position=1,ValueFromRemainingArguments)]
-    [string[]]$Value,
-
-    [string]$Chat
-)
-
+    export DSI_ARGC=$#
+    i=0
+    for value in "$@"; do
+        printf -v name 'DSI_ARG_%d' "$i"
+        printf -v "$name" '%s' "$value"
+        export "$name"
+        i=$((i+1))
+    done
+    ps=$(cat <<'PS1'
 $ErrorActionPreference = 'Stop'
+$argv = @(for($i = 0; $i -lt [int]$env:DSI_ARGC; $i++)
+{
+    [Environment]::GetEnvironmentVariable("DSI_ARG_$i")
+})
+if(!$argv.Count) { throw 'Usage: ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]' }
+
+$Target = $argv[0]
+[string[]]$Value = @()
+$Chat = $null
+for($i = 1; $i -lt $argv.Count; $i++)
+{
+    if($argv[$i] -ieq '-Chat')
+    {
+        $i++
+        if($i -ge $argv.Count) { throw '-Chat requires a message.' }
+        $Chat = $argv[$i]
+    }
+    else
+    {
+        $Value += $argv[$i]
+    }
+}
+
 $Agent = $env:DSI_STUDIO_AGENT
 $Session = $env:CODEX_THREAD_ID
 if(!$Agent) { throw 'Missing DSI_STUDIO_AGENT.' }
@@ -72,6 +93,8 @@ finally
     }
 }
 PS1
+)
+    powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$ps"
     exit $?
 ;;
 esac
