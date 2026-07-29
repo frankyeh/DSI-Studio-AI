@@ -1,6 +1,6 @@
 # DSI Studio AI Setup
 
-Read this file once, then use `DSI_STUDIO_AI_MANUAL.md` and the topic-specific example files only as needed.
+Read this file once, then use `DSI_STUDIO_AI_MANUAL.md` and the topic-specific example files from `$env:DSI_STUDIO_AI_DIR` only as needed.
 
 ## Identity
 
@@ -13,10 +13,11 @@ Send the same session with every request.
 
 ## Agent wrapper
 
-Use one `dsi_agent.ps1` invocation per request:
+DSI Studio exposes the installed AI directory as `$env:DSI_STUDIO_AI_DIR`. Set the wrapper path once, then use one invocation per request:
 
 ```powershell
-./dsi_agent.ps1 -Agent <Codex|Claude> -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+$dsi = Join-Path $env:DSI_STUDIO_AI_DIR dsi_agent.ps1
+& $dsi -Agent <Codex|Claude> -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
 ```
 
 The wrapper creates a new named-pipe connection, sends one request, reads the complete reply, and closes it. Do not access or reuse the pipe directly, inspect the wrapper, launch another DSI Studio instance, or modify GitHub Actions to operate these instructions.
@@ -28,7 +29,7 @@ The wrapper creates a new named-pipe connection, sends one request, reads the co
 After understanding the task, send one concise `TITLE` derived from it:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target TITLE "Corticospinal tract analysis"
+& $dsi -Agent <AGENT> -Session <SESSION> -Target TITLE "Corticospinal tract analysis"
 ```
 
 Send another `TITLE` whenever the active task changes substantially. Repeated `TITLE` requests update the displayed chat name while keeping the same session.
@@ -48,8 +49,8 @@ Use `main` directly for main-window commands. Call top-level `LIST` only when a 
 To discover recent files, target `main` and use these exact commands:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target main list_recent_fib
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target main list_recent_src
+& $dsi -Agent <AGENT> -Session <SESSION> -Target main list_recent_fib
+& $dsi -Agent <AGENT> -Session <SESSION> -Target main list_recent_src
 ```
 
 Use `list_recent_fib` for recent FIB/FZ files and `list_recent_src` for recent SRC/SZ files. Do not invent alternatives such as `recent_list`.
@@ -59,7 +60,7 @@ Use `list_recent_fib` for recent FIB/FZ files and `list_recent_src` for recent S
 Call `LIST` only when a tracking or image window ID is needed:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target LIST
+& $dsi -Agent <AGENT> -Session <SESSION> -Target LIST
 ```
 
 Example reply:
@@ -83,15 +84,15 @@ Use the exact tracking or image key returned by `LIST`, such as `tracking7ff6ab1
 The wrapper treats the first value after `Target` as the command name and later values as parameters. It converts standalone numbers to JSON numbers and preserves text or path parameters as strings.
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target main hub_repo
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target main hub_tags data-hcp/lifespan
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target main hub_files data-hcp/lifespan tag 0 20
+& $dsi -Agent <AGENT> -Session <SESSION> -Target main hub_repo
+& $dsi -Agent <AGENT> -Session <SESSION> -Target main hub_tags data-hcp/lifespan
+& $dsi -Agent <AGENT> -Session <SESSION> -Target main hub_files data-hcp/lifespan tag 0 20
 ```
 
 ### Send a command
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_region -Chat "Checking the available regions before making changes."
+& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_region -Chat "Checking the available regions before making changes."
 ```
 
 A useful `-Chat` message may accompany a meaningful command. Silent polling may omit it.
@@ -121,7 +122,7 @@ A request rejected before execution returns `status:"error"` with an `error` fie
 ### Send a standalone message
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target CHAT "The requested operation completed and the output was verified."
+& $dsi -Agent <AGENT> -Session <SESSION> -Target CHAT "The requested operation completed and the output was verified."
 ```
 
 ## Opening FIB/FZ files
@@ -133,7 +134,7 @@ Use `open_fib`; do not send a filesystem path by itself.
 Target `main`:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target main open_fib C:/data/subject.fz -Chat "Opening the FIB file."
+& $dsi -Agent <AGENT> -Session <SESSION> -Target main open_fib C:/data/subject.fz -Chat "Opening the FIB file."
 ```
 
 This opens the supplied `.fz`, `*fib.gz`, or `.dz` file and creates a tracking window. Omit the path to open the local FIB picker. Call `LIST` afterward only when the new tracking-window ID is needed.
@@ -143,7 +144,7 @@ This opens the supplied `.fz`, `*fib.gz`, or `.dz` file and creates a tracking w
 Target an existing tracking window using its exact current ID:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 open_fib C:/data/second_subject.fz -Chat "Opening an additional FIB file."
+& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 open_fib C:/data/second_subject.fz -Chat "Opening an additional FIB file."
 ```
 
 Do not use `open_image` for FIB/FZ files; reserve it for ordinary image files and image-window workflows.
@@ -153,7 +154,7 @@ Do not use `open_image` for FIB/FZ files; reserve it for ordinary image files an
 ### `list_slice`
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_slice
+& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_slice
 ```
 
 The reply columns are:
@@ -173,7 +174,7 @@ The `current` column is only a `1`/`0` selected-state flag. After `set_slice`, p
 ### `list_tract`
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_tract
+& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_tract
 ```
 
 The full reply columns are:
@@ -185,7 +186,7 @@ index    status    shown    name    tracts    deleted    seeds
 Each bundle's `status` is `running` or `done`. Compact status uses:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_tract status
+& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 list_tract status
 ```
 
 `status=done` means tracking is complete. `bundles` is the total number of tract rows, not the number of running jobs.
@@ -195,7 +196,7 @@ Each bundle's `status` is `running` or `done`. Compact status uses:
 A new bundle name is mandatory:
 
 ```powershell
-./dsi_agent.ps1 -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 run_tracking CST
+& $dsi -Agent <AGENT> -Session <SESSION> -Target tracking7ff6ab123410 run_tracking CST
 ```
 
 The name becomes the new tract-bundle name. An empty name fails. This form uses the current tracking parameters and checked regions.
@@ -211,9 +212,9 @@ Call `LIST` only when a tracking or image window ID must be obtained or refreshe
 
 ## Where to find commands
 
-The concise protocol and critical syntax are in `DSI_STUDIO_AI_MANUAL.md`.
+The concise protocol and critical syntax are in `$env:DSI_STUDIO_AI_DIR\DSI_STUDIO_AI_MANUAL.md`.
 
-Source-verified command examples are separated by topic:
+Source-verified command examples are in the same directory and separated by topic:
 
 - `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`
 - `DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md`
