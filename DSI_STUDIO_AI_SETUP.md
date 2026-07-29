@@ -16,14 +16,18 @@ Send the same session with every request.
 DSI Studio copies `dsi_agent.ps1` beside the provider instruction file in the selected work directory.
 
 - Codex: locate the script beside `AGENTS.md`, assign its exact path to `$dsi`, and do not derive it from the shell working directory.
-- Claude: locate the script beside `CLAUDE.md`, resolve its exact absolute native path, and write that quoted path literally in every invocation so it matches DSI Studio's `PowerShell("<agent_script>" -Agent Claude -Session <SESSION> -Target *)` allowlist. Do not invoke it through `./dsi_agent.ps1`, `$dsi`, or `$env:DSI_STUDIO_AI_DIR`.
+- Claude: invoke the copied script exactly as `./dsi_agent.ps1` so it matches DSI Studio's `PowerShell(./dsi_agent.ps1 -Agent Claude *)` allowlist. Do not use `$dsi`, an absolute path, or `$env:DSI_STUDIO_AI_DIR` for the wrapper.
 
-The examples below use `& $dsi` as compact notation. Codex may use it directly. Claude must replace every `& $dsi` with `& "<exact native absolute path to the copied work-directory dsi_agent.ps1>"`.
+The examples below use `& $dsi` as compact Codex notation. Claude must replace every `& $dsi` with `./dsi_agent.ps1`.
 
 Use one invocation per request:
 
 ```powershell
-& $dsi -Agent <Codex|Claude> -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+# Codex
+& $dsi -Agent Codex -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+
+# Claude
+./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
 ```
 
 The wrapper creates a new named-pipe connection, sends one request, reads the complete reply, and closes it. Do not access or reuse the pipe directly, inspect the wrapper, launch another DSI Studio instance, or modify GitHub Actions to operate these instructions.
