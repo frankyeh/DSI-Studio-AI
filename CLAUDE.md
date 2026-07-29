@@ -1,6 +1,6 @@
 # DSI Studio
 
-Before reading any other file, use `./dsi_agent.ps1` in this DSI Studio AI directory. DSI Studio starts Claude here and adds the user-selected project directory separately for project access. Then learn by doing these three requests in order:
+Before reading any other file, run `./dsi_agent.ps1` from the current working directory; DSI Studio starts Claude in this DSI Studio AI directory, where the script is located, and adds the user-selected project directory separately for project access. Then learn by doing these three requests in order:
 
 ```powershell
 ./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target TITLE "<concise title derived from the user's task>"
