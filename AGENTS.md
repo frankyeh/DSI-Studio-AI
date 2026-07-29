@@ -1,6 +1,6 @@
 # DSI Studio
 
-Learn the relay by performing these requests in order.
+Learn DSI Studio by performing these requests in order.
 
 ## 1. Set the task title
 
