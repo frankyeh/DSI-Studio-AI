@@ -4,16 +4,20 @@ Use these with the standard top-level `CMD` request. Command names and text,
 path, or composite parameters are strings. Send standalone numeric parameters
 as JSON numbers.
 
-This file contains the complete region inventory confirmed in the current source.
+This file contains the complete region command inventory confirmed in the
+current source.
 
-`region_action_<operation>` uses `command[1]` for one region index or an `&`-separated index list. Commands that need an additional threshold or voxel radius use `command[2]`. Send a single index or numeric value as a number; keep an `&`-separated list as a string.
+`region_action_<operation>` uses `command[1]` for one region index or an
+`&`-separated index list. Commands that need an additional threshold or voxel
+radius use `command[2]`. Send a single index or numeric value as a number; keep
+an `&`-separated list as a string.
 
 | Command | Common example | Important behavior |
 |---|---|---|
 | `list_region` | `["list_region"]` | List region index, visibility, name, type, color, dimensions, and resolution. |
-| `list_atlas` | `["list_atlas"]` | List available templates and atlases before atlas-region creation. |
-| `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]` | Add labels 5 and 6 from atlas 2 of template 0; discover valid template, atlas, and label IDs first. |
-| `add_region_from_atlas` | `["add_region_from_atlas","0 2"]` | Add every label from atlas 2 of template 0. |
+| `list_atlas` | `["list_atlas"]` | List template index, atlas index, atlas name, and region count. It does not list label IDs or label names. |
+| `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]` | Add labels 5 and 6 from atlas 2 of template 0. Use label IDs only when supplied by the user or another verified source; the current command interface cannot discover them. |
+| `add_region_from_atlas` | `["add_region_from_atlas","0 2"]` | Add every label from atlas 2 of template 0. This form does not require individual label IDs. |
 | `set_region_name` | `["set_region_name",0,"Tumor Core"]` | Rename a region by index. |
 | `set_region_type` | `["set_region_type",0,3]` | Set region role: `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, `6=Limiting`. |
 | `set_region_color` | `["set_region_color",0,4294901760]` | Set packed Qt ARGB color for a region. |
@@ -82,18 +86,22 @@ This file contains the complete region inventory confirmed in the current source
 | `region_action_all_to_1st` | `["region_action_all_to_1st","0&1&2"]` | Assign and smooth later labels within the first region. |
 | `region_action_refine_all` | `["region_action_refine_all","0&1&2"]` | Refine all supplied labels using the current slice intensity image. |
 
-## Safety notes
+## Safety and discovery notes
 
-- Discover indices and roles with `list_region` before mutation.
+- Discover current region indices and roles with `list_region` before mutation.
+- `list_atlas` does not expose individual atlas label IDs or names. Do not guess
+  them or claim they were discovered through the command interface.
+- The two-element `add_region_from_atlas` form adds all labels and avoids the
+  missing label-discovery problem.
 - Confirm deletion, merging, overwrite, and mask-replacement operations.
-- Modal `show_*` commands block for user interaction; prefer the corresponding `save_*` command for unattended work.
+- Modal `show_*` commands block for user interaction; prefer the corresponding
+  `save_*` command for unattended work.
 - `add_region_from_atlas` changes the active template ID before adding labels.
 
 ## Region Window parameter reference
 
-These are the `ROI` parameters from the embedded `:/data/options.txt` resource. The source tree labels the `ROI` root as **Region Window**, so these parameters belong here rather than in the rendering reference.
-
-Use:
+These are the `ROI` parameters from the embedded `:/data/options.txt` resource.
+Use live discovery before changing a value:
 
 ```json
 ["list_param","roi_zoom"]
@@ -101,7 +109,8 @@ Use:
 ["set_params","roi_zoom=5.0&roi_opacity=0.8&roi_draw_edge=1"]
 ```
 
-Send numeric values as JSON numbers with `set_param`. `set_params` keeps its combined assignment expression as one string. Enum values are zero-based indices.
+Send numeric values as JSON numbers with `set_param`. `set_params` keeps its
+combined assignment expression as one string. Enum values are zero-based.
 
 | Parameter ID | UI setting | Accepted value | Default |
 |---|---|---|---|
@@ -129,4 +138,7 @@ Send numeric values as JSON numbers with `set_param`. `set_params` keeps its com
 
 ## Footnotes
 
-1. `new_region_from_threshold` appends a new region before calling `region_action_threshold`. If threshold selection is canceled or the action fails, the newly appended empty region is not removed. For unattended use, always provide a valid explicit threshold and verify the new region with `list_region`.
+1. `new_region_from_threshold` appends a region before calling
+   `region_action_threshold`. If threshold selection is canceled or the action
+   fails, the appended empty region is not removed. For unattended use, provide
+   an explicit threshold and verify the new region with `list_region`.
