@@ -140,7 +140,7 @@ def windows_pipe():
             error = ctypes.get_last_error()
             if error == 234:
                 continue
-            if error in {109, 232}:
+            if error in {109, 232, 233}:
                 break
             fail(f"Cannot read from {pipe_name}: Windows error {error}.")
         return b"".join(chunks)
