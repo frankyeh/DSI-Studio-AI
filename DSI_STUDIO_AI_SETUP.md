@@ -15,16 +15,18 @@ Send the same session with every request.
 
 DSI Studio starts both Codex and Claude with this DSI Studio AI directory as their working directory. `AGENTS.md`, `CLAUDE.md`, `dsi_agent.ps1`, the manual, examples, and skills remain here. The user-selected project directory is added separately for project access; do not copy the AI support files into it.
 
-Use the local wrapper for both providers:
+Windows may block local PowerShell scripts. Claude invokes `./dsi_agent.ps1` directly. Codex must prefix each wrapper request with `Set-ExecutionPolicy -Scope Process Bypass -Force;`; this affects only that PowerShell process and does not change user or system policy.
 
-```powershell
-$dsi = "./dsi_agent.ps1"
-```
+The examples below use `& $dsi` as shorthand. For Claude, set `$dsi = "./dsi_agent.ps1"`. For Codex, replace each `& $dsi` with `Set-ExecutionPolicy -Scope Process Bypass -Force; ./dsi_agent.ps1`.
 
 Use one invocation per request:
 
 ```powershell
-& $dsi -Agent <Codex|Claude> -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+# Claude
+./dsi_agent.ps1 -Agent Claude -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+
+# Codex
+Set-ExecutionPolicy -Scope Process Bypass -Force; ./dsi_agent.ps1 -Agent Codex -Session <SESSION> -Target <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
 ```
 
 The wrapper creates a new named-pipe connection, sends one request, reads the complete reply, and closes it. Do not access or reuse the pipe directly, inspect the wrapper, launch another DSI Studio instance, or modify GitHub Actions to operate these instructions.
