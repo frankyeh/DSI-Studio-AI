@@ -1,6 +1,6 @@
 # DSI Studio
 
-Read `DSI_STUDIO_AI_SETUP.md` first. DSI Studio starts Codex in this DSI Studio AI directory, where `dsi.cmd` is located, and adds the user-selected project directory separately for project access. DSI Studio supplies `DSI_STUDIO_AGENT` and `CODEX_THREAD_ID`; `dsi.cmd` supplies them to the relay and applies a process-scoped PowerShell execution-policy bypass.
+Read `DSI_STUDIO_AI_SETUP.md` first. DSI Studio starts the current AI agent in this DSI Studio AI directory, where `dsi.cmd` is located, and adds the user-selected project directory separately for project access. DSI Studio supplies `DSI_STUDIO_AGENT` and `CODEX_THREAD_ID`; `dsi.cmd` supplies them to the relay and applies a process-scoped PowerShell execution-policy bypass.
 
 Then learn by doing these three requests in order:
 
