@@ -13,10 +13,12 @@ Send the same session with every request.
 
 ## Agent wrapper
 
-DSI Studio copies `dsi_agent.ps1` beside the provider instruction file in the selected work directory. Before using the examples below, set `$dsi` to that copied script:
+DSI Studio copies `dsi_agent.ps1` beside the provider instruction file in the selected work directory.
 
-- Codex: locate `dsi_agent.ps1` in the same directory as the `AGENTS.md` that supplied the current instructions and assign its exact path to `$dsi`; do not derive it from the shell working directory.
-- Claude: use `$dsi = "./dsi_agent.ps1"`.
+- Codex: locate the script beside `AGENTS.md`, assign its exact path to `$dsi`, and do not derive it from the shell working directory.
+- Claude: locate the script beside `CLAUDE.md`, resolve its exact absolute native path, and write that quoted path literally in every invocation so it matches DSI Studio's `PowerShell("<agent_script>" -Agent Claude -Session <SESSION> -Target *)` allowlist. Do not invoke it through `./dsi_agent.ps1`, `$dsi`, or `$env:DSI_STUDIO_AI_DIR`.
+
+The examples below use `& $dsi` as compact notation. Codex may use it directly. Claude must replace every `& $dsi` with `& "<exact native absolute path to the copied work-directory dsi_agent.ps1>"`.
 
 Use one invocation per request:
 
