@@ -22,6 +22,8 @@ Learn the relay by performing these requests in order. Inspect each reply and us
 
 ## 4. Open a local FIB/FZ with `CMD`
 
+If this step does not apply to the user's task, study the commands and continue to the next step without running them.
+
 When the user supplies a local file:
 
 ```powershell
@@ -41,6 +43,8 @@ Do not invent a path. Copy the exact new `tracking<hex-address>` key returned by
 
 ## 5. Run whole-brain fiber tracking with `CMD`
 
+If this step does not apply to the user's task, study the commands and continue to the next step without running them.
+
 Use the tracking-window key returned by `LIST`:
 
 ```powershell
@@ -56,6 +60,8 @@ Repeat `list_tract status` until it reports `status=done`, then inspect the resu
 ```
 
 ## 6. Query Fiber Data Hub with `CMD`
+
+If this step does not apply to the user's task, study the commands and continue to the next step without running them.
 
 ```powershell
 ./dsi main hub_repo
