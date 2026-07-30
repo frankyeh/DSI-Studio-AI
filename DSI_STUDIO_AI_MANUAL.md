@@ -63,17 +63,21 @@ bash ./dsi.sh TITLE "Corticospinal tract analysis"
 
 ### `CHAT`
 
-Use standalone `CHAT` when no command is needed:
+Use `CHAT` to tell the user what the agent is doing, what it found, or what completed.
+Use a standalone message when no command is needed:
 
 ```bash
 bash ./dsi.sh CHAT "Tracking completed and the output was verified."
 ```
 
-A message may accompany a command:
+A message may accompany a meaningful command:
 
 ```bash
 bash ./dsi.sh main list_recent_fib -Chat "Checking recent fiber files."
 ```
+
+`CHAT` is user-facing communication. It does not retrieve DSI Studio action history;
+use `LOG` for that purpose.
 
 ### `LIST`
 
@@ -122,12 +126,28 @@ multiple paths into an `&`-separated string.
 
 ### `LOG`
 
+Use `LOG` to retrieve new DSI Studio console and action output recorded since the
+session's previous log position:
+
 ```bash
 bash ./dsi.sh LOG
 ```
 
-Use `LOG` only when the direct `CMD` reply and targeted discovery commands cannot
-explain a failure.
+Call `LOG` after the user demonstrates a workflow, changes settings manually, retries
+a failed action, or performs GUI operations the agent needs to learn. Inspect the
+returned output to reconstruct the actual sequence, including failed attempts and
+intermediate states, rather than relying on memory.
+
+When the observed actions form a stable reusable workflow, summarize them into an AI
+skill while preserving exact command names, parameters, prerequisites, verification
+steps, and known failure paths.
+
+`LOG` is incremental, not a complete permanent archive. The session's first request
+sets the starting log position; each `LOG` returns only newer output and then advances
+that position. Output is size-limited, so call `LOG` regularly during demonstrations
+and long workflows. Use targeted `list_*` or status commands to verify current state.
+Use `CHAT` or `-Chat` to tell the user what the agent is doing; do not use `LOG` as a
+message transport.
 
 ## Reply format
 
@@ -289,6 +309,7 @@ identify the target before an indexed mutation.
 | Need | Complete command |
 |---|---|
 | Tracking or image window IDs | `bash ./dsi.sh LIST` |
+| New console and user-action history | `bash ./dsi.sh LOG` |
 | Recent FIB/FZ paths | `bash ./dsi.sh main list_recent_fib` |
 | Recent SRC/SZ paths | `bash ./dsi.sh main list_recent_src` |
 | Hub repositories | `bash ./dsi.sh main hub_repo` |
@@ -309,6 +330,9 @@ identify the target before an indexed mutation.
 - Always include `bash` before `./dsi.sh`.
 - Do not alter the provider or session environment variables.
 - Send `TITLE` first and update it when the task changes substantially.
+- Use `CHAT` or `-Chat` for user-visible progress and results.
+- Use `LOG` regularly while learning user-demonstrated workflows; summarize stable,
+  verified action sequences into reusable skills.
 - Target fixed `main` directly; call `LIST` only for tracking or image IDs.
 - Copy command names, paths, window IDs, indices, model IDs, and parameter IDs from
   the user, current command output, or another verified source.
