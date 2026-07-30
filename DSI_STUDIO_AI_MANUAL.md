@@ -81,8 +81,9 @@ use `LOG` for that purpose.
 
 ### `LIST`
 
-`main` is fixed and can be targeted directly. Call top-level `LIST` only when a
-tracking or image window ID is needed:
+`main` is fixed and can be targeted directly. Successful `open_fib` and `open_image`
+replies report the ID of each newly created window. Call top-level `LIST` only to
+discover another currently open tracking or image window:
 
 ```bash
 bash ./dsi.sh LIST
@@ -93,6 +94,11 @@ Tracking and image keys append a lowercase hexadecimal window address without `0
 for example `tracking7ff6ab123410` or `image7ff6ab456780`. Copy the exact current
 key. Never construct one, substitute a title or filename, or reuse an ID after its
 window closes.
+
+When `open_fib` or `open_image` creates a window, its command-result `output` contains
+`tracking window created, id: tracking...` or `image window created, id: image...`.
+Copy that exact ID and target the new window directly; do not call `LIST` merely to
+rediscover it.
 
 | Window | Commands |
 |---|---|
@@ -156,6 +162,9 @@ command, with `cmd` and `status` in each result. Text-producing commands also in
 `output`; failed commands include `error`. A successful command without captured text
 contains only `cmd` and `status`.
 
+Successful `open_fib` and `open_image` results include the newly created window ID in
+`output`.
+
 Success means the handler returned without an immediate error; asynchronous or
 GUI-backed work may still be running. Use the relevant discovery or status command
 to confirm completion before a dependent operation.
@@ -181,6 +190,10 @@ Open ordinary images from `main`:
 ```bash
 bash ./dsi.sh main open_image "C:/data/T1w.nii.gz"
 ```
+
+The successful reply reports `tracking window created, id: tracking...` for
+`open_fib`, or `image window created, id: image...` for `open_image`. Copy the
+reported ID and use it as the target of subsequent commands.
 
 Use the tracking-window route for segmentation related to an open FIB so created
 regions remain in the tractography workflow. Use an image window for standalone
@@ -308,7 +321,8 @@ identify the target before an indexed mutation.
 
 | Need | Complete command |
 |---|---|
-| Tracking or image window IDs | `bash ./dsi.sh LIST` |
+| Newly created tracking or image window ID | Returned in the successful `open_fib` or `open_image` command `output` |
+| Other open tracking or image window IDs | `bash ./dsi.sh LIST` |
 | New console and user-action history | `bash ./dsi.sh LOG` |
 | Recent FIB/FZ paths | `bash ./dsi.sh main list_recent_fib` |
 | Recent SRC/SZ paths | `bash ./dsi.sh main list_recent_src` |
@@ -333,7 +347,8 @@ identify the target before an indexed mutation.
 - Use `CHAT` or `-Chat` for user-visible progress and results.
 - Use `LOG` regularly while learning user-demonstrated workflows; summarize stable,
   verified action sequences into reusable skills.
-- Target fixed `main` directly; call `LIST` only for tracking or image IDs.
+- Use a window ID returned by `open_fib` or `open_image`; call `LIST` only to discover
+  another already-open tracking or image window.
 - Copy command names, paths, window IDs, indices, model IDs, and parameter IDs from
   the user, current command output, or another verified source.
 - Confirm destructive operations, overwrites, and saved-history clearing.
