@@ -1,1 +1,1 @@
-@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0dsi_agent.ps1" %*
+@powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0dsi.ps1" %*
