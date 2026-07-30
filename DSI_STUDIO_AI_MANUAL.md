@@ -6,17 +6,10 @@ DSI Studio starts the current agent in this DSI Studio AI directory and adds the
 user-selected project directory separately for project access. Do not copy the AI
 support files into the project directory.
 
-The launchers read:
-
-```text
-DSI_STUDIO_AGENT
-CODEX_THREAD_ID
-```
-
-DSI Studio sets `DSI_STUDIO_AGENT`. Codex supplies its own `CODEX_THREAD_ID`; DSI
-Studio sets the same variable to the Claude session UUID before launching Claude.
-Do not search for, guess, generate, replace, or pass either value on the command
-line.
+The launchers read `DSI_STUDIO_AGENT` and `CODEX_THREAD_ID`. DSI Studio sets
+`DSI_STUDIO_AGENT`. Codex supplies its own `CODEX_THREAD_ID`; DSI Studio sets the
+same variable to the Claude session UUID before launching Claude. Do not search for,
+guess, generate, replace, or pass either value on the command line.
 
 Use the same launcher for Codex and Claude:
 
@@ -49,14 +42,9 @@ requests.
 
 ## Command-inventory notation
 
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` uses compact arrays such as:
-
-```text
-["set_slice",7]
-```
-
-These arrays document command names and argument order; they are not executable
-requests. Execute the same command as:
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` uses compact arrays only to document command
+names and argument order. Do not send those arrays. Convert each entry to a complete
+launcher command, for example:
 
 ```bash
 bash ./dsi.sh tracking<hex-address> set_slice 7
@@ -66,7 +54,7 @@ bash ./dsi.sh tracking<hex-address> set_slice 7
 
 ### `TITLE`
 
-Send a concise title derived from the task, and update it when the task changes
+Send a concise title derived from the task and update it when the task changes
 substantially:
 
 ```bash
@@ -96,15 +84,11 @@ tracking or image window ID is needed:
 bash ./dsi.sh LIST
 ```
 
-Example output:
-
-```text
-{"status":"success","application":{"status":"busy"},"windows":{"main":{"status":"idle","title":"DSI Studio"},"tracking7ff6ab123410":{"status":"busy","title":"subject.fz"},"image7ff6ab456780":{"status":"idle","title":"T1w.nii.gz"}}}
-```
-
-Tracking and image keys append a lowercase hexadecimal window address without `0x`.
-Copy the exact current key. Never construct one, substitute a title or filename, or
-reuse an ID after its window closes.
+A successful reply includes `status`, application state, and a `windows` object.
+Tracking and image keys append a lowercase hexadecimal window address without `0x`,
+for example `tracking7ff6ab123410` or `image7ff6ab456780`. Copy the exact current
+key. Never construct one, substitute a title or filename, or reuse an ID after its
+window closes.
 
 | Window | Commands |
 |---|---|
@@ -148,30 +132,13 @@ explain a failure.
 ## Reply format
 
 Every reply has top-level `status`. A `CMD` reply contains one result per executed
-command, with `cmd` and `status` in each result.
+command, with `cmd` and `status` in each result. Text-producing commands also include
+`output`; failed commands include `error`. A successful command without captured text
+contains only `cmd` and `status`.
 
-Text-producing command output:
-
-```text
-{"status":"success","result":[{"cmd":"list_region","status":"success","output":"<command output>"}]}
-```
-
-Successful command without captured text:
-
-```text
-{"status":"success","result":[{"cmd":"set_slice","status":"success"}]}
-```
-
-Failed command:
-
-```text
-{"status":"error","result":[{"cmd":"set_slice","status":"error","error":"<reason>"}]}
-```
-
-`output` appears only when text was captured. Success means the handler returned
-without an immediate error; asynchronous or GUI-backed work may still be running.
-Use the relevant discovery or status command to confirm completion before a
-dependent operation.
+Success means the handler returned without an immediate error; asynchronous or
+GUI-backed work may still be running. Use the relevant discovery or status command
+to confirm completion before a dependent operation.
 
 ## Opening files
 
@@ -232,11 +199,7 @@ bash ./dsi.sh tracking7ff6ab123410 set_slice 7
 bash ./dsi.sh tracking7ff6ab123410 list_slice
 ```
 
-`list_slice` columns:
-
-```text
-index    current    name    status
-```
+`list_slice` returns `index`, `current`, `name`, and `status`.
 
 - `available` — a URL-backed slice is listed but not loaded locally.
 - `registering` — loading or registration is running.
@@ -253,16 +216,10 @@ bash ./dsi.sh tracking7ff6ab123410 segment_brain "<model-ID>" 7
 bash ./dsi.sh tracking7ff6ab123410 list_region
 ```
 
-`list_unet` columns:
-
-```text
-index    available    model    name    description
-```
-
-Use the internal `model` value, not the display `name`, and only a row with
-`available=1`. The optional slice argument accepts an exact slice name or numeric
-index. A client timeout does not prove inference stopped; do not immediately resend
-segmentation.
+`list_unet` returns `index`, `available`, `model`, `name`, and `description`. Use the
+internal `model` value, not the display `name`, and only a row with `available=1`.
+The optional slice argument accepts an exact slice name or numeric index. A client
+timeout does not prove inference stopped; do not immediately resend segmentation.
 
 ### Atlases and regions
 
@@ -287,17 +244,8 @@ bash ./dsi.sh tracking7ff6ab123410 list_tract
 bash ./dsi.sh tracking7ff6ab123410 list_tract status
 ```
 
-Full columns:
-
-```text
-index    status    shown    name    tracts    deleted    seeds
-```
-
-Compact columns:
-
-```text
-status    bundles
-```
+The full `list_tract` reply returns `index`, `status`, `shown`, `name`, `tracts`,
+`deleted`, and `seeds`. The compact status reply returns `status` and `bundles`.
 
 `status=done` means no tracking thread remains active. `bundles` is the total number
 of tract rows, not the number of running jobs. Poll until `done` before a dependent
