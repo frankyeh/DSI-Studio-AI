@@ -1,5 +1,18 @@
 # DSI Studio Fiber-Tracking Guide for AI Agents
 
+Use complete launcher commands throughout this workflow:
+
+```bash
+bash ./dsi.sh tracking<hex-address> <command> [parameters...]
+```
+
+Always include `bash` before `./dsi.sh`. Replace `tracking<hex-address>` with the
+exact current window ID returned by:
+
+```bash
+bash ./dsi.sh LIST
+```
+
 Tractography follows reconstructed diffusion orientations. A streamline is a
 computational trajectory, not an observed axon or a measure of connectivity
 strength. Anatomical validity requires source QC, justified tracking settings,
@@ -11,7 +24,7 @@ explicit region logic, and visual inspection.
 - https://www.youtube.com/watch?v=oJK8jwTHVhc
 - https://www.youtube.com/watch?v=V2pxI2tooPs
 
-## Choose the Workflow
+## Choose the workflow
 
 | Goal | Preferred approach |
 |---|---|
@@ -26,7 +39,7 @@ plausibly symmetric, and free of systematic flips. If many bundles fail, inspect
 the acquisition, reconstruction, b-table, orientation, and mask before changing
 tract-specific regions.
 
-## Tracking Parameters
+## Tracking parameters
 
 Start from DSI Studio defaults. Change one setting at a time for a documented
 reason; do not tune parameters until a desired-looking tract appears.
@@ -43,7 +56,19 @@ reason; do not tune parameters until a desired-looking tract appears.
 Tract count is the number of accepted streamlines. Seed count limits attempts.
 Neither represents axons or biological connection strength.
 
-## Build Regions from Anatomy
+Inspect live tracking parameters before changing them:
+
+```bash
+bash ./dsi.sh tracking<hex-address> list_param tracking
+```
+
+Example parameter change:
+
+```bash
+bash ./dsi.sh tracking<hex-address> set_params "fa_threshold=0.08&min_length=20"
+```
+
+## Build regions from anatomy
 
 Prefer anatomical segmentation over drawing regions from scratch:
 
@@ -53,8 +78,8 @@ Prefer anatomical segmentation over drawing regions from scratch:
 4. Inspect boundaries and registration in all three planes.
 5. Assign every region an explicit tracking role.
 
-Many segmentation models are modality agnostic, but successful inference does
-not prove anatomical validity.
+Many segmentation models are modality agnostic, but successful inference does not
+prove anatomical validity.
 
 | Region role | Effect |
 |---|---|
@@ -66,41 +91,55 @@ not prove anatomical validity.
 | NotEnd | Rejects termination in the region |
 | Limiting | Constrains propagation to the region |
 
-Seed and ROI are not interchangeable. Multiple inclusive ROIs usually express
-an AND condition. Every region should have a stated anatomical purpose.
+Seed and ROI are not interchangeable. Multiple inclusive ROIs usually express an
+AND condition. Every region should have a stated anatomical purpose.
 
 Avoid oversized regions that include adjacent pathways, undersized regions that
 miss anatomy or registration variation, and ROAs that intersect valid fibers.
 Spatial overlap alone does not establish tract identity because unrelated
 trajectories can cross the same voxels.
 
-## Manual Tracking
+## Manual tracking
 
-Use manual tracking for distorted anatomy, lesions, pathways absent from the
-atlas, or a required explicit anatomical definition.
+Use manual tracking for distorted anatomy, lesions, pathways absent from the atlas,
+or a required explicit anatomical definition.
 
 Before `run_tracking`:
 
-```json
-["list_param","tracking"]
-["list_region"]
-["run_tracking","<bundle-name>"]
+```bash
+bash ./dsi.sh tracking<hex-address> list_param tracking
+bash ./dsi.sh tracking<hex-address> list_region
+bash ./dsi.sh tracking<hex-address> run_tracking "<bundle-name>"
 ```
 
-Call `list_region` only after regions were created, loaded, segmented, or
-restored. A newly opened FIB normally has no regions.
+Call `list_region` only after regions were created, loaded, segmented, or restored.
+A newly opened FIB normally has no regions.
 
 Record the Seed, ROI, ROA, endpoint, and Terminative logic. Inspect the initial
 bundle before adding filters or exclusion regions.
 
+Explicit region-role syntax uses `region-index:role` entries joined by `&`:
+
+```bash
+bash ./dsi.sh tracking<hex-address> run_tracking "CST" "0:3&1:0&2:1"
+```
+
+Roles are `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, and
+`6=Limiting`.
+
 ## AutoTrack
 
-Use AutoTrack for standard named pathways and reproducible cohort workflows.
-Always discover the exact internal atlas identifier:
+Use AutoTrack for standard named pathways and reproducible cohort workflows. First
+discover the exact internal atlas identifier:
 
-```json
-["list_auto_tract"]
-["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]
+```bash
+bash ./dsi.sh tracking<hex-address> list_auto_tract
+```
+
+Then use an exact returned name:
+
+```bash
+bash ./dsi.sh tracking<hex-address> run_auto_track "ProjectionBrainstem_CorticospinalTractL"
 ```
 
 Atlas names use underscore-separated hierarchical prefixes such as
@@ -114,86 +153,137 @@ tract limit: 50,000
 seed limit: 50,000,000
 ```
 
+Set these limits and optionally disable automatic TIP before a cleanup workflow:
+
+```bash
+bash ./dsi.sh tracking<hex-address> set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
+```
+
 The seed limit prevents difficult, low-yield pathways from running indefinitely.
-If it is reached first, fewer than 50,000 tracts may be produced. Adjust
-AutoTrack tolerance cautiously: larger values accept more variation and false
-positives; smaller values may reject distorted or variable anatomy.
+If it is reached first, fewer than 50,000 tracts may be produced. Adjust AutoTrack
+tolerance cautiously: larger values accept more variation and false positives;
+smaller values may reject distorted or variable anatomy.
 
-## Dense-Bundle Cleanup
+## Dense-bundle cleanup
 
-Topology-informed pruning and repeated-trajectory deletion are recommended for
-a dense, anatomically coherent pathway bundle. Apply them only when the target
-bundle has more than 10,000 tracts; approximately 50,000 tracts before cleanup
-is preferred.
+Topology-informed pruning and repeated-trajectory deletion are recommended only for
+a dense, anatomically coherent named pathway bundle with more than 10,000 tracts;
+approximately 50,000 tracts before cleanup is preferred.
 
-Do not routinely apply either operation to whole-brain tractography. A
-whole-brain tract set contains many pathways rather than one coherent bundle and
-generally does not need bundle-specific trimming or repeated-tract deletion.
-Likewise, leave a bundle with 10,000 or fewer tracts intact unless the user
-specifically requests cleanup.
+Do not routinely apply either operation to whole-brain tractography. A whole-brain
+tract set contains many pathways rather than one coherent bundle and generally does
+not need bundle-specific trimming or repeated-tract deletion. Leave a bundle with
+10,000 or fewer tracts intact unless the user specifically requests cleanup.
 
 - AutoTrack applies its configured `tip_iteration` automatically.
-- `trim_tract` performs one additional TIP iteration on every checked bundle.
-  Use `["trim_tract"]`, or `["trim_tract","<index>"]` to target an explicit
-  bundle index.
-- The exact repeated-tract command is `delete_repeated_tract`. Use
-  `["delete_repeated_tract","1"]` to remove near-duplicate trajectories from
-  every checked bundle using a 1-voxel distance threshold.
-- Uncheck all non-target bundles before either operation. This is mandatory for
-  `delete_repeated_tract`, whose first parameter is the distance threshold, not
-  a bundle index.
+- Apply one additional TIP iteration to every checked bundle:
+
+```bash
+bash ./dsi.sh tracking<hex-address> trim_tract
+```
+
+- Target one explicit bundle index:
+
+```bash
+bash ./dsi.sh tracking<hex-address> trim_tract <bundle-index>
+```
+
+- Remove near-duplicate trajectories from every checked bundle using a 1-voxel
+  distance threshold:
+
+```bash
+bash ./dsi.sh tracking<hex-address> delete_repeated_tract 1
+```
+
+Uncheck all non-target bundles before either operation. This is mandatory for
+`delete_repeated_tract`, whose first parameter is the distance threshold, not a
+bundle index.
 
 Recommended cleanup for a dense named bundle:
 
-1. Set the limits and disable automatic TIP, then run AutoTrack:
-   `["set_params","max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"]`.
-2. Confirm that the target bundle has more than 10,000 tracts, preferably close
-   to 50,000. Otherwise skip cleanup.
-3. Uncheck every non-target bundle, including any whole-brain tract set.
-4. Apply `["trim_tract"]` four or five times, inspecting the result after each
-   round.
-5. Run `["delete_repeated_tract","1"]` once.
-6. Apply secondary `["trim_tract"]` rounds one at a time until approximately
-   10,000 clean trajectories remain. Stop earlier if the valid tract core
-   deteriorates.
+1. Set dense limits and disable automatic TIP:
 
-## Result Cleanup and Visualization
+   ```bash
+   bash ./dsi.sh tracking<hex-address> set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
+   ```
+
+2. Run AutoTrack with an exact name returned by `list_auto_tract`.
+3. Poll until tracking is complete:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> list_tract status
+   ```
+
+4. Confirm the target has more than 10,000 tracts, preferably close to 50,000.
+5. Uncheck every non-target bundle, including any whole-brain tract set.
+6. Apply `trim_tract` four or five times, inspecting after each round.
+7. Run `delete_repeated_tract 1` once.
+8. Apply secondary `trim_tract` rounds one at a time until approximately 10,000
+   clean trajectories remain. Stop earlier if the valid tract core deteriorates.
+
+## Result cleanup and visualization
 
 After tracking finishes:
 
-1. Poll `["list_tract","status"]` until `status=done`.
-2. Use `list_tract` to identify the target and whole-brain bundle indices and
-   tract counts.
-3. Only for a dense named target bundle with more than 10,000 tracts, preferably
-   approximately 50,000, complete the cleanup above with only that target
-   checked. Skip `trim_tract` and `delete_repeated_tract` for whole-brain or
-   sparse tract sets.
-4. Run `["color_all_cluster"]` to assign distinct bundle colors.
-5. Hide the whole-brain bundle with
-   `["check_tract","<whole-brain-index>","0"]`.
-6. Display one mapped bundle with
-   `["show_only_tracts","<target-index>"]`.
-7. Turn off slice rendering so it does not obscure the tract and surface:
-   `["set_param","show_slice",0]`.
-8. Add anatomical context using the subject-mapped built-in white-matter
-   isosurface: `["add_surface","0","25"]`.
+1. Poll until `status=done`:
 
-Choose a useful inspection view for each bundle rather than reusing one camera.
-For the left arcuate fasciculus, inspect from a left-anterior-superior oblique
-position. Start with `["set_view","0"]`, then adjust in small increments:
+   ```bash
+   bash ./dsi.sh tracking<hex-address> list_tract status
+   ```
 
-```json
-["rotate","15 1 0 0"]
-["rotate","20 0 1 0"]
+2. Inspect bundle indices and tract counts:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> list_tract
+   ```
+
+3. Apply dense-bundle cleanup only when appropriate.
+4. Assign distinct bundle colors:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> color_all_cluster
+   ```
+
+5. Hide the whole-brain bundle:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> check_tract <whole-brain-index> 0
+   ```
+
+6. Show only the target bundle:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> show_only_tracts <target-index>
+   ```
+
+7. Turn off slice rendering:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> set_param show_slice 0
+   ```
+
+8. Add subject-mapped built-in white-matter context:
+
+   ```bash
+   bash ./dsi.sh tracking<hex-address> add_surface 0 25
+   ```
+
+Choose a useful inspection view for each bundle rather than reusing one camera. For
+the left arcuate fasciculus, start from view 0 and adjust in small increments:
+
+```bash
+bash ./dsi.sh tracking<hex-address> set_view 0
+bash ./dsi.sh tracking<hex-address> rotate "15 1 0 0"
+bash ./dsi.sh tracking<hex-address> rotate "20 0 1 0"
 ```
 
-Verify orientation and capture several oblique views. Do not obscure mapped
-bundles with whole-brain streamlines.
+Verify orientation and capture several oblique views. Do not obscure mapped bundles
+with whole-brain streamlines.
 
-TIP and repeated-tract deletion modify checked bundles. Preserve the original
-or obtain user approval when cleanup must remain recoverable.
+TIP and repeated-tract deletion modify checked bundles. Preserve the original or
+obtain user approval when cleanup must remain recoverable.
 
-## Quality-Control Guide
+## Quality-control guide
 
 | Observation | Check or response |
 |---|---|
@@ -209,9 +299,9 @@ or obtain user approval when cleanup must remain recoverable.
 | Many AutoTrack pathways fail | Data, b-table, orientation, or reconstruction problem |
 | One pathway fails | Tract yield, tolerance, or anatomical distortion |
 
-Endpoint tracking is sensitive to gray-white segmentation, gyral bias,
-anisotropy near cortex, and endpoint-mask extent. Failure to reach cortex does
-not necessarily prove absence of a connection.
+Endpoint tracking is sensitive to gray-white segmentation, gyral bias, anisotropy
+near cortex, and endpoint-mask extent. Failure to reach cortex does not necessarily
+prove absence of a connection.
 
 ## Reproducibility
 
