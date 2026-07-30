@@ -45,10 +45,11 @@ the next step without running them.
 
 ```bash
 bash ./dsi.sh main open_fib "C:/data/subject.fz"
-bash ./dsi.sh LIST
 ```
 
-Replace the example path with the exact user-supplied path.
+Replace the example path with the exact user-supplied path. Copy the exact
+`tracking<hex-address>` ID from `tracking window created, id: tracking...` in the
+successful command `output`. Do not call `LIST` merely to rediscover this window.
 
 ### 4.2 Open a recent file when no path is supplied
 
@@ -56,10 +57,10 @@ Use an exact relevant path returned by Step 3:
 
 ```bash
 bash ./dsi.sh main open_fib "<exact relevant path returned by list_recent_fib>"
-bash ./dsi.sh LIST
 ```
 
-Do not invent a path. Copy the new `tracking<hex-address>` key returned by `LIST`.
+Do not invent a path. Copy the exact new tracking-window ID from the successful
+`open_fib` command `output`.
 
 ### 4.3 Switch the displayed slice
 
@@ -104,7 +105,8 @@ indices for `Thalamus_Left` and `Thalamus_Right`.
 If this step does not apply to the user's task, study the commands and continue to
 the next step without running them.
 
-Use the tracking-window key returned by `LIST`.
+Use the tracking-window ID returned by `open_fib`. Call `LIST` only to discover a
+different already-open tracking or image window.
 
 ### 5.1 Inspect tracking parameters
 
@@ -163,15 +165,21 @@ index used by commands such as `hub_open`.
 
 ```bash
 bash ./dsi.sh main hub_open "<exact repository>" "<exact tag>" <file-row-index>
-bash ./dsi.sh LIST
 ```
 
-Use the row index returned by `hub_files`. After the tracking window opens, use Step
-4.3 to load any HTTP-backed slice needed for the task.
+Use the row index returned by `hub_files`. If the reply contains
+`tracking window created, id: tracking...`, use that exact ID. A network-backed open
+may finish after the immediate reply; when no ID is returned, call `LIST` to discover
+the newly opened window. After the tracking window opens, use Step 4.3 to load any
+HTTP-backed slice needed for the task.
 
 Do not copy placeholders literally.
 
 ## Continue with the task
+
+When the user demonstrates a workflow, changes settings manually, or retries a failed
+action, run `bash ./dsi.sh LOG` and inspect the returned action history instead of
+relying on memory.
 
 The same folder contains `DSI_STUDIO_AI_MANUAL.md` for relay rules,
 `DSI_STUDIO_AI_SKILL_*.md` for task workflows, and
