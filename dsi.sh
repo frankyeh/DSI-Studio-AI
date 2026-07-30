@@ -17,7 +17,7 @@ $argv = @(for($i = 0; $i -lt [int]$env:DSI_ARGC; $i++)
 {
     [Environment]::GetEnvironmentVariable("DSI_ARG_$i")
 })
-if(!$argv.Count) { throw 'Usage: ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]' }
+if(!$argv.Count) { throw 'Usage: bash ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]' }
 
 $Target = $argv[0]
 [string[]]$Value = @()
@@ -132,7 +132,7 @@ if not session:
 
 args = sys.argv[1:]
 if not args:
-    fail("Usage: ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]")
+    fail("Usage: bash ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]")
 
 target, *args = args
 values = []
