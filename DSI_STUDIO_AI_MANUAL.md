@@ -6,16 +6,17 @@ DSI Studio starts the current agent in this DSI Studio AI directory and adds the
 user-selected project directory separately for project access. Do not copy the AI
 support files into the project directory.
 
-DSI Studio supplies:
+The launchers read:
 
 ```text
 DSI_STUDIO_AGENT
 CODEX_THREAD_ID
 ```
 
-`DSI_STUDIO_AGENT` identifies the provider. `CODEX_THREAD_ID` contains the current
-Codex thread ID or the Claude session UUID supplied by DSI Studio. Do not search for,
-guess, generate, replace, or pass either value on the command line.
+DSI Studio sets `DSI_STUDIO_AGENT`. Codex supplies its own `CODEX_THREAD_ID`; DSI
+Studio sets the same variable to the Claude session UUID before launching Claude.
+Do not search for, guess, generate, replace, or pass either value on the command
+line.
 
 Use the same launcher for Codex and Claude:
 
@@ -45,6 +46,21 @@ The launcher maps arguments as follows:
 
 Use separate `bash ./dsi.sh` invocations rather than bypassing the launcher to batch
 requests.
+
+## Command-inventory notation
+
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` uses compact arrays such as:
+
+```text
+["set_slice",7]
+```
+
+These arrays document command names and argument order; they are not executable
+requests. Execute the same command as:
+
+```bash
+bash ./dsi.sh tracking<hex-address> set_slice 7
+```
 
 ## Request types
 
