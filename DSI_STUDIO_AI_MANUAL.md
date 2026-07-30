@@ -1,29 +1,38 @@
 # DSI Studio AI Command Manual
 
-## Agent environment and wrapper
+## Agent environment and launcher
 
 DSI Studio starts the current agent in this DSI Studio AI directory and adds the
 user-selected project directory separately for project access. Do not copy the AI
 support files into the project directory.
 
-`DSI_STUDIO_AGENT` identifies the current provider. Codex supplies its thread ID
-through `CODEX_THREAD_ID`; DSI Studio sets the same variable to the Claude session
-UUID before launching Claude. Do not search for, guess, generate, or replace either
-value.
+DSI Studio supplies:
 
-Use the same launcher for both providers:
-
-```powershell
-./dsi <TITLE|LIST|LOG|CHAT|window-id> [command/values...]
+```text
+DSI_STUDIO_AGENT
+CODEX_THREAD_ID
 ```
 
-`dsi.cmd` passes the provider and session to `dsi_agent.ps1`, applies a
-process-scoped PowerShell execution-policy bypass, opens one named-pipe connection,
-sends one request, reads the complete reply, and closes it. Use one invocation per
-request. Never access the pipe directly, inspect or bypass the wrappers, launch
-another DSI Studio instance, or modify GitHub Actions to operate these instructions.
+`DSI_STUDIO_AGENT` identifies the provider. `CODEX_THREAD_ID` contains the current
+Codex thread ID or the Claude session UUID supplied by DSI Studio. Do not search for,
+guess, generate, replace, or pass either value on the command line.
 
-The wrapper maps the command line as follows:
+Use the same launcher for Codex and Claude:
+
+```bash
+bash ./dsi.sh <TITLE|CHAT|LIST|LOG|window-id> [command/values...]
+```
+
+Always include `bash` before `./dsi.sh`. Never invoke `./dsi.sh` directly. If this
+route fails, read `DSI_STUDIO_AI_LAUNCHER.md` and use the documented platform
+fallback.
+
+The launcher opens one local pipe or socket connection, sends one request, reads the
+complete reply, and closes the connection. Use one invocation per request. Never
+access the pipe directly or launch another DSI Studio instance to operate these
+instructions.
+
+The launcher maps arguments as follows:
 
 - `TITLE` joins later values as title text.
 - `CHAT` joins later values as chat text.
@@ -32,44 +41,34 @@ The wrapper maps the command line as follows:
   remaining values are parameters in command order.
 - Standalone integers and floating-point values become JSON numbers. Paths, names,
   and composite values remain strings.
-- `-Chat "message"` may accompany a meaningful command. Silent status polling may
-  omit it.
+- `-Chat "message"` may accompany a meaningful command. Silent polling may omit it.
 
-The wrapper intentionally sends one command per invocation even though the server
-can execute command arrays. Use separate `./dsi` calls rather than bypassing the
-wrapper to batch requests.
+Use separate `bash ./dsi.sh` invocations rather than bypassing the launcher to batch
+requests.
 
 ## Request types
 
 ### `TITLE`
 
-Send one concise title after understanding the task and another when the active task
-changes substantially:
+Send a concise title derived from the task, and update it when the task changes
+substantially:
 
-```powershell
-./dsi TITLE "Corticospinal tract analysis"
+```bash
+bash ./dsi.sh TITLE "Corticospinal tract analysis"
 ```
-
-Emitted JSON:
-
-```json
-{"agent":"<Codex|Claude>","session":"<session-uuid>","request":"TITLE","title":"Corticospinal tract analysis"}
-```
-
-The `title` field is valid only for `TITLE`.
 
 ### `CHAT`
 
 Use standalone `CHAT` when no command is needed:
 
-```powershell
-./dsi CHAT "Tracking completed and the output was verified."
+```bash
+bash ./dsi.sh CHAT "Tracking completed and the output was verified."
 ```
 
-Emitted JSON:
+A message may accompany a command:
 
-```json
-{"agent":"<Codex|Claude>","session":"<session-uuid>","request":"CHAT","chat":"Tracking completed and the output was verified."}
+```bash
+bash ./dsi.sh main list_recent_fib -Chat "Checking recent fiber files."
 ```
 
 ### `LIST`
@@ -77,27 +76,19 @@ Emitted JSON:
 `main` is fixed and can be targeted directly. Call top-level `LIST` only when a
 tracking or image window ID is needed:
 
-```powershell
-./dsi LIST
+```bash
+bash ./dsi.sh LIST
 ```
 
-Example reply:
+Example output:
 
-```json
-{
-  "status":"success",
-  "application":{"status":"busy"},
-  "windows":{
-    "main":{"status":"idle","title":"DSI Studio"},
-    "tracking7ff6ab123410":{"status":"busy","title":"subject.fz"},
-    "image7ff6ab456780":{"status":"idle","title":"T1w.nii.gz"}
-  }
-}
+```text
+{"status":"success","application":{"status":"busy"},"windows":{"main":{"status":"idle","title":"DSI Studio"},"tracking7ff6ab123410":{"status":"busy","title":"subject.fz"},"image7ff6ab456780":{"status":"idle","title":"T1w.nii.gz"}}}
 ```
 
 Tracking and image keys append a lowercase hexadecimal window address without `0x`.
-Copy the current key; never construct one, substitute a title or filename, or reuse
-an ID after its window closes.
+Copy the exact current key. Never construct one, substitute a title or filename, or
+reuse an ID after its window closes.
 
 | Window | Commands |
 |---|---|
@@ -109,27 +100,21 @@ Commands are accepted only by the window type that implements them.
 
 ### `CMD`
 
-```powershell
-./dsi tracking7ff6ab123410 list_region
-```
-
-Emitted JSON:
-
-```json
-{"agent":"<Codex|Claude>","session":"<session-uuid>","request":"CMD","window":"tracking7ff6ab123410","command":{"cmd":"list_region"}}
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_region
 ```
 
 Send standalone numeric parameters without quotes:
 
-```powershell
-./dsi tracking7ff6ab123410 set_slice 7
+```bash
+bash ./dsi.sh tracking7ff6ab123410 set_slice 7
 ```
 
 Keep composite values as one quoted string:
 
-```powershell
-./dsi tracking7ff6ab123410 move_slice "80 100 80"
-./dsi tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
+```bash
+bash ./dsi.sh tracking7ff6ab123410 move_slice "80 100 80"
+bash ./dsi.sh tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
 ```
 
 For commands accepting multiple files, pass one path per argument. Do not combine
@@ -137,8 +122,8 @@ multiple paths into an `&`-separated string.
 
 ### `LOG`
 
-```powershell
-./dsi LOG
+```bash
+bash ./dsi.sh LOG
 ```
 
 Use `LOG` only when the direct `CMD` reply and targeted discovery commands cannot
@@ -149,21 +134,21 @@ explain a failure.
 Every reply has top-level `status`. A `CMD` reply contains one result per executed
 command, with `cmd` and `status` in each result.
 
-Text-producing command:
+Text-producing command output:
 
-```json
+```text
 {"status":"success","result":[{"cmd":"list_region","status":"success","output":"<command output>"}]}
 ```
 
 Successful command without captured text:
 
-```json
+```text
 {"status":"success","result":[{"cmd":"set_slice","status":"success"}]}
 ```
 
 Failed command:
 
-```json
+```text
 {"status":"error","result":[{"cmd":"set_slice","status":"error","error":"<reason>"}]}
 ```
 
@@ -178,39 +163,39 @@ Never send a filesystem path by itself. Supply it as a documented command parame
 
 Open the first FIB/FZ from `main`:
 
-```powershell
-./dsi main open_fib "C:/data/subject.fz"
+```bash
+bash ./dsi.sh main open_fib "C:/data/subject.fz"
 ```
 
 Open an additional FIB/FZ from an existing tracking window:
 
-```powershell
-./dsi tracking7ff6ab123410 open_fib "C:/data/second_subject.fz"
+```bash
+bash ./dsi.sh tracking7ff6ab123410 open_fib "C:/data/second_subject.fz"
 ```
 
 Open ordinary images from `main`:
 
-```powershell
-./dsi main open_image "C:/data/T1w.nii.gz"
+```bash
+bash ./dsi.sh main open_image "C:/data/T1w.nii.gz"
 ```
 
-Use the tracking-window route for segmentation related to an open FIB so the created
+Use the tracking-window route for segmentation related to an open FIB so created
 regions remain in the tractography workflow. Use an image window for standalone
-image editing or batch processing.
+image processing.
 
-Many parameterless main-window commands open local pickers. Picker cancellation may
-return without an immediate error; check whether the expected window or file was
+Parameterless main-window commands may open local pickers. Picker cancellation can
+return without an immediate error; verify whether the expected window or file was
 created.
 
 ## Fiber Data Hub
 
 All Hub commands target `main`:
 
-```powershell
-./dsi main hub_repo
-./dsi main hub_tags "<exact-repository>"
-./dsi main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20
-./dsi main hub_open "<exact-repository>" "<exact-tag>" 12
+```bash
+bash ./dsi.sh main hub_repo
+bash ./dsi.sh main hub_tags "<exact-repository>"
+bash ./dsi.sh main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20
+bash ./dsi.sh main hub_open "<exact-repository>" "<exact-tag>" 12
 ```
 
 In `hub_files`, the filter is applied first, `0` is the matching-file offset, and
@@ -219,16 +204,16 @@ actual file-table row index used by `hub_open` and `hub_download`.
 
 `hub_open` and `hub_download` also accept an exact filename. `hub_download` requires
 a destination directory. Network-backed work may continue after the immediate
-command reply; check the opened window or destination file.
+reply; verify the opened window or destination file.
 
 ## Critical discovery and status commands
 
 ### Slices
 
-```powershell
-./dsi tracking7ff6ab123410 list_slice
-./dsi tracking7ff6ab123410 set_slice 7
-./dsi tracking7ff6ab123410 list_slice
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_slice
+bash ./dsi.sh tracking7ff6ab123410 set_slice 7
+bash ./dsi.sh tracking7ff6ab123410 list_slice
 ```
 
 `list_slice` columns:
@@ -246,10 +231,10 @@ row reports `ready`.
 
 ### Segmentation
 
-```powershell
-./dsi tracking7ff6ab123410 list_unet
-./dsi tracking7ff6ab123410 segment_brain "<model-ID>" 7
-./dsi tracking7ff6ab123410 list_region
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_unet
+bash ./dsi.sh tracking7ff6ab123410 segment_brain "<model-ID>" 7
+bash ./dsi.sh tracking7ff6ab123410 list_region
 ```
 
 `list_unet` columns:
@@ -260,15 +245,15 @@ index    available    model    name    description
 
 Use the internal `model` value, not the display `name`, and only a row with
 `available=1`. The optional slice argument accepts an exact slice name or numeric
-index. Segmentation is synchronous, but a client timeout does not prove inference
-stopped; do not immediately resend it.
+index. A client timeout does not prove inference stopped; do not immediately resend
+segmentation.
 
 ### Atlases and regions
 
-```powershell
-./dsi tracking7ff6ab123410 list_atlas
-./dsi tracking7ff6ab123410 add_region_from_atlas "<template-index> <atlas-index> <label-index>"
-./dsi tracking7ff6ab123410 list_region
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_atlas
+bash ./dsi.sh tracking7ff6ab123410 add_region_from_atlas "<template-index> <atlas-index> <label-index>"
+bash ./dsi.sh tracking7ff6ab123410 list_region
 ```
 
 `add_region_from_atlas` takes one quoted composite parameter. Join multiple label
@@ -276,14 +261,14 @@ indices with `&`. Omitting label indices adds every label from the selected atla
 
 `list_atlas` reports template index, atlas index, atlas name, and region count, but
 not individual label IDs or names. Use label indices only when supplied by the user
-or another verified source. The verified BrainSeg thalamus example is shown in
+or another verified source. The verified BrainSeg thalamus example is in
 `AGENTS.md`.
 
 ### Tracts
 
-```powershell
-./dsi tracking7ff6ab123410 list_tract
-./dsi tracking7ff6ab123410 list_tract status
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_tract
+bash ./dsi.sh tracking7ff6ab123410 list_tract status
 ```
 
 Full columns:
@@ -304,24 +289,24 @@ step.
 
 `run_tracking` requires a nonempty new bundle name:
 
-```powershell
-./dsi tracking7ff6ab123410 list_param tracking
-./dsi tracking7ff6ab123410 run_tracking "CST"
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_param tracking
+bash ./dsi.sh tracking7ff6ab123410 run_tracking "CST"
 ```
 
-This form uses the current tracking parameters and checked regions. Call
-`list_region` only when the workflow uses regions. Follow
+This uses the current tracking parameters and checked regions. Call `list_region`
+only when the workflow uses regions. Follow
 `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` for strategy, parameters, cleanup, and
 quality control.
 
 ### Parameters
 
-```powershell
-./dsi tracking7ff6ab123410 list_param
-./dsi tracking7ff6ab123410 list_param tracking
-./dsi tracking7ff6ab123410 list_param fa_threshold
-./dsi tracking7ff6ab123410 set_param fa_threshold 0.08
-./dsi tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
+```bash
+bash ./dsi.sh tracking7ff6ab123410 list_param
+bash ./dsi.sh tracking7ff6ab123410 list_param tracking
+bash ./dsi.sh tracking7ff6ab123410 list_param fa_threshold
+bash ./dsi.sh tracking7ff6ab123410 set_param fa_threshold 0.08
+bash ./dsi.sh tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
 ```
 
 Use `list_param` before changing tracking or rendering values. `set_param` takes one
@@ -331,32 +316,33 @@ string.
 ## Current discovery limitations
 
 The device interface currently has no `list_device`. Numeric device indices follow
-the current table order and cannot be discovered through a dedicated command.
-Prefer current-row operations when the correct row is already selected; otherwise
-ask the user to identify the target before an indexed mutation.
+current table order and cannot be discovered through a dedicated command. Prefer
+current-row operations when the correct row is selected; otherwise ask the user to
+identify the target before an indexed mutation.
 
 ## Discovery quick reference
 
-| Need | Command | Window |
-|---|---|---|
-| Tracking or image window IDs | `./dsi LIST` | none |
-| Recent FIB/FZ paths | `list_recent_fib` | main |
-| Recent SRC/SZ paths | `list_recent_src` | main |
-| Hub repositories | `hub_repo` | main |
-| Hub tags | `hub_tags` | main |
-| Hub files and row indices | `hub_files` | main |
-| Slices and readiness | `list_slice` | tracking |
-| Segmentation model IDs | `list_unet` | tracking |
-| Regions and roles | `list_region` | tracking |
-| Atlases and region counts | `list_atlas` | tracking |
-| Tracts and per-bundle status | `list_tract` | tracking |
-| Tracking completion | `list_tract status` | tracking |
-| Parameter IDs and values | `list_param` | tracking |
-| AutoTrack names | `list_auto_tract` | tracking |
+| Need | Complete command |
+|---|---|
+| Tracking or image window IDs | `bash ./dsi.sh LIST` |
+| Recent FIB/FZ paths | `bash ./dsi.sh main list_recent_fib` |
+| Recent SRC/SZ paths | `bash ./dsi.sh main list_recent_src` |
+| Hub repositories | `bash ./dsi.sh main hub_repo` |
+| Hub tags | `bash ./dsi.sh main hub_tags "<exact-repository>"` |
+| Hub files and row indices | `bash ./dsi.sh main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20` |
+| Slices and readiness | `bash ./dsi.sh tracking<hex-address> list_slice` |
+| Segmentation model IDs | `bash ./dsi.sh tracking<hex-address> list_unet` |
+| Regions and roles | `bash ./dsi.sh tracking<hex-address> list_region` |
+| Atlases and region counts | `bash ./dsi.sh tracking<hex-address> list_atlas` |
+| Tracts and per-bundle status | `bash ./dsi.sh tracking<hex-address> list_tract` |
+| Tracking completion | `bash ./dsi.sh tracking<hex-address> list_tract status` |
+| Parameter IDs and values | `bash ./dsi.sh tracking<hex-address> list_param` |
+| AutoTrack names | `bash ./dsi.sh tracking<hex-address> list_auto_tract` |
 
 ## Operational rules
 
-- Use one `./dsi` invocation per request.
+- Use one `bash ./dsi.sh` invocation per request.
+- Always include `bash` before `./dsi.sh`.
 - Do not alter the provider or session environment variables.
 - Send `TITLE` first and update it when the task changes substantially.
 - Target fixed `main` directly; call `LIST` only for tracking or image IDs.
@@ -370,10 +356,7 @@ ask the user to identify the target before an indexed mutation.
 
 ## Related documents
 
-Use `DSI_STUDIO_AI_SKILL_*.md` for task workflows and
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` for exact command syntax and inventories. Read
-only files relevant to the current task.
-
+- [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
@@ -382,3 +365,5 @@ only files relevant to the current task.
 - [Devices and AC-PC locators](DSI_STUDIO_AI_COMMAND_EXAMPLES_DEVICE.md)
 - [Parameters, rendering, camera, surfaces, workspace, settings, and display](DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md)
 - [Standalone image-window processing](DSI_STUDIO_AI_COMMAND_EXAMPLES_IMAGE.md)
+
+Read only the files relevant to the current task.
