@@ -1,8 +1,11 @@
 # DSI Studio AI Image Command Examples and Inventory
 
-Use these commands with an `image<hex-address>` window ID returned by top-level
-`LIST`. Command names and text, path, or composite parameters are strings. Send
-a standalone numeric parameter as a JSON number.
+Use these commands with an `image<hex-address>` window ID. After `open_image`,
+DSI Studio normally returns the new ID in `image window created, id: image...`
+from the command `output`; use that returned ID for follow-up commands. Top-level
+`LIST` can confirm the ID or discover another already-open image window. Command
+names and text, path, or composite parameters are strings. Send a standalone
+numeric parameter as a JSON number.
 
 The image-window dispatcher accepts only a command name and at most one parameter. The examples below were checked against `view_image::command()`, `variant_image::command()`, and TIPL `command()` source.
 
@@ -14,7 +17,7 @@ The image-window dispatcher accepts only a command name and at most one paramete
 | `segmentation` | `["segmentation","<model-ID>"]` | Run the exact model ID and replace the current image with its label output; the image becomes uint8 label data. See footnote 1. |
 | `deface` | `["deface","<model-ID>"]` | Run the exact model ID and suppress voxels in the generated facial mask while preserving nearby brain tissue. See footnote 1. |
 | `rotate_to_image` | `["rotate_to_image","C:/data/template.nii.gz"]` | Rigidly register the current image to the supplied NIfTI using mutual information, then resample it into target space. |
-| `warp_to_image` | `["warp_to_image","C:/data/template.nii.gz"]` | Affine-register using correlation, continue with nonlinear registration, then resample the current image into target space. |
+| `warp_to_image` | `["warp_to_image","C:/data/template.nii.gz"]` | Affine-register using correlation, continue with nonlinear registration, then resample it into target space. |
 | `apply_to_image` | `["apply_to_image","C:/data/other.nii.gz"]` | Load another image and apply the mapping created by the preceding `rotate_to_image` or `warp_to_image`; fails when no mapping exists. |
 | `morphology_defragment` | `["morphology_defragment"]` | Keep the principal connected component. Floating images are first converted to a positive-value mask and then preserved by that mask. |
 | `morphology_fill_holes` | `["morphology_fill_holes"]` | Fill enclosed holes in 3D. |
