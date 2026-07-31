@@ -6,10 +6,19 @@ DSI Studio starts the current agent in this DSI Studio AI directory and adds the
 user-selected project directory separately for project access. Do not copy the AI
 support files into the project directory.
 
-The launchers read `DSI_STUDIO_AGENT` and `CODEX_THREAD_ID`. DSI Studio sets
-`DSI_STUDIO_AGENT`. Codex supplies its own `CODEX_THREAD_ID`; DSI Studio sets the
-same variable to the Claude session UUID before launching Claude. Do not search for,
-guess, generate, replace, or pass either value on the command line.
+The launchers identify the current agent and session from:
+
+```text
+CLAUDE_CODE_SESSION_ID
+CODEX_THREAD_ID
+```
+
+When `CLAUDE_CODE_SESSION_ID` is set, the launcher uses `Claude` as the agent name
+and that value as the session ID. Otherwise, when `CODEX_THREAD_ID` is set, it uses
+`Codex` as the agent name and that value as the session ID. Claude takes precedence
+if both variables are set. The launchers no longer read `DSI_STUDIO_AGENT`. Do not
+search for, guess, generate, replace, or pass either session value on the command
+line.
 
 Use the same launcher for Codex and Claude:
 
@@ -342,7 +351,8 @@ identify the target before an indexed mutation.
 
 - Use one `bash ./dsi.sh` invocation per request.
 - Always include `bash` before `./dsi.sh`.
-- Do not alter the provider or session environment variables.
+- Do not alter, invent, or pass `CLAUDE_CODE_SESSION_ID` or `CODEX_THREAD_ID`; the
+  launcher derives the agent and session automatically.
 - Send `TITLE` first and update it when the task changes substantially.
 - Use `CHAT` or `-Chat` for user-visible progress and results.
 - Use `LOG` regularly while learning user-demonstrated workflows; summarize stable,
