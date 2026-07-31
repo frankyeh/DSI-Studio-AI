@@ -88,8 +88,11 @@ may use their full documented argument lists:
 
 ## Important routing and response notes
 
-- Target fixed `main` directly. Call top-level `LIST` only when a tracking or
-  image window ID is needed.
+- Target fixed `main` directly. After opening a tracking or image window, DSI
+  Studio normally returns its `tracking<hex-address>` or `image<hex-address>` ID
+  in the command `output`; use that returned ID for follow-up commands. Top-level
+  `LIST` can confirm an ID or discover another already-open tracking or image
+  window.
 - Do not invent aliases. Use `list_recent_fib` and `list_recent_src` exactly.
 - Supplying paths as documented command parameters is supported. Never send a
   path alone as the complete named-pipe request.
