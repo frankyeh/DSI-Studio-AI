@@ -36,10 +36,17 @@ for($i = 1; $i -lt $argv.Count; $i++)
     }
 }
 
-$Agent = $env:DSI_STUDIO_AGENT
-$Session = $env:CODEX_THREAD_ID
-if(!$Agent) { throw 'Missing DSI_STUDIO_AGENT.' }
-if(!$Session) { throw 'Missing CODEX_THREAD_ID.' }
+$Session = $env:CLAUDE_CODE_SESSION_ID
+if($Session)
+{
+    $Agent = 'Claude'
+}
+else
+{
+    $Session = $env:CODEX_THREAD_ID
+    if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID.' }
+    $Agent = 'Codex'
+}
 
 function Convert-DsiValue([string]$Text)
 {
@@ -123,12 +130,14 @@ def fail(message):
     raise SystemExit(1)
 
 
-agent = os.environ.get("DSI_STUDIO_AGENT", "").strip()
-session = os.environ.get("CODEX_THREAD_ID", "").strip()
-if not agent:
-    fail("Missing DSI_STUDIO_AGENT.")
-if not session:
-    fail("Missing CODEX_THREAD_ID.")
+session = os.environ.get("CLAUDE_CODE_SESSION_ID", "").strip()
+if session:
+    agent = "Claude"
+else:
+    session = os.environ.get("CODEX_THREAD_ID", "").strip()
+    if not session:
+        fail("Missing CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID.")
+    agent = "Codex"
 
 args = sys.argv[1:]
 if not args:
