@@ -9,10 +9,17 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$Agent = $env:DSI_STUDIO_AGENT
-$Session = $env:CODEX_THREAD_ID
-if(!$Agent) { throw 'Missing DSI_STUDIO_AGENT.' }
-if(!$Session) { throw 'Missing CODEX_THREAD_ID.' }
+$Session = $env:CLAUDE_CODE_SESSION_ID
+if($Session)
+{
+    $Agent = 'Claude'
+}
+else
+{
+    $Session = $env:CODEX_THREAD_ID
+    if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID.' }
+    $Agent = 'Codex'
+}
 
 function Convert-DsiValue([string]$Text)
 {
