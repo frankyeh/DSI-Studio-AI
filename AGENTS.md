@@ -10,7 +10,7 @@ bash ./dsi.sh <TITLE|CHAT|LIST|LOG|window-id> [command/values...]
 
 Always include `bash` before `./dsi.sh`. If this launcher does not work, read
 `DSI_STUDIO_AI_LAUNCHER.md` for platform requirements, troubleshooting, and the
-Windows `./dsi` fallback.
+documented Windows fallback.
 
 Learn DSI Studio by performing the following three requests in order. Complete and
 inspect all three replies before reading further in this file or opening any other
@@ -36,12 +36,48 @@ bash ./dsi.sh main list_recent_fib
 
 After receiving and inspecting the replies to Steps 1-3, continue below.
 
-## 4. Work with a FIB/FZ tracking window
+## 4. Work with an SRC/SZ reconstruction window
 
 If this step does not apply to the user's task, study the commands and continue to
 the next step without running them.
 
-### 4.1 Open a user-supplied file
+### 4.1 Open a user-supplied source file
+
+```bash
+bash ./dsi.sh main open_src "C:/data/subject.sz"
+```
+
+Replace the example path with the exact user-supplied path. Copy the exact
+`recon<hex-address>` ID from `recon window created, id: recon...` in the successful
+command `output`. Do not call `LIST` merely to rediscover this window.
+
+### 4.2 Open a recent source file when no path is supplied
+
+```bash
+bash ./dsi.sh main list_recent_src
+bash ./dsi.sh main open_src "<exact relevant path returned by list_recent_src>"
+```
+
+Do not invent a path. Copy the exact reconstruction-window ID returned by
+`open_src`.
+
+### 4.3 Inspect reconstruction parameters
+
+```bash
+bash ./dsi.sh recon<hex-address> src_list_param
+```
+
+Before changing source data or running reconstruction, read
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`. Reconstruction corrections,
+mask operations, resampling, and b-table changes can materially alter the result;
+do not run them merely to learn the interface.
+
+## 5. Work with a FIB/FZ tracking window
+
+If this step does not apply to the user's task, study the commands and continue to
+the next step without running them.
+
+### 5.1 Open a user-supplied file
 
 ```bash
 bash ./dsi.sh main open_fib "C:/data/subject.fz"
@@ -51,7 +87,7 @@ Replace the example path with the exact user-supplied path. Copy the exact
 `tracking<hex-address>` ID from `tracking window created, id: tracking...` in the
 successful command `output`. Do not call `LIST` merely to rediscover this window.
 
-### 4.2 Open a recent file when no path is supplied
+### 5.2 Open a recent file when no path is supplied
 
 Use an exact relevant path returned by Step 3:
 
@@ -62,7 +98,7 @@ bash ./dsi.sh main open_fib "<exact relevant path returned by list_recent_fib>"
 Do not invent a path. Copy the exact new tracking-window ID from the successful
 `open_fib` command `output`.
 
-### 4.3 Switch the displayed slice
+### 5.3 Switch the displayed slice
 
 ```bash
 bash ./dsi.sh tracking<hex-address> list_slice
@@ -74,9 +110,9 @@ Use an index returned by `list_slice`. A Hub-provided slice may initially report
 `available` because its source is HTTP. `set_slice` downloads and registers it;
 repeat `list_slice` until the selected row reports `ready` before using it.
 
-### 4.4 Segment a brain with SynthSeg
+### 5.4 Segment a brain with SynthSeg
 
-Select a suitable anatomical slice with Step 4.3, then discover the available
+Select a suitable anatomical slice with Step 5.3, then discover the available
 models:
 
 ```bash
@@ -88,7 +124,7 @@ bash ./dsi.sh tracking<hex-address> list_region
 Run `human_synthseg` only when its `list_unet` row reports `available=1`. The final
 command confirms the regions created by SynthSeg.
 
-### 4.5 Add the bilateral thalamus from BrainSeg
+### 5.5 Add the bilateral thalamus from BrainSeg
 
 ```bash
 bash ./dsi.sh tracking<hex-address> list_atlas
@@ -100,27 +136,27 @@ First confirm that `list_atlas` reports `template=0`, `atlas=1`, and
 `name=BrainSeg`. In the current BrainSeg label table, `3&4` are the zero-based label
 indices for `Thalamus_Left` and `Thalamus_Right`.
 
-## 5. Run whole-brain fiber tracking with `CMD`
+## 6. Run whole-brain fiber tracking with `CMD`
 
 If this step does not apply to the user's task, study the commands and continue to
 the next step without running them.
 
-Use the tracking-window ID returned by `open_fib`. Call `LIST` only to discover a
-different already-open tracking or image window.
+Use the tracking-window ID returned by `open_fib`. Call `LIST` only to confirm an ID
+or discover a different already-open reconstruction, tracking, or image window.
 
-### 5.1 Inspect tracking parameters
+### 6.1 Inspect tracking parameters
 
 ```bash
 bash ./dsi.sh tracking<hex-address> list_param tracking
 ```
 
-### 5.2 Start tracking
+### 6.2 Start tracking
 
 ```bash
 bash ./dsi.sh tracking<hex-address> run_tracking "Whole Brain"
 ```
 
-### 5.3 Wait for completion
+### 6.3 Wait for completion
 
 ```bash
 bash ./dsi.sh tracking<hex-address> list_tract status
@@ -128,30 +164,30 @@ bash ./dsi.sh tracking<hex-address> list_tract status
 
 Repeat until it reports `status=done`.
 
-### 5.4 Inspect the resulting bundle
+### 6.4 Inspect the resulting bundle
 
 ```bash
 bash ./dsi.sh tracking<hex-address> list_tract
 ```
 
-## 6. Query Fiber Data Hub with `CMD`
+## 7. Query Fiber Data Hub with `CMD`
 
 If this step does not apply to the user's task, study the commands and continue to
 the next step without running them.
 
-### 6.1 List repositories
+### 7.1 List repositories
 
 ```bash
 bash ./dsi.sh main hub_repo
 ```
 
-### 6.2 List tags
+### 7.2 List tags
 
 ```bash
 bash ./dsi.sh main hub_tags "<exact repository returned by hub_repo>"
 ```
 
-### 6.3 List matching files
+### 7.3 List matching files
 
 ```bash
 bash ./dsi.sh main hub_files "<exact repository>" "<exact tag returned by hub_tags>" ".fz" 0 20
@@ -161,7 +197,7 @@ In `hub_files`, `.fz` filters filenames, `0` starts with the first matching file
 and `20` returns at most 20 matching files. The first reply column is the file-row
 index used by commands such as `hub_open`.
 
-### 6.4 Open a Hub file
+### 7.4 Open a Hub file
 
 ```bash
 bash ./dsi.sh main hub_open "<exact repository>" "<exact tag>" <file-row-index>
@@ -170,7 +206,7 @@ bash ./dsi.sh main hub_open "<exact repository>" "<exact tag>" <file-row-index>
 Use the row index returned by `hub_files`. If the reply contains
 `tracking window created, id: tracking...`, use that exact ID. A network-backed open
 may finish after the immediate reply; when no ID is returned, call `LIST` to discover
-the newly opened window. After the tracking window opens, use Step 4.3 to load any
+the newly opened window. After the tracking window opens, use Step 5.3 to load any
 HTTP-backed slice needed for the task.
 
 Do not copy placeholders literally.
