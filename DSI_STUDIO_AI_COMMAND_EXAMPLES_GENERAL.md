@@ -21,11 +21,11 @@ only as parameters of the documented commands below.
 | `bids_to_src` | `["bids_to_src","C:/bids"]` | Search the supplied BIDS folder for diffusion NIfTI data, ask the local user to choose an output folder, and create SRC/SZ files. Without an input parameter, first open a BIDS-folder picker. |
 | `nifti_dir_to_src` | `["nifti_dir_to_src","C:/nifti"]` | Find diffusion NIfTI data in the supplied directory and create SRC/SZ files there. Existing outputs may prompt for overwrite decisions. Without a parameter, open a directory picker. |
 | `collect_network_measures` | `["collect_network_measures","C:/net/a.txt","C:/net/b.txt"]` | Collect one or more network-measure text files into `<first-file>.collected.txt`. Each file is a separate command element. Without file parameters, open a file picker. |
-| `open_src` | `["open_src","C:/data/a.sz","C:/data/b.sz"]` | Open one or more SRC/SZ or histology inputs and create reconstruction windows. Each file is a separate command element. Without file parameters, open a file picker. |
+| `open_src` | `["open_src","C:/data/a.sz","C:/data/b.sz"]` | Open one or more SRC/SZ or histology inputs in one reconstruction window. Each file is a separate command element. A successful command reports `recon window created, id: recon...` in `output`. Without file parameters, open a file picker. |
 | `open_dwi_nifti` | `["open_dwi_nifti","C:/data/dwi.nii.gz"]` | Open one or more diffusion NIfTI inputs through `open_DWI`. Without file parameters, open a NIfTI picker. |
 | `open_dwi_dicom` | `["open_dwi_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Open one or more DICOM inputs through `open_DWI`. Each file is a separate command element. Without file parameters, open a DICOM picker. |
 | `open_dwi_2dseq` | `["open_dwi_2dseq","C:/scan/2dseq"]` | Open one or more 2dseq, FDF, or NRRD diffusion inputs through `open_DWI`. Without file parameters, open a picker. |
-| `open_src_dir` | `["open_src_dir","C:/src"]` | Search the supplied directory for `*src.gz` and `.sz` files and load them. Without a parameter, open a directory picker. |
+| `open_src_dir` | `["open_src_dir","C:/src"]` | Search the supplied directory for `*src.gz` and `.sz` files and load them into one reconstruction window. A successful command reports its `recon...` ID. Without a parameter, open a directory picker. |
 | `open_fib` | `["open_fib","C:/data/subject.fz"]` | Open the supplied `.fz`, `*fib.gz`, or `.dz` file and create a tracking window. Without a parameter, open a FIB picker. |
 | `open_structural_tracking` | `["open_structural_tracking","C:/data/T1w.nii.gz"]` | Pass the supplied NIfTI or 2dseq structural image to `loadFib`. Without a parameter, open a structural-image picker. |
 | `open_template` | `["open_template","<template-name>"]` | Open the exact built-in template name. An invalid name returns an error. Without a parameter, open the template currently selected in the main-window list. |
@@ -42,7 +42,7 @@ only as parameters of the documented commands below.
 | `qc_nii` | `["qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_src` | `["qc_src","C:/data/a.sz","C:/data/b.sz"]` | Run SRC/SZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_fib` | `["qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Run FIB/FZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
-| `run_cli` | `["run_cli","--action=rec --loop=C:\\data\\*.sz --method=4"]` | Parse and execute one DSI Studio CLI command line. Exactly one parameter is required and it must include a valid `--action`. |
+| `run_cli` | `["run_cli","--action=rec --loop=C:\\data\\*.sz --method=4"]` | Parse and execute one DSI Studio CLI command line. Exactly one parameter is required and it must include a valid `--action`. Prefer a `recon...` window for an interactive reconstruction workflow; retain `run_cli` for explicit CLI or batch work. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more ordinary image paths in a `view_image` window. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for the FIB tracking interface. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
@@ -64,6 +64,9 @@ Commands that accept multiple files use one command-array element per file:
 
 Do not combine multiple paths into one `&`-separated string. The current router
 collects every command element after the command name as a separate file path.
+
+After `open_src`, use the returned `recon<hex-address>` and follow
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`.
 
 ## Fiber Data Hub workflow
 
@@ -88,11 +91,11 @@ may use their full documented argument lists:
 
 ## Important routing and response notes
 
-- Target fixed `main` directly. After opening a tracking or image window, DSI
-  Studio normally returns its `tracking<hex-address>` or `image<hex-address>` ID
-  in the command `output`; use that returned ID for follow-up commands. Top-level
-  `LIST` can confirm an ID or discover another already-open tracking or image
-  window.
+- Target fixed `main` directly. After opening a reconstruction, tracking, or image
+  window, DSI Studio normally returns its `recon<hex-address>`,
+  `tracking<hex-address>`, or `image<hex-address>` ID in the command `output`; use
+  that returned ID for follow-up commands. Top-level `LIST` can confirm an ID or
+  discover another already-open supported window.
 - Do not invent aliases. Use `list_recent_fib` and `list_recent_src` exactly.
 - Supplying paths as documented command parameters is supported. Never send a
   path alone as the complete named-pipe request.
@@ -105,13 +108,16 @@ may use their full documented argument lists:
   propagate through the `error` field.
 - Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` before use
   because they immediately modify saved application state.
-- Use the appropriate `list_param` command in a tracking window before changing
-  tracking or rendering parameters.
+- Use `src_list_param` in a reconstruction window before changing reconstruction
+  parameters. Use the appropriate `list_param` command in a tracking window before
+  changing tracking or rendering parameters.
 
 ## GUI interaction notes
 
 - `bids_to_src` always asks the local user to select an output directory, even
   when the input BIDS path is supplied.
+- `open_dwi_nifti`, `open_dwi_dicom`, and `open_dwi_2dseq` enter the DWI-import
+  workflow; they do not directly guarantee a returned reconstruction-window ID.
 - Picker-based commands require local GUI interaction and their cancellation may
   return without an immediate error.
 - Verify opened windows and generated files rather than relying only on the lack
