@@ -100,7 +100,7 @@ assignments in one quoted composite parameter when the command expects one strin
 
 ```bash
 bash ./dsi.sh tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
-bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25"
+bash ./dsi.sh recon7ff6ab111000 set_params "method=4&param=1.25"
 bash ./dsi.sh recon7ff6ab111000 set_voxel_size "1.5 1.5 2.0"
 ```
 
@@ -159,19 +159,20 @@ Use the exact `recon<hex-address>` returned by `open_src`.
 
 ### Parameters
 
-The reconstruction parameter meta-commands retain their `src_` names:
+Reconstruction parameter commands use the same concise naming rule as the other
+reconstruction-window operations:
 
 ```bash
-bash ./dsi.sh recon7ff6ab111000 src_list_param
-bash ./dsi.sh recon7ff6ab111000 src_list_param method
-bash ./dsi.sh recon7ff6ab111000 src_set_param "method=4"
-bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25&thread_count=8"
+bash ./dsi.sh recon7ff6ab111000 list_param
+bash ./dsi.sh recon7ff6ab111000 list_param method
+bash ./dsi.sh recon7ff6ab111000 set_param "method=4"
+bash ./dsi.sh recon7ff6ab111000 set_params "method=4&param=1.25&thread_count=8"
 ```
 
-`src_set_param` and `src_set_params` both accept one
+`set_param` and `set_params` both accept one
 `name=value[&name=value...]` composite parameter.
 
-### Public operation names
+### Operation names
 
 Reconstruction-window operations use concise names without the old `src_` prefix:
 
