@@ -1,24 +1,20 @@
 # DSI Studio AI Command Manual
 
-## Agent environment and launcher
+## Launcher and session
 
-DSI Studio starts the current agent in this DSI Studio AI directory and adds the
-user-selected project directory separately for project access. Do not copy the AI
-support files into the project directory.
+DSI Studio starts the agent in this DSI Studio AI directory and separately grants
+access to the user-selected project directory. Do not copy the AI support files into
+the project directory.
 
-The launchers identify the current agent and session from:
+The launchers derive the current agent and session from:
 
 ```text
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
 ```
 
-When `CLAUDE_CODE_SESSION_ID` is set, the launcher uses `Claude` as the agent name
-and that value as the session ID. Otherwise, when `CODEX_THREAD_ID` is set, it uses
-`Codex` as the agent name and that value as the session ID. Claude takes precedence
-if both variables are set. The launchers no longer read `DSI_STUDIO_AGENT`. Do not
-search for, guess, generate, replace, or pass either session value on the command
-line.
+Claude takes precedence if both variables are set. Do not search for, invent,
+replace, or pass either session value on the command line.
 
 Use the same launcher for Codex and Claude:
 
@@ -26,206 +22,203 @@ Use the same launcher for Codex and Claude:
 bash ./dsi.sh <TITLE|CHAT|LIST|LOG|window-id> [command/values...]
 ```
 
-Always include `bash` before `./dsi.sh`. Never invoke `./dsi.sh` directly. If this
-route fails, read `DSI_STUDIO_AI_LAUNCHER.md` and use the documented platform
-fallback.
-
-The launcher opens one local pipe or socket connection, sends one request, reads the
-complete reply, and closes the connection. Use one invocation per request. Never
-access the pipe directly or launch another DSI Studio instance to operate these
-instructions.
+Always include `bash` before `./dsi.sh`. Use one invocation per request. If this
+route fails, read `DSI_STUDIO_AI_LAUNCHER.md` and use its documented fallback.
 
 The launcher maps arguments as follows:
 
 - `TITLE` joins later values as title text.
 - `CHAT` joins later values as chat text.
 - `LIST` and `LOG` are top-level requests.
-- Any other target creates `CMD`; the first later value is the command name and the
-  remaining values are parameters in command order.
+- Any window ID creates `CMD`; the first later value is the command name and the
+  remaining values are command parameters.
 - Standalone integers and floating-point values become JSON numbers. Paths, names,
-  and composite values remain strings.
-- `-Chat "message"` may accompany a meaningful command. Silent polling may omit it.
-
-Use separate `bash ./dsi.sh` invocations rather than bypassing the launcher to batch
-requests.
-
-## Command-inventory notation
-
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` uses compact arrays only to document command
-names and argument order. Do not send those arrays. Convert each entry to a complete
-launcher command, for example:
-
-```bash
-bash ./dsi.sh tracking<hex-address> set_slice 7
-```
+  and composite expressions remain strings.
+- `-Chat "message"` may accompany a meaningful command.
 
 ## Request types
 
 ### `TITLE`
 
-Send a concise title derived from the task and update it when the task changes
-substantially:
-
 ```bash
 bash ./dsi.sh TITLE "Corticospinal tract analysis"
 ```
 
+Set a concise task title and update it when the task changes substantially.
+
 ### `CHAT`
 
-Use `CHAT` to tell the user what the agent is doing, what it found, or what completed.
-Use a standalone message when no command is needed:
-
 ```bash
-bash ./dsi.sh CHAT "Tracking completed and the output was verified."
+bash ./dsi.sh CHAT "The source file is open. I am checking reconstruction settings."
 ```
 
-A message may accompany a meaningful command:
-
-```bash
-bash ./dsi.sh main list_recent_fib -Chat "Checking recent fiber files."
-```
-
-`CHAT` is user-facing communication. It does not retrieve DSI Studio action history;
-use `LOG` for that purpose.
+`CHAT` is user-facing communication. It does not retrieve action history; use `LOG`
+for that purpose.
 
 ### `LIST`
-
-`main` is fixed and can be targeted directly. Successful `open_src`, `open_fib`, and
-`open_image` replies report the ID of each newly created supported window. Top-level
-`LIST` can confirm an ID or discover another currently open reconstruction, tracking,
-or image window:
 
 ```bash
 bash ./dsi.sh LIST
 ```
 
-A successful reply includes `status`, application state, and a `windows` object.
-Reconstruction, tracking, and image keys append a lowercase hexadecimal window
-address without `0x`, for example `recon7ff6ab111000`, `tracking7ff6ab123410`, or
-`image7ff6ab456780`. Copy the exact current key. Never construct one, substitute a
-title or filename, or reuse an ID after its window closes.
+`main` is fixed. Other supported windows use the exact current keys returned by
+DSI Studio:
 
-When `open_src`, `open_fib`, or `open_image` creates a window, its command-result
-`output` contains `recon window created, id: recon...`,
-`tracking window created, id: tracking...`, or
-`image window created, id: image...`. Copy that exact ID and target the new window
-directly; do not call `LIST` merely to rediscover it.
-
-| Window | Commands |
+| Window | Purpose |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, opening SRC/SZ, FIB/FZ, and image windows, templates, databases, QC, CLI actions, and main tools. |
-| `recon<hex-address>` | Source-data masks, geometry, b-table operations, corrections, reconstruction parameters, exports, and DTI/GQI/QSDR reconstruction. |
-| `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, devices, rendering, settings, workspace, and additional FIBs. |
-| `image<hex-address>` | Standalone image inspection and processing. |
+| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, CLI actions, and main tools |
+| `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
+| `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
+| `image<hex-address>` | Standalone image inspection and processing |
 
-Commands are accepted only by the window type that implements them.
+Successful `open_src`, `open_fib`, and `open_image` commands normally report the
+new ID directly in their command `output`:
+
+```text
+recon window created, id: recon...
+tracking window created, id: tracking...
+image window created, id: image...
+```
+
+Copy the exact returned ID. Do not construct an ID, replace it with a filename, or
+reuse it after the window closes. Use `LIST` to confirm an ID or discover another
+already-open supported window, not merely to rediscover a window whose ID was just
+returned.
+
+`LIST` reports each window as `idle`, `busy`, or `waiting`. `waiting` means a modal
+local dialog is awaiting the user's decision.
 
 ### `CMD`
 
 ```bash
 bash ./dsi.sh tracking7ff6ab123410 list_region
+bash ./dsi.sh recon7ff6ab111000 recon 4
 ```
 
-Send standalone numeric parameters without quotes:
+Send standalone numeric parameters without quotes. Keep multiple values or
+assignments in one quoted composite parameter when the command expects one string:
 
 ```bash
-bash ./dsi.sh tracking7ff6ab123410 set_slice 7
-bash ./dsi.sh recon7ff6ab111000 src_recon 4
-```
-
-Keep composite values as one quoted string:
-
-```bash
-bash ./dsi.sh tracking7ff6ab123410 move_slice "80 100 80"
 bash ./dsi.sh tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
 bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25"
+bash ./dsi.sh recon7ff6ab111000 set_voxel_size "1.5 1.5 2.0"
 ```
 
-For commands accepting multiple files, pass one path per argument. Do not combine
-multiple paths into an `&`-separated string.
+For commands accepting multiple files, pass one path per argument. Never send a
+filesystem path by itself as the complete request.
 
 ### `LOG`
-
-Use `LOG` to retrieve new DSI Studio console and action output recorded since the
-session's previous log position:
 
 ```bash
 bash ./dsi.sh LOG
 ```
 
-Call `LOG` after the user demonstrates a workflow, changes settings manually, retries
-a failed action, or performs GUI operations the agent needs to learn. Inspect the
-returned output to reconstruct the actual sequence, including failed attempts and
-intermediate states, rather than relying on memory.
-
-When the observed actions form a stable reusable workflow, summarize them into an AI
-skill while preserving exact command names, parameters, prerequisites, verification
-steps, and known failure paths.
-
-`LOG` is incremental, not a complete permanent archive. The session's first request
-sets the starting log position; each `LOG` returns only newer output and then advances
-that position. Output is size-limited, so call `LOG` regularly during demonstrations
-and long workflows. Use targeted `list_*` or status commands to verify current state.
-Use `CHAT` or `-Chat` to tell the user what the agent is doing; do not use `LOG` as a
-message transport.
+Use `LOG` after the user demonstrates a workflow, changes settings manually, retries
+a failed action, or performs GUI operations the agent needs to learn. It returns only
+new console and action output since the session's previous log position and then
+advances that position. Call it regularly during long demonstrations because output
+is size-limited.
 
 ## Reply format
 
 Every reply has top-level `status`. A `CMD` reply contains one result per executed
-command, with `cmd` and `status` in each result. Text-producing commands also include
-`output`; failed commands include `error`. A successful command without captured text
-contains only `cmd` and `status`.
+command, with `cmd` and `status`. Text-producing commands also include `output`;
+failed commands include `error`.
 
-Successful `open_src`, `open_fib`, and `open_image` results include the newly created
-window ID in `output`.
-
-Success means the handler returned without an immediate error; asynchronous or
-GUI-backed work may still be running. Use the relevant discovery or status command
-to confirm completion before a dependent operation.
+Success means the handler returned without an immediate error. A long synchronous
+operation may exceed the client's waiting period while continuing in DSI Studio. Do
+not immediately resend it; inspect `LIST`, `LOG`, or the relevant status command.
 
 ## Opening files
 
-Never send a filesystem path by itself. Supply it as a documented command parameter.
-
-Open an SRC/SZ reconstruction window from `main`:
+Open an SRC/SZ reconstruction window:
 
 ```bash
 bash ./dsi.sh main open_src "C:/data/subject.sz"
 ```
 
-The successful reply reports `recon window created, id: recon...`. Copy that ID and
-use it for reconstruction-window commands.
-
-Open the first FIB/FZ from `main`:
+Open a FIB/FZ tracking window:
 
 ```bash
 bash ./dsi.sh main open_fib "C:/data/subject.fz"
 ```
 
-Open an additional FIB/FZ from an existing tracking window:
-
-```bash
-bash ./dsi.sh tracking7ff6ab123410 open_fib "C:/data/second_subject.fz"
-```
-
-Open ordinary images from `main`:
+Open an ordinary image window:
 
 ```bash
 bash ./dsi.sh main open_image "C:/data/T1w.nii.gz"
 ```
 
-The successful reply reports `tracking window created, id: tracking...` for
-`open_fib`, or `image window created, id: image...` for `open_image`. Copy the
-reported ID and use it as the target of subsequent commands.
-
-Use a reconstruction window for interactive SRC/SZ preprocessing and reconstruction.
-Use the tracking-window route for segmentation related to an open FIB so created
-regions remain in the tractography workflow. Use an image window for standalone
-image processing.
-
-Parameterless main-window commands may open local pickers. Picker cancellation can
-return without an immediate error; verify whether the expected window or file was
+Parameterless main-window commands may open a local picker. Cancellation may return
+without an immediate error, so verify whether the expected window or file was
 created.
+
+## Reconstruction windows
+
+Use the exact `recon<hex-address>` returned by `open_src`.
+
+### Parameters
+
+The reconstruction parameter meta-commands retain their `src_` names:
+
+```bash
+bash ./dsi.sh recon7ff6ab111000 src_list_param
+bash ./dsi.sh recon7ff6ab111000 src_list_param method
+bash ./dsi.sh recon7ff6ab111000 src_set_param "method=4"
+bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25&thread_count=8"
+```
+
+`src_set_param` and `src_set_params` both accept one
+`name=value[&name=value...]` composite parameter.
+
+### Public operation names
+
+Reconstruction-window operations use concise names without the old `src_` prefix:
+
+```bash
+bash ./dsi.sh recon7ff6ab111000 mask_unet
+bash ./dsi.sh recon7ff6ab111000 bias_field_correction
+bash ./dsi.sh recon7ff6ab111000 resample 2
+bash ./dsi.sh recon7ff6ab111000 recon 4
+```
+
+Use `recon`, not `reconstruction`, `src_recon`, or `src_reconstruction`. The optional
+method is `1` for DTI, `4` for GQI, or `7` for QSDR. Omitting it uses the current
+`method` parameter.
+
+A successful `recon` prints every generated path as:
+
+```text
+reconstruction output: <path>
+```
+
+Each generated FIB/FZ path is also added to the recent-FIB list. For a multi-file
+reconstruction window, inspect all returned output paths.
+
+### User-selected input through local dialogs
+
+Omitting a parameter is intentional for commands that support a local dialog. The
+agent can invoke the operation and let the user decide the input or output locally:
+
+```bash
+bash ./dsi.sh recon7ff6ab111000 mask_open -Chat "Please choose the mask file in DSI Studio."
+bash ./dsi.sh recon7ff6ab111000 save_nifti -Chat "Please choose where to save the diffusion NIfTI."
+bash ./dsi.sh recon7ff6ab111000 resample -Chat "Please choose the isotropic output resolution."
+```
+
+The command remains active while the dialog is open, and `LIST` may report the
+reconstruction window or application as `waiting`. Continue only after the user
+selects a value or cancels. When the exact value is already known, pass it directly
+to avoid unnecessary interaction.
+
+For AI-originated `topup` or `topup_eddy` without a parameter, DSI Studio uses its
+automatic reverse-phase-encoding search. Pass an explicit `.rz`, `.sz`, `src.gz`, or
+NIfTI path when the correct reverse-PE source is known.
+
+Corrections, b-table changes, source geometry changes, mask operations, and
+reconstruction can materially alter results. Do not run them merely because they are
+available. Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md` for the complete
+inventory and worked examples.
 
 ## Fiber Data Hub
 
@@ -238,35 +231,12 @@ bash ./dsi.sh main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20
 bash ./dsi.sh main hub_open "<exact-repository>" "<exact-tag>" 12
 ```
 
-In `hub_files`, the filter is applied first, `0` is the matching-file offset, and
-`20` is the maximum number of rows returned. The first reply column remains the
-actual file-table row index used by `hub_open` and `hub_download`.
+Use exact repository and tag strings returned by the preceding commands. The first
+`hub_files` column is the file-row index accepted by `hub_open` and `hub_download`.
+Network-backed work may continue after the immediate reply; verify the opened window
+or destination file.
 
-`hub_open` and `hub_download` also accept an exact filename. `hub_download` requires
-a destination directory. Network-backed work may continue after the immediate
-reply; verify the opened window or destination file.
-
-## Critical discovery and status commands
-
-### Reconstruction
-
-```bash
-bash ./dsi.sh recon7ff6ab111000 src_list_param
-bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25"
-bash ./dsi.sh recon7ff6ab111000 src_recon
-```
-
-`src_list_param` reports current reconstruction settings. The reconstruction-window
-dispatcher accepts a command name and at most one parameter, so multiple assignments
-must remain one quoted `&`-separated string. `src_recon` optionally accepts method
-`1` DTI, `4` GQI, or `7` QSDR; omission uses the current `method` value.
-
-Corrections, b-table operations, geometry changes, and reconstruction run
-synchronously from the relay's perspective. A timeout does not prove the operation
-stopped. Supply explicit filenames, thresholds, resolutions, and reverse-PE data to
-avoid local modal dialogs. Follow
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md` for the source-confirmed command
-inventory and cautions.
+## Tracking discovery and status
 
 ### Slices
 
@@ -276,14 +246,8 @@ bash ./dsi.sh tracking7ff6ab123410 set_slice 7
 bash ./dsi.sh tracking7ff6ab123410 list_slice
 ```
 
-`list_slice` returns `index`, `current`, `name`, and `status`.
-
-- `available` — a URL-backed slice is listed but not loaded locally.
-- `registering` — loading or registration is running.
-- `ready` — ready for a dependent operation.
-
-`current` is only the selected-state flag. After `set_slice`, poll until the selected
-row reports `ready`.
+Poll until the selected URL-backed slice reports `ready`, rather than only
+`available` or `registering`.
 
 ### Segmentation
 
@@ -293,10 +257,7 @@ bash ./dsi.sh tracking7ff6ab123410 segment_brain "<model-ID>" 7
 bash ./dsi.sh tracking7ff6ab123410 list_region
 ```
 
-`list_unet` returns `index`, `available`, `model`, `name`, and `description`. Use the
-internal `model` value, not the display `name`, and only a row with `available=1`.
-The optional slice argument accepts an exact slice name or numeric index. A client
-timeout does not prove inference stopped; do not immediately resend segmentation.
+Use the internal `model` value from a row with `available=1`, not its display name.
 
 ### Atlases and regions
 
@@ -306,115 +267,56 @@ bash ./dsi.sh tracking7ff6ab123410 add_region_from_atlas "<template-index> <atla
 bash ./dsi.sh tracking7ff6ab123410 list_region
 ```
 
-`add_region_from_atlas` takes one quoted composite parameter. Join multiple label
-indices with `&`. Omitting label indices adds every label from the selected atlas.
-
-`list_atlas` reports template index, atlas index, atlas name, and region count, but
-not individual label IDs or names. Use label indices only when supplied by the user
-or another verified source. The verified BrainSeg thalamus example is in
-`AGENTS.md`.
+Join multiple label indices with `&`. Use label indices only when supplied by the
+user or another verified source.
 
 ### Tracts
 
 ```bash
-bash ./dsi.sh tracking7ff6ab123410 list_tract
-bash ./dsi.sh tracking7ff6ab123410 list_tract status
-```
-
-The full `list_tract` reply returns `index`, `status`, `shown`, `name`, `tracts`,
-`deleted`, and `seeds`. The compact status reply returns `status` and `bundles`.
-
-`status=done` means no tracking thread remains active. `bundles` is the total number
-of tract rows, not the number of running jobs. Poll until `done` before a dependent
-step.
-
-`run_tracking` requires a nonempty new bundle name:
-
-```bash
 bash ./dsi.sh tracking7ff6ab123410 list_param tracking
 bash ./dsi.sh tracking7ff6ab123410 run_tracking "CST"
+bash ./dsi.sh tracking7ff6ab123410 list_tract status
+bash ./dsi.sh tracking7ff6ab123410 list_tract
 ```
 
-This uses the current tracking parameters and checked regions. Call `list_region`
-only when the workflow uses regions. Follow
-`DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` for strategy, parameters, cleanup, and
-quality control.
+Poll until `list_tract status` reports `status=done` before dependent operations.
 
-### Parameters
+### Tracking and rendering parameters
 
 ```bash
 bash ./dsi.sh tracking7ff6ab123410 list_param
 bash ./dsi.sh tracking7ff6ab123410 list_param tracking
-bash ./dsi.sh tracking7ff6ab123410 list_param fa_threshold
 bash ./dsi.sh tracking7ff6ab123410 set_param fa_threshold 0.08
 bash ./dsi.sh tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
 ```
 
-Use `list_param` before changing tracking or rendering values. `set_param` takes one
-numeric or textual value. `set_params` keeps its assignment expression as one
-string.
+Use `list_param` before changing a value.
 
-## Current discovery limitations
+## Current discovery limitation
 
 The device interface currently has no `list_device`. Numeric device indices follow
-current table order and cannot be discovered through a dedicated command. Prefer
-current-row operations when the correct row is selected; otherwise ask the user to
-identify the target before an indexed mutation.
-
-A successful AI `src_recon` currently may not explicitly return the final FIB path
-or add it to the recent-FIB list. Inspect the captured command output and verify the
-generated file before opening it. Never infer an output path solely from the source
-filename.
-
-## Discovery quick reference
-
-| Need | Complete command |
-|---|---|
-| Newly created reconstruction, tracking, or image window ID | Returned in the successful `open_src`, `open_fib`, or `open_image` command `output` |
-| Confirm or discover open supported window IDs | `bash ./dsi.sh LIST` |
-| New console and user-action history | `bash ./dsi.sh LOG` |
-| Recent FIB/FZ paths | `bash ./dsi.sh main list_recent_fib` |
-| Recent SRC/SZ paths | `bash ./dsi.sh main list_recent_src` |
-| Reconstruction parameters | `bash ./dsi.sh recon<hex-address> src_list_param` |
-| Hub repositories | `bash ./dsi.sh main hub_repo` |
-| Hub tags | `bash ./dsi.sh main hub_tags "<exact-repository>"` |
-| Hub files and row indices | `bash ./dsi.sh main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20` |
-| Slices and readiness | `bash ./dsi.sh tracking<hex-address> list_slice` |
-| Segmentation model IDs | `bash ./dsi.sh tracking<hex-address> list_unet` |
-| Regions and roles | `bash ./dsi.sh tracking<hex-address> list_region` |
-| Atlases and region counts | `bash ./dsi.sh tracking<hex-address> list_atlas` |
-| Tracts and per-bundle status | `bash ./dsi.sh tracking<hex-address> list_tract` |
-| Tracking completion | `bash ./dsi.sh tracking<hex-address> list_tract status` |
-| Parameter IDs and values | `bash ./dsi.sh tracking<hex-address> list_param` |
-| AutoTrack names | `bash ./dsi.sh tracking<hex-address> list_auto_tract` |
+current table order. Prefer current-row operations when the correct row is already
+selected; otherwise ask the user to identify the target before an indexed mutation.
 
 ## Operational rules
 
-- Use one `bash ./dsi.sh` invocation per request.
-- Always include `bash` before `./dsi.sh`.
-- Do not alter, invent, or pass `CLAUDE_CODE_SESSION_ID` or `CODEX_THREAD_ID`; the
-  launcher derives the agent and session automatically.
 - Send `TITLE` first and update it when the task changes substantially.
 - Use `CHAT` or `-Chat` for user-visible progress and results.
-- Use `LOG` regularly while learning user-demonstrated workflows; summarize stable,
-  verified action sequences into reusable skills.
-- Use a window ID returned by `open_src`, `open_fib`, or `open_image`; use `LIST` to
-  confirm an ID or discover another already-open reconstruction, tracking, or image
-  window.
-- Copy command names, paths, window IDs, indices, model IDs, and parameter IDs from
-  the user, current command output, or another verified source.
+- Use one `bash ./dsi.sh` invocation per request.
+- Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
+  current command output, or another verified source.
 - Confirm destructive operations, overwrites, and saved-history clearing.
-- Do not answer modal dialogs remotely; tell the user what must be selected.
-- A client timeout does not prove failure; use the relevant output or status command
-  before retrying.
-- A disappeared window requires a new `LIST`; do not reopen it automatically.
+- A local modal dialog is a supported way for the user to choose an input; do not
+  answer it remotely or mistake `waiting` for failure.
+- A timeout does not prove failure; verify state before retrying.
+- If a window disappears, call `LIST`; do not reopen it automatically.
 
 ## Related documents
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
+- [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
-- [Reconstruction-window commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
 - [Regions and tract-to-region analysis](DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md)
 - [Tracts, tracking, AutoTrack, clustering, recognition, and TDI](DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md)
