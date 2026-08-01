@@ -19,40 +19,36 @@ one quoted composite string.
 
 ## Naming rule
 
-Most public reconstruction operations now use concise names without the old `src_`
+All public reconstruction operations use concise names without the old `src_`
 prefix:
 
 ```text
 recon
+list_param
+set_param
+set_params
 mask_unet
 resample
 bias_field_correction
 ```
 
-The three parameter meta-commands retain their existing names:
-
-```text
-src_list_param
-src_set_param
-src_set_params
-```
-
-Do not use `reconstruction`, `src_recon`, or `src_reconstruction`; use `recon`.
+Do not use `reconstruction`, `src_recon`, `src_reconstruction`, or old `src_`
+operation names. Use the concise names documented below.
 
 ## Reconstruction parameters
 
 Inspect current values before changing them:
 
 ```bash
-bash ./dsi.sh recon<hex-address> src_list_param
-bash ./dsi.sh recon<hex-address> src_list_param method
+bash ./dsi.sh recon<hex-address> list_param
+bash ./dsi.sh recon<hex-address> list_param method
 ```
 
 Set one or more values with one composite `name=value` parameter:
 
 ```bash
-bash ./dsi.sh recon<hex-address> src_set_param "method=4"
-bash ./dsi.sh recon<hex-address> src_set_params "method=4&param=1.25&thread_count=8"
+bash ./dsi.sh recon<hex-address> set_param "method=4"
+bash ./dsi.sh recon<hex-address> set_params "method=4&param=1.25&thread_count=8"
 ```
 
 Both setters accept `name=value[&name=value...]`.
@@ -80,9 +76,9 @@ Both setters accept `name=value[&name=value...]`.
 
 | Command | Complete example | Behavior |
 |---|---|---|
-| `src_list_param` | `bash ./dsi.sh recon<hex-address> src_list_param` | List all reconstruction parameters and current values. Supply one exact parameter name to list only it. |
-| `src_set_param` | `bash ./dsi.sh recon<hex-address> src_set_param "method=4"` | Set one or more assignments in one composite parameter. |
-| `src_set_params` | `bash ./dsi.sh recon<hex-address> src_set_params "method=4&param=1.25"` | Same assignment syntax as `src_set_param`; useful when setting several values. |
+| `list_param` | `bash ./dsi.sh recon<hex-address> list_param` | List all reconstruction parameters and current values. Supply one exact parameter name to list only it. |
+| `set_param` | `bash ./dsi.sh recon<hex-address> set_param "method=4"` | Set one or more assignments in one composite parameter. |
+| `set_params` | `bash ./dsi.sh recon<hex-address> set_params "method=4&param=1.25"` | Same assignment syntax as `set_param`; useful when setting several values. |
 | `recon` | `bash ./dsi.sh recon<hex-address> recon 4` | Run reconstruction synchronously. Optional method: `1` DTI, `4` GQI, or `7` QSDR. Omission uses the current `method`. |
 | `save_src` | `bash ./dsi.sh recon<hex-address> save_src "C:/output/subject.sz"` | Save the current source data. Omit the path to let the user choose it locally. |
 | `save_nifti` | `bash ./dsi.sh recon<hex-address> save_nifti "C:/output/dwi.nii.gz"` | Save a 4D diffusion NIfTI plus bval/bvec files. Omit the path for a local save dialog. |
@@ -127,7 +123,7 @@ Both setters accept `name=value[&name=value...]`.
 | `bias_field_correction` | `bash ./dsi.sh recon<hex-address> bias_field_correction` | Correct signal inhomogeneity. |
 | `correct_by_t2w` | `bash ./dsi.sh recon<hex-address> correct_by_t2w "C:/data/T2w.nii.gz"` | Correct distortion using a T2-weighted image. Omit the path for a local picker. |
 | `orientation_correction` | `bash ./dsi.sh recon<hex-address> orientation_correction` | Apply automatic volume-orientation correction. |
-| `partial_fov` | `bash ./dsi.sh recon<hex-address> partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range. |
+| `partial_fov` | `bash ./dsi.sh recon<hex-address> partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. |
 
 ## Worked example: GQI reconstruction
 
@@ -142,8 +138,8 @@ Use the `recon...` ID returned by `open_src`, inspect the current configuration,
 the intended GQI values, and reconstruct:
 
 ```bash
-bash ./dsi.sh recon<hex-address> src_list_param
-bash ./dsi.sh recon<hex-address> src_set_params "method=4&param=1.25&other_output=fa,md,rd,rdi"
+bash ./dsi.sh recon<hex-address> list_param
+bash ./dsi.sh recon<hex-address> set_params "method=4&param=1.25&other_output=fa,md,rd,rdi"
 bash ./dsi.sh recon<hex-address> recon 4
 ```
 
