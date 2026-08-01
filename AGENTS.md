@@ -64,7 +64,7 @@ Do not invent a path. Copy the exact reconstruction-window ID returned by
 ### 4.3 Inspect reconstruction parameters
 
 ```bash
-bash ./dsi.sh recon<hex-address> src_list_param
+bash ./dsi.sh recon<hex-address> list_param
 ```
 
 Before changing source data or running reconstruction, read
