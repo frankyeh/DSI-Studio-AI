@@ -90,28 +90,31 @@ use `LOG` for that purpose.
 
 ### `LIST`
 
-`main` is fixed and can be targeted directly. Successful `open_fib` and `open_image`
-replies report the ID of each newly created window. Call top-level `LIST` only to
-discover another currently open tracking or image window:
+`main` is fixed and can be targeted directly. Successful `open_src`, `open_fib`, and
+`open_image` replies report the ID of each newly created supported window. Top-level
+`LIST` can confirm an ID or discover another currently open reconstruction, tracking,
+or image window:
 
 ```bash
 bash ./dsi.sh LIST
 ```
 
 A successful reply includes `status`, application state, and a `windows` object.
-Tracking and image keys append a lowercase hexadecimal window address without `0x`,
-for example `tracking7ff6ab123410` or `image7ff6ab456780`. Copy the exact current
-key. Never construct one, substitute a title or filename, or reuse an ID after its
-window closes.
+Reconstruction, tracking, and image keys append a lowercase hexadecimal window
+address without `0x`, for example `recon7ff6ab111000`, `tracking7ff6ab123410`, or
+`image7ff6ab456780`. Copy the exact current key. Never construct one, substitute a
+title or filename, or reuse an ID after its window closes.
 
-When `open_fib` or `open_image` creates a window, its command-result `output` contains
-`tracking window created, id: tracking...` or `image window created, id: image...`.
-Copy that exact ID and target the new window directly; do not call `LIST` merely to
-rediscover it.
+When `open_src`, `open_fib`, or `open_image` creates a window, its command-result
+`output` contains `recon window created, id: recon...`,
+`tracking window created, id: tracking...`, or
+`image window created, id: image...`. Copy that exact ID and target the new window
+directly; do not call `LIST` merely to rediscover it.
 
 | Window | Commands |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, opening the first FIB/FZ, reconstruction, templates, databases, QC, and main tools. |
+| `main` | Recent files, Fiber Data Hub, opening SRC/SZ, FIB/FZ, and image windows, templates, databases, QC, CLI actions, and main tools. |
+| `recon<hex-address>` | Source-data masks, geometry, b-table operations, corrections, reconstruction parameters, exports, and DTI/GQI/QSDR reconstruction. |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, devices, rendering, settings, workspace, and additional FIBs. |
 | `image<hex-address>` | Standalone image inspection and processing. |
 
@@ -127,6 +130,7 @@ Send standalone numeric parameters without quotes:
 
 ```bash
 bash ./dsi.sh tracking7ff6ab123410 set_slice 7
+bash ./dsi.sh recon7ff6ab111000 src_recon 4
 ```
 
 Keep composite values as one quoted string:
@@ -134,6 +138,7 @@ Keep composite values as one quoted string:
 ```bash
 bash ./dsi.sh tracking7ff6ab123410 move_slice "80 100 80"
 bash ./dsi.sh tracking7ff6ab123410 set_params "fa_threshold=0.08&min_length=20"
+bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25"
 ```
 
 For commands accepting multiple files, pass one path per argument. Do not combine
@@ -171,8 +176,8 @@ command, with `cmd` and `status` in each result. Text-producing commands also in
 `output`; failed commands include `error`. A successful command without captured text
 contains only `cmd` and `status`.
 
-Successful `open_fib` and `open_image` results include the newly created window ID in
-`output`.
+Successful `open_src`, `open_fib`, and `open_image` results include the newly created
+window ID in `output`.
 
 Success means the handler returned without an immediate error; asynchronous or
 GUI-backed work may still be running. Use the relevant discovery or status command
@@ -181,6 +186,15 @@ to confirm completion before a dependent operation.
 ## Opening files
 
 Never send a filesystem path by itself. Supply it as a documented command parameter.
+
+Open an SRC/SZ reconstruction window from `main`:
+
+```bash
+bash ./dsi.sh main open_src "C:/data/subject.sz"
+```
+
+The successful reply reports `recon window created, id: recon...`. Copy that ID and
+use it for reconstruction-window commands.
 
 Open the first FIB/FZ from `main`:
 
@@ -204,6 +218,7 @@ The successful reply reports `tracking window created, id: tracking...` for
 `open_fib`, or `image window created, id: image...` for `open_image`. Copy the
 reported ID and use it as the target of subsequent commands.
 
+Use a reconstruction window for interactive SRC/SZ preprocessing and reconstruction.
 Use the tracking-window route for segmentation related to an open FIB so created
 regions remain in the tractography workflow. Use an image window for standalone
 image processing.
@@ -232,6 +247,26 @@ a destination directory. Network-backed work may continue after the immediate
 reply; verify the opened window or destination file.
 
 ## Critical discovery and status commands
+
+### Reconstruction
+
+```bash
+bash ./dsi.sh recon7ff6ab111000 src_list_param
+bash ./dsi.sh recon7ff6ab111000 src_set_params "method=4&param=1.25"
+bash ./dsi.sh recon7ff6ab111000 src_recon
+```
+
+`src_list_param` reports current reconstruction settings. The reconstruction-window
+dispatcher accepts a command name and at most one parameter, so multiple assignments
+must remain one quoted `&`-separated string. `src_recon` optionally accepts method
+`1` DTI, `4` GQI, or `7` QSDR; omission uses the current `method` value.
+
+Corrections, b-table operations, geometry changes, and reconstruction run
+synchronously from the relay's perspective. A timeout does not prove the operation
+stopped. Supply explicit filenames, thresholds, resolutions, and reverse-PE data to
+avoid local modal dialogs. Follow
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md` for the source-confirmed command
+inventory and cautions.
 
 ### Slices
 
@@ -326,15 +361,21 @@ current table order and cannot be discovered through a dedicated command. Prefer
 current-row operations when the correct row is selected; otherwise ask the user to
 identify the target before an indexed mutation.
 
+A successful AI `src_recon` currently may not explicitly return the final FIB path
+or add it to the recent-FIB list. Inspect the captured command output and verify the
+generated file before opening it. Never infer an output path solely from the source
+filename.
+
 ## Discovery quick reference
 
 | Need | Complete command |
 |---|---|
-| Newly created tracking or image window ID | Returned in the successful `open_fib` or `open_image` command `output` |
-| Other open tracking or image window IDs | `bash ./dsi.sh LIST` |
+| Newly created reconstruction, tracking, or image window ID | Returned in the successful `open_src`, `open_fib`, or `open_image` command `output` |
+| Confirm or discover open supported window IDs | `bash ./dsi.sh LIST` |
 | New console and user-action history | `bash ./dsi.sh LOG` |
 | Recent FIB/FZ paths | `bash ./dsi.sh main list_recent_fib` |
 | Recent SRC/SZ paths | `bash ./dsi.sh main list_recent_src` |
+| Reconstruction parameters | `bash ./dsi.sh recon<hex-address> src_list_param` |
 | Hub repositories | `bash ./dsi.sh main hub_repo` |
 | Hub tags | `bash ./dsi.sh main hub_tags "<exact-repository>"` |
 | Hub files and row indices | `bash ./dsi.sh main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20` |
@@ -357,14 +398,15 @@ identify the target before an indexed mutation.
 - Use `CHAT` or `-Chat` for user-visible progress and results.
 - Use `LOG` regularly while learning user-demonstrated workflows; summarize stable,
   verified action sequences into reusable skills.
-- Use a window ID returned by `open_fib` or `open_image`; call `LIST` only to discover
-  another already-open tracking or image window.
+- Use a window ID returned by `open_src`, `open_fib`, or `open_image`; use `LIST` to
+  confirm an ID or discover another already-open reconstruction, tracking, or image
+  window.
 - Copy command names, paths, window IDs, indices, model IDs, and parameter IDs from
   the user, current command output, or another verified source.
 - Confirm destructive operations, overwrites, and saved-history clearing.
 - Do not answer modal dialogs remotely; tell the user what must be selected.
-- A client timeout does not prove failure; use the relevant status command before
-  retrying.
+- A client timeout does not prove failure; use the relevant output or status command
+  before retrying.
 - A disappeared window requires a new `LIST`; do not reopen it automatically.
 
 ## Related documents
@@ -372,6 +414,7 @@ identify the target before an indexed mutation.
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
+- [Reconstruction-window commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
 - [Regions and tract-to-region analysis](DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md)
 - [Tracts, tracking, AutoTrack, clustering, recognition, and TDI](DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md)
