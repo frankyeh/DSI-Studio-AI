@@ -108,7 +108,7 @@ may use their full documented argument lists:
   propagate through the `error` field.
 - Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` before use
   because they immediately modify saved application state.
-- Use `src_list_param` in a reconstruction window before changing reconstruction
+- Use `list_param` in a reconstruction window before changing reconstruction
   parameters. Use the appropriate `list_param` command in a tracking window before
   changing tracking or rendering parameters.
 
