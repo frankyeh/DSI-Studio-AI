@@ -66,7 +66,7 @@ DSI Studio:
 
 | Window | Purpose |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, CLI actions, and main tools |
+| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, CLI actions, main tools, and Windows desktop speech |
 | `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
 | `image<hex-address>` | Standalone image inspection and processing |
@@ -152,6 +152,28 @@ bash ./dsi.sh main open_image "C:/data/T1w.nii.gz"
 Parameterless main-window commands may open a local picker. Cancellation may return
 without an immediate error, so verify whether the expected window or file was
 created.
+
+## Windows desktop speech
+
+Use the main-window `voice` command to speak one non-empty text parameter through
+the Windows desktop's default system voice and audio output:
+
+```bash
+bash ./dsi.sh main voice "Reconstruction is complete."
+```
+
+`voice` is available only on Windows. DSI Studio starts `powershell.exe` without a
+profile, creates `SAPI.SpVoice`, and passes the text through the `DSI_VOICE_TEXT`
+environment variable rather than inserting it into PowerShell code.
+
+A successful command reply means the PowerShell process started. It does not mean
+speech has finished, and DSI Studio does not return a completion event. Each call
+starts a separate process, so rapid calls may overlap. Keep spoken messages concise
+and avoid repeated calls while another message is likely still playing.
+
+Use `voice` as supplemental audible notification for user-requested speech or events
+that need attention. Continue to provide durable user-facing information through
+`CHAT` or `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
 ## Reconstruction windows
 
