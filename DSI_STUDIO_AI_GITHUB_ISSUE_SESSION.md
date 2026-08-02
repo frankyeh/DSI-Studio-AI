@@ -1,97 +1,106 @@
 # DSI Studio GitHub Issue Session
 
-This workflow lets a remote ChatGPT session interact with an already-open DSI
-Studio on the `HOME-FRANK` self-hosted Windows runner without starting a new runner
-job for every command.
+This workflow lets a remote ChatGPT session control an already-open DSI Studio on
+the `HOME-FRANK` self-hosted Windows runner.
 
-## Files
+## No repository commits during control
 
-- `.github/workflows/chatgpt-dsi-issue-session.yml` starts the persistent session.
-- `.github/scripts/dsi_issue_session.ps1` validates commands, talks to DSI Studio,
-  and publishes results.
-- `.github/chatgpt-dsi-session-request.json` starts one session by identifying the
-  issue to monitor.
+Normal DSI Studio control uses only:
 
-The existing `.github/workflows/chatgpt-dsi-studio.yml` remains available for a
-single independent command.
+- opening one GitHub issue to start the session;
+- replacing that issue's body with each request; and
+- one fixed bot comment for the latest result.
 
-## Interactive sequence
+The production workflow has `contents: read` permission. It does not write request
+files, result files, or commits to the repository. Do not use a pushed JSON request
+file to start or operate a DSI Studio session.
 
-1. Create a new open issue in `frankyeh/DSI-Studio-AI`. The repository owner must
-   be the issue author.
-2. Put the first DSI Studio request in the issue body.
-3. Change `.github/chatgpt-dsi-session-request.json` to the issue number and commit
-   it once.
-4. The runner creates one fixed result comment containing
-   `"dsi_session_result":true` and monitors the issue body.
-5. Replace the issue body with one next command whose `id` is greater than the
-   preceding ID.
-6. Read the fixed result comment. Continue only when `last_id` equals the submitted
-   ID and `state` is `done` or `error`.
-7. Use the result to decide the next interactive command.
-8. End with a higher ID and `"request":"close"`. The runner writes
-   `"state":"closed"` and exits.
+## Start a session
+
+Create a new issue in `frankyeh/DSI-Studio-AI`:
+
+1. The issue must be opened by `frankyeh`.
+2. Its title must start with `DSI Studio session`.
+3. Its body must contain the first complete JSON request.
+
+Example:
+
+```json
+{"id":1,"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"LIST"}
+```
+
+Opening the issue starts `.github/workflows/chatgpt-dsi-issue-session.yml`. The
+workflow runs on `HOME-FRANK`, connects to `\\.\pipe\dsi-studio`, and creates one
+fixed result comment containing `"dsi_session_result":true`.
+
+Continue only when the result comment reports the submitted ID in `last_id` and
+`state` is `done` or `error`.
 
 Only one DSI Studio runner job is active at a time. A session expires after about
 350 minutes if it is not closed first.
-
-## Start request
-
-Example `.github/chatgpt-dsi-session-request.json`:
-
-```json
-{"issue":12,"debug":false,"run":1}
-```
-
-- `issue` is the GitHub issue number.
-- `debug` should normally be `false`. Use `true` only to diagnose one failed run.
-- `run` only makes the start-file commit different. Increment it for each new
-  session start.
-
-The start-file commit launches the runner once. All later commands use only issue
-updates and do not create commits or workflow runs.
 
 ## Issue request format
 
 Every issue body contains exactly one JSON object. Supported request types are
 `TITLE`, `CHAT`, `LIST`, `LOG`, and `CMD`, matching the ordinary DSI Studio relay.
+The `session` field must be a UUID and remain unchanged throughout one issue session.
 
-### Set the task title
+Increase `id` for every issue-body update. Never reuse or decrease it.
 
-```json
-{
-  "id": 1,
-  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "TITLE",
-  "title": "Interactive fiber tracking"
-}
-```
-
-### List windows
+### Send one command
 
 ```json
 {
   "id": 2,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "LIST"
+  "request": "CMD",
+  "window": "main",
+  "command": {
+    "cmd": "hub_repo"
+  }
 }
 ```
 
-### Run one command
+### Send an ordered command array
+
+DSI Studio accepts an ordered array in `command`. The issue action validates every
+item and forwards the complete array in one `CMD` request.
 
 ```json
 {
   "id": 3,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
-  "window": "main",
-  "command": {
-    "cmd": "list_recent_fib"
-  }
+  "window": "tracking7ff6ab123410",
+  "command": [
+    {
+      "cmd": "voice",
+      "param": "I will now run tumor segmentation."
+    },
+    {
+      "cmd": "segment_brain",
+      "param": ["human_tumor_T1w", 8]
+    },
+    {
+      "cmd": "list_region"
+    }
+  ]
 }
 ```
 
-### Run one command with a parameter
+Commands execute in array order. The response contains one result entry per item.
+Use one array when narration and the following action must be sent together.
+
+In DSI Studio builds containing commit
+`ec6576812b0e6d24a6092e85e1f9ec1ff7e58ce4`, a `voice` item inside a batch targeted
+at a tracking, reconstruction, or image window is routed internally to the main
+window. The remaining items continue on the requested target window. Rebuild and
+restart DSI Studio after that source change before relying on this cross-window
+voice routing.
+
+All non-`voice` commands in one batch target the declared `window`.
+
+### Include the incremental DSI work log
 
 ```json
 {
@@ -99,76 +108,39 @@ Every issue body contains exactly one JSON object. Supported request types are
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
   "window": "tracking7ff6ab123410",
-  "command": {
-    "cmd": "list_tract",
-    "param": "status"
-  }
-}
-```
-
-### Include the incremental DSI work log
-
-```json
-{
-  "id": 5,
-  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "CMD",
-  "window": "tracking7ff6ab123410",
-  "command": {
-    "cmd": "list_tract"
-  },
+  "command": {"cmd":"list_tract"},
   "include_log": true
 }
 ```
 
-Use `include_log` only when the new console/action history is needed. Large logs
-increase GitHub transfer and ChatGPT parsing time.
+Use `include_log` only when new console/action history is needed. Large logs increase
+GitHub transfer and parsing time.
 
-The `session` field must be a UUID and should remain unchanged throughout one issue
-session. Command parameters may be strings, numbers, arrays, or composite strings,
-matching the ordinary DSI Studio relay format documented in
+Command parameters may be strings, numbers, arrays, or composite strings, matching
 `DSI_STUDIO_AI_MANUAL.md`.
 
-## Interactive operating rules
+## Read the result
 
-- Send exactly one meaningful DSI request per issue update.
-- Match each result using `last_id`; never infer completion from comment time.
-- Use the returned window ID directly after `open_src`, `open_fib`, or `open_image`.
-- Do not call `LIST` merely to rediscover a window ID that was just returned.
-- For asynchronous work such as fiber tracking, first send `run_tracking`, then use
-  later interactive requests to inspect `list_tract status` and decide what to do.
-- A successful start response means the operation started; it does not prove an
-  asynchronous task is finished.
-- Keep the session open while ChatGPT and the user continue interacting. Send
-  `close` only after the task is complete.
+The runner edits the same bot comment after every request. Match the response using
+`last_id`, never timestamps.
 
-## Close request
+A successful batch resembles:
 
 ```json
-{"id":6,"request":"close"}
-```
-
-`close` does not need a session UUID. Its ID must still be greater than the prior
-request ID.
-
-Closing the GitHub issue also stops the runner after its next poll, but explicit
-`close` is preferred because it writes a deterministic final result.
-
-## Result comment
-
-The runner creates or reuses one issue comment marked:
-
-```json
-{"dsi_session_result":true}
-```
-
-A successful response resembles:
-
-```json
-{"state":"done","id":3,"last_id":3,"duration_ms":52,
- "response":{"status":"success"},"dsi_session_result":true,
- "issue":12,"run":30733485245,
- "updated_at":"2026-08-02T05:05:37.2595168Z"}
+{
+  "state": "done",
+  "id": 3,
+  "last_id": 3,
+  "response": {
+    "status": "success",
+    "result": [
+      {"cmd":"voice","status":"success"},
+      {"cmd":"segment_brain","status":"success"},
+      {"cmd":"list_region","status":"success"}
+    ]
+  },
+  "dsi_session_result": true
+}
 ```
 
 Result states:
@@ -181,54 +153,48 @@ Result states:
 | `closed` | The issue was closed or a `close` request ended the runner. |
 | `expired` | The persistent session reached its time limit. |
 
-The fixed comment is replaced for every result rather than adding one comment per
-command.
+A successful `voice` result confirms that DSI Studio started the PowerShell/SAPI
+process. It does not prove that audible speech completed.
 
-## Interactive latency optimizations
+A successful start response for a long-running operation does not prove that the
+operation finished. Use a later status command rather than automatically retrying.
 
-- The first issue body is processed immediately after startup instead of waiting for
-  another issue poll.
-- The runner polls every 100 ms for 30 seconds after each result, when the next
-  interactive command is most likely. It backs off to 500 ms while idle.
-- Polling uses authenticated ETags and one persistent `HttpClient` connection.
-- There is no artificial one-second delay before publishing each result.
-- Results are compact JSON rather than pretty-printed JSON.
-- Each DSI request still uses a fresh named-pipe connection because the current DSI
-  Studio relay closes the connection after one response.
-- Result strings are capped before publication. If the complete JSON exceeds the
-  GitHub issue-comment limit, large fields are omitted and the result reports
-  `truncated:true` rather than terminating the session.
+## Close the session
 
-The main remaining delay is the public GitHub round trip: ChatGPT updates the issue,
-the runner detects it, the runner updates the fixed comment, and ChatGPT reads that
-comment. Keeping one runner active removes repeated runner startup, checkout, and
-workflow-log packaging.
+Replace the issue body with a higher ID:
 
-## Validation and recovery
+```json
+{"id":5,"request":"close"}
+```
 
-- IDs must be positive integers and strictly increase.
-- Reusing an old ID is ignored.
-- An invalid request produces `state:error` but does not stop the runner.
-- The issue must be open, must not be a pull request, and must have been opened by
-  the repository owner.
-- Window IDs must be `main`, `recon<hex-address>`, `tracking<hex-address>`, or
-  `image<hex-address>`.
-- The runner restores `last_id` from the fixed result comment if restarted on the
-  same issue.
+Wait for:
+
+```json
+{"state":"closed","last_id":5}
+```
+
+Then close the GitHub issue. Closing the issue directly also stops the runner after
+its next poll, but explicit `close` provides a deterministic final result.
+
+## Operational rules
+
+- Send one meaningful DSI request per issue-body update.
+- Put related DSI operations in one `command` array when ordering matters.
+- Match every response using `last_id`.
+- Use exact returned window IDs; do not construct or guess them.
+- For asynchronous work, send the start command once and inspect its status in a
+  later request.
+- An invalid request produces `state:error` without terminating the session.
+- The issue must remain open, must not be a pull request, and must be owned by the
+  repository owner.
 - DSI Studio must already be open on the same desktop as the self-hosted runner.
-- After an ambiguous timeout or interruption, inspect `LIST`, `LOG`, or the relevant
-  DSI status before retrying an operation that may already have started.
 
 ## Privacy and security
 
-`DSI-Studio-AI` is a public repository. Issue bodies and comments are public and may
-reveal local paths, filenames, window titles, command parameters, DSI Studio output,
-or work logs. Do not send protected, confidential, credential, patient-identifying,
-or otherwise sensitive information through this channel.
-
-The workflow accepts only issues opened by the repository owner and validates the
-request structure before connecting to the local named pipe. This limits who can
-start a usable mailbox but does not make the public issue confidential.
+`DSI-Studio-AI` is public. Issue bodies and comments may expose local paths,
+filenames, window titles, parameters, DSI output, or logs. Do not send credentials,
+protected information, patient-identifying information, or other sensitive content
+through this channel.
 
 Use a new issue for each independent control session, send `close` when finished,
 and close the issue after reviewing the final result.
