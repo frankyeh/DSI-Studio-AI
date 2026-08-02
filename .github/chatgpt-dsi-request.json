@@ -1,1 +1,1 @@
-{"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"CMD","window":"main","command":{"cmd":"open_fib","param":"C:/Users/YEHFC/AppData/Local/Temp/hcp-ya/100307.gqi.fz"},"chat":"I found the most recent FIB file and am opening it for whole-brain fiber tracking.","include_log":true,"debug":false,"run":7}
+{"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"CMD","window":"tracking13e8764f700","command":{"cmd":"list_param","param":"tracking"},"include_log":true,"debug":false,"run":8}
