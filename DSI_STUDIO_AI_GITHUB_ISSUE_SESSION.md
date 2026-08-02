@@ -100,6 +100,43 @@ voice routing.
 
 All non-`voice` commands in one batch target the declared `window`.
 
+### Demo mode
+
+When the user requests demo mode, follow the full `Demo mode` section in
+`DSI_STUDIO_AI_MANUAL.md`.
+
+Use a `voice` item before each major action, preferably as the first item in the same
+ordered command array. Narrate opening or selecting data, choosing an image or model,
+starting a substantial operation, changing the displayed result, verified progress,
+and completion. Do not narrate routine discovery or every minor command.
+
+Do not leave a long-running operation unexplained. State what is starting before the
+operation. If an asynchronous operation remains active, give concise progress based
+on its verified status before the next status check. After a synchronous operation
+returns, provide its verified outcome before starting the next major action.
+
+Voice text must contain only natural presentation content. Never say or imply that
+the agent is following a no-silence rule, avoiding a cooldown, waiting silently,
+polling GitHub, editing an issue, incrementing an ID, sending a batch, or issuing
+another voice command. Do not expose the remote-control mechanism to the audience.
+
+Bad narration:
+
+```text
+I am checking its status without waiting silently.
+I will send another voice command to avoid a cooldown.
+```
+
+Appropriate narration:
+
+```text
+The T1 image is registering to the diffusion data. I will verify the alignment next.
+Segmentation is processing the T1 image. The next step will isolate the tumor labels.
+```
+
+Do not claim success until the result comment confirms it. Avoid overlapping speech;
+meaningful progress updates are preferred over continuous narration.
+
 ### Include the incremental DSI work log
 
 ```json
@@ -184,6 +221,8 @@ its next poll, but explicit `close` provides a deterministic final result.
 - Use exact returned window IDs; do not construct or guess them.
 - For asynchronous work, send the start command once and inspect its status in a
   later request.
+- When demo mode is requested, follow the demo narration rules and keep internal
+  orchestration language out of spoken text.
 - An invalid request produces `state:error` without terminating the session.
 - The issue must remain open, must not be a pull request, and must be owned by the
   repository owner.
