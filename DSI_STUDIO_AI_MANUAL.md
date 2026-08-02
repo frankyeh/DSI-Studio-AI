@@ -123,6 +123,25 @@ bash ./dsi.sh image7ff6ab222000 bring_to_front
 Use the exact current window ID returned by DSI Studio. This command changes only
 window visibility and focus; it does not modify the loaded data or processing state.
 
+### Window closing
+
+Use `close` to close a reconstruction, tracking, or standalone image window. The
+command takes no arguments and is not available for `main`:
+
+```bash
+bash ./dsi.sh recon7ff6ab111000 close
+bash ./dsi.sh tracking7ff6ab123410 close
+bash ./dsi.sh image7ff6ab222000 close
+```
+
+After a successful close, the window ID is no longer valid. Use `LIST` when needed
+to confirm that the window disappeared.
+
+An agent-issued tracking-window `close` bypasses the local `Tractography not saved`
+prompt and closes immediately. Confirm the close before sending it when any tract may
+contain unsaved work. A user-originated tracking close still presents the prompt.
+Reconstruction and standalone image `close` commands close their windows directly.
+
 ### `LOG`
 
 ```bash
