@@ -1,7 +1,7 @@
 {
     "status":  "success",
     "session":  "a6208a59-9711-4b10-91a8-8dae60acc8a9",
-    "run":  6,
+    "run":  7,
     "results":  [
                     {
                         "request":  "CMD",
@@ -11,7 +11,7 @@
                                          "result":  [
                                                         {
                                                             "cmd":  "voice",
-                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"main\",\"command\":{\"cmd\":\"voice\",\"param\":[\"I will now apply the T1 specific tumor segmentation model and identify the tumor regions.\"]}}\n",
+                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"main\",\"command\":{\"cmd\":\"voice\",\"param\":[\"The tumor segmentation is complete. I will now hide normal brain tissues and display the tumor regions clearly.\"]}}\n",
                                                             "status":  "success"
                                                         }
                                                     ],
@@ -25,13 +25,63 @@
                         "response":  {
                                          "result":  [
                                                         {
-                                                            "cmd":  "segment_brain",
-                                                            "output":  "├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"set_slice_contrast\",\"param\":[\"0.000000 232.000000\",\"4278190080 4294967295\"]}}\n├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"set_slice\",\"param\":[\"8\"]}}\n├──size: 240 240 155 vs: 1 1 1 \n├──srow: -1 0 0 -0; 0 -1 0 239; 0 0 1 0; 0 0 0 1; \n├──to_dif: 1 0.000271767 -0.000396145 -0.234474; -0.000271392 1 0.000945713 -0.619682; 0.000396402 -0.000945605 0.999999 -0.333191; 0 0 0 1; \n├──┬──📟segment_brain\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  └──⏱0ms\n│  ├──┬──📟loading segmentation model\n│  │  ├──┬──📟loading unet model\n│  │  │  ├──fov_strategy: align_top\n│  │  │  ├──postproc: clamp_prob+create_bg+create_mask+argmax\n│  │  │  ├──dim: 224 256 224 vs: 1 1 1 \n│  │  │  ├──in: 1 out:8\n│  │  │  ├──loading unet: conv12,ks3,stride1,leaky_relu+norm+conv12,ks3,stride1,leaky_relu+norm\n│  │  │  ├──max_pool+conv16,ks3,stride1,leaky_relu+norm+conv16,ks3,stride1,leaky_relu+norm\n│  │  │  ├──max_pool+conv32,ks3,stride1,leaky_relu+norm+conv32,ks3,stride1,leaky_relu+norm\n│  │  │  ├──max_pool+conv64,ks3,stride1,leaky_relu+norm+conv64,ks3,stride1,leaky_relu+norm\n│  │  │  ├──max_pool+conv128,ks3,stride1,leaky_relu+norm+conv128,ks3,stride1,leaky_relu+norm+upsample+conv64,ks3,stride1,leaky_relu+norm\n│  │  │  ├──conv64,ks3,stride1,leaky_relu+norm+upsample+conv32,ks3,stride1,leaky_relu+norm\n│  │  │  ├──conv32,ks3,stride1,leaky_relu+norm+upsample+conv16,ks3,stride1,leaky_relu+norm\n│  │  │  ├──conv16,ks3,stride1,leaky_relu+norm+upsample+conv12,ks3,stride1,leaky_relu+norm\n│  │  │  ├──conv12,ks3,stride1,leaky_relu+norm+conv8,ks1,stride1\n│  │  │  └──⏱57ms\n│  │  └──⏱57ms\n│  ├──┬──📟running segmentation inference\n│  │  ├──┬──📟unet segmentation\n│  │  │  ├──┬──📟pre-processing\n│  │  │  │  └──⏱279ms\n│  │  │  ├──┬──📟handle fov\n│  │  │  │  ├──fov_strategy: align_top\n│  │  │  │  ├──trans:1 0 0 7\n│  │  │  │  ├──0 1 0 -2\n│  │  │  │  ├──0 0 1 -69\n│  │  │  │  ├──inv trans:1 0 0 -7\n│  │  │  │  ├──0 1 0 2\n│  │  │  │  ├──0 0 1 69\n│  │  │  │  └──⏱58ms\n│  │  │  ├──┬──📟forwarding\n│  │  │  │  └──⏱1s321ms\n│  │  │  ├──┬──📟post-processing\n│  │  │  │  ├──┬──📟clamp_prob\n│  │  │  │  │  └──⏱19ms\n│  │  │  │  ├──┬──📟create_bg\n│  │  │  │  │  └──⏱257ms\n│  │  │  │  ├──┬──📟create_mask\n│  │  │  │  │  └──⏱1s139ms\n│  │  │  │  ├──┬──📟argmax\n│  │  │  │  │  └──⏱441ms\n│  │  │  │  ├──┬──📟handle fov\n│  │  │  │  │  └──⏱226ms\n│  │  │  │  └──⏱2s144ms\n│  │  │  └──⏱3s858ms\n│  │  └──⏱3s858ms\n│  ├──┬──📟creating segmentation regions\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"0\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"0\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"1\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"1\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"2\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"2\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"3\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"3\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"4\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"4\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"5\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"5\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"6\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"6\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"7\",\"1\"]}}\n│  │  ├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"7\",\"1\"]}}\n│  │  └──⏱232ms\n│  └──⏱4s297ms\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"segment_brain\",\"param\":[\"human_tumor_T1w\",\"8\"]}}\n",
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"0\",\"1\"]}}\n├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"0\",\"0\"]}}\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"0\",\"0\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"1\",\"1\"]}}\n├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"1\",\"0\"]}}\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"1\",\"0\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"2\",\"1\"]}}\n├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"2\",\"0\"]}}\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"2\",\"0\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"3\",\"1\"]}}\n├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"3\",\"0\"]}}\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"3\",\"0\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"4\",\"1\"]}}\n├──internal operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"4\",\"0\"]}}\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"4\",\"0\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"5\",\"1\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"6\",\"1\"]}}\n",
+                                                            "status":  "success"
+                                                        },
+                                                        {
+                                                            "cmd":  "check_region",
+                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"check_region\",\"param\":[\"7\",\"1\"]}}\n",
                                                             "status":  "success"
                                                         },
                                                         {
                                                             "cmd":  "list_region",
-                                                            "output":  "├──index\tshown\tname\ttype\tcolor\tdimension x resolution\n├──0\t1\tWhite_Matter\tn/a\t#23e7e7ee\t(240,240,155)x(1,1,1)\n├──1\t1\tGray_Matter\tn/a\t#37b2aaab\t(240,240,155)x(1,1,1)\n├──2\t1\tCerebellar_Cortex\tn/a\t#37b9b7af\t(240,240,155)x(1,1,1)\n├──3\t1\tBasal_Ganglia\tn/a\t#e496896f\t(240,240,155)x(1,1,1)\n├──4\t1\tOthers\tn/a\t#0fc4d4df\t(240,240,155)x(1,1,1)\n├──5\t1\tNecrosis\tn/a\t#c85b484e\t(240,240,155)x(1,1,1)\n├──6\t1\tPeritumoral Edema\tn/a\t#808397ab\t(240,240,155)x(1,1,1)\n├──7\t1\tEnhancing Tumor\tn/a\t#c8bc6e71\t(240,240,155)x(1,1,1)\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"list_region\"}}\n",
+                                                            "output":  "├──index\tshown\tname\ttype\tcolor\tdimension x resolution\n├──0\t0\tWhite_Matter\tn/a\t#23e7e7ee\t(240,240,155)x(1,1,1)\n├──1\t0\tGray_Matter\tn/a\t#37b2aaab\t(240,240,155)x(1,1,1)\n├──2\t0\tCerebellar_Cortex\tn/a\t#37b9b7af\t(240,240,155)x(1,1,1)\n├──3\t0\tBasal_Ganglia\tn/a\t#e496896f\t(240,240,155)x(1,1,1)\n├──4\t0\tOthers\tn/a\t#0fc4d4df\t(240,240,155)x(1,1,1)\n├──5\t1\tNecrosis\tn/a\t#c85b484e\t(240,240,155)x(1,1,1)\n├──6\t1\tPeritumoral Edema\tn/a\t#808397ab\t(240,240,155)x(1,1,1)\n├──7\t1\tEnhancing Tumor\tn/a\t#c8bc6e71\t(240,240,155)x(1,1,1)\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"list_region\"}}\n",
+                                                            "status":  "success"
+                                                        }
+                                                    ],
+                                         "status":  "success"
+                                     }
+                    },
+                    {
+                        "request":  "CMD",
+                        "window":  "main",
+                        "status":  "success",
+                        "response":  {
+                                         "result":  [
+                                                        {
+                                                            "cmd":  "voice",
+                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"main\",\"command\":{\"cmd\":\"voice\",\"param\":[\"The demonstration is complete. Necrosis, peritumoral edema, and enhancing tumor are now displayed on the T1 weighted image.\"]}}\n",
                                                             "status":  "success"
                                                         }
                                                     ],
@@ -39,5 +89,5 @@
                                      }
                     }
                 ],
-    "updated_at":  "2026-08-02T06:06:18.9311881Z"
+    "updated_at":  "2026-08-02T06:07:00.3824124Z"
 }
