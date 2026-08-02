@@ -42,7 +42,7 @@ an `&`-separated list as a string.
 | `copy_region` | `["copy_region",0]` | Duplicate one region and insert the copy immediately after it. |
 | `merge_regions` | `["merge_regions","0&1&2"]` | Merge regions 0, 1, and 2 into region 0 and remove the later rows. |
 | `merge_regions` | `["merge_regions"]` | Merge all currently checked regions into the first checked region; at least two must be checked. |
-| `check_region` | `["check_region",0,1]` | Set one region's checked/shown state. |
+| `check_region` | `["check_region","0&2&5",1]` | Set one or more regions' checked/shown state. Use one index or an `&`-separated index list; `1` checks/shows and `0` unchecks/hides. An empty index uses the current row. |
 | `check_all_regions` | `["check_all_regions"]` | Check/show all regions. |
 | `uncheck_all_regions` | `["uncheck_all_regions"]` | Uncheck/hide all regions. |
 | `move_up_region` | `["move_up_region",3]` | Move one region up in table order. |
