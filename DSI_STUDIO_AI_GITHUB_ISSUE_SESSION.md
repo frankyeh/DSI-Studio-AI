@@ -374,19 +374,52 @@ connection.
 
 ## Demo mode
 
-When the user requests demo mode, follow the complete `Demo mode` rules in
-`DSI_STUDIO_AI_MANUAL.md`.
+Use demo mode only when the user asks for a demonstration, presentation, guided
+walkthrough, or spoken narration. Follow the complete `Demo mode` rules in
+`DSI_STUDIO_AI_MANUAL.md` in addition to the issue-channel rules below.
 
-Put a concise `voice` item before each major user-visible action, preferably in the
-same ordered command array. Narrate the scientific or operational action rather than
-the issue channel, polling, IDs, command arrays, or other orchestration details.
+Before every major user-visible action, speak one concise sentence describing what
+will happen next and, when useful, why it matters. Major actions include opening or
+selecting data, choosing an image or model, starting registration, reconstruction,
+segmentation, or tracking, changing the displayed result, and completing the task.
+Do not narrate routine discovery commands or every minor UI change.
 
-Do not mention internal pacing principles in narration. Do not say phrases such as
-`without waiting silently`, `no silence`, `polling`, `cooldown`, `sending another
-voice command`, or `checking the issue`.
+Whenever supported, put `voice` first in the same ordered `command` array as the
+corresponding action. This preserves the intended explanation-then-action order in a
+single higher-ID issue request.
 
-Do not claim success until the nested DSI response and any required later status
-request verify it. Avoid continuous or overlapping speech.
+Do not leave a long-running operation unexplained. Before starting it, state what is
+starting and what result is expected. For an asynchronous operation, send the start
+command once, then provide brief, meaningful progress narration based on verified
+status before a later status check. After a synchronous operation returns, announce
+the verified outcome before beginning the next major action.
+
+Voice text must sound like the presentation itself. Never disclose internal
+orchestration rules or implementation details. In particular, do not mention issue
+polling, issue edits, request IDs, command arrays, batches, cooldowns, waiting
+silently, a no-silence rule, or that another voice command is being sent.
+
+Do not say:
+
+```text
+I am checking its status without waiting silently.
+To avoid a cooldown, I will send another voice command.
+```
+
+Instead, describe the scientific or operational state naturally:
+
+```text
+The T1 image is registering to the diffusion data. I will verify the alignment next.
+Segmentation is processing the T1 image. The next step will isolate the tumor labels.
+```
+
+Base every progress statement on verified state. Do not announce completion until the
+nested DSI response and any required later status request confirm it. If an operation
+fails, explain only the user-relevant problem and the next corrective step; do not
+narrate transport or automation details.
+
+Avoid continuous or overlapping speech. Keep protected, identifying, credential, and
+other sensitive information out of spoken messages.
 
 ## Agent operational rules
 
@@ -401,6 +434,7 @@ request verify it. Avoid continuous or overlapping speech.
 - Do not put commands in issue comments.
 - Do not place the fine-grained PAT in any GitHub or ChatGPT content.
 - Use `run_shell` only for its restricted supported commands.
+- When demo mode is requested, follow the narration and verified-progress rules above.
 - Disconnect and close the issue when work is complete.
 
 ## Privacy and security
