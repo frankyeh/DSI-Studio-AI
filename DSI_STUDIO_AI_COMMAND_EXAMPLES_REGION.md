@@ -37,7 +37,7 @@ an `&`-separated list as a string.
 | `save_region_info` | `["save_region_info","C:/output/seed_info.txt",0]` | Save coordinates, fiber directions, and quantitative values for one region index. |
 | `load_region_color` | `["load_region_color","C:/data/region_colors.txt"]` | Load RGB or RGBA values in region-table order. |
 | `save_region_color` | `["save_region_color","C:/output/region_colors.txt"]` | Save one RGBA line for every region in table order. |
-| `delete_region` | `["delete_region",3]` | Delete one region by index or current selection. |
+| `delete_region` | `["delete_region","0&2&5"]` | Delete one or more regions. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_regions` | `["delete_all_regions"]` | Delete all regions. |
 | `copy_region` | `["copy_region",0]` | Duplicate one region and insert the copy immediately after it. |
 | `merge_regions` | `["merge_regions","0&1&2"]` | Merge regions 0, 1, and 2 into region 0 and remove the later rows. |
