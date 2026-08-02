@@ -2,6 +2,8 @@ name: chatgpt-dsi-issue-session
 run-name: chatgpt-dsi-issue-session
 
 on:
+  issues:
+    types: [opened]
   workflow_dispatch:
     inputs:
       issue:
@@ -13,10 +15,6 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches: [main]
-    paths:
-      - .github/chatgpt-dsi-session-request.json
 
 permissions:
   contents: read
@@ -29,6 +27,10 @@ concurrency:
 
 jobs:
   session:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.user.login == github.repository_owner &&
+       startsWith(github.event.issue.title, 'DSI Studio session'))
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 360
     steps:
