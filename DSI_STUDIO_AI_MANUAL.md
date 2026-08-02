@@ -316,14 +316,22 @@ All Hub commands target `main`:
 ```bash
 bash ./dsi.sh main hub_repo
 bash ./dsi.sh main hub_tags "<exact-repository>"
-bash ./dsi.sh main hub_files "<exact-repository>" "<exact-tag>" ".fz" 0 20
+bash ./dsi.sh main hub_files "<exact-repository>" "" ".*\\.fz$" 0 20
 bash ./dsi.sh main hub_open "<exact-repository>" "<exact-tag>" 12
+bash ./dsi.sh main hub_download "<exact-repository>" "^HCP.*$" "subject.fz" "C:/data"
 ```
 
-Use exact repository and tag strings returned by the preceding commands. The first
-`hub_files` column is the file-row index accepted by `hub_open` and `hub_download`.
-Network-backed work may continue after the immediate reply; verify the opened window
-or destination file.
+Use the exact repository string returned by `hub_repo`. For `hub_files`, the optional
+tag and filename filters are case-insensitive regular expressions; an empty pattern
+matches all. The command searches across all matching tags and returns `index`,
+`tag`, `file`, `size`, and `downloaded`. Offset and limit apply to the combined
+matches; omitting the limit returns every remaining match.
+
+`hub_open` requires one exact tag and accepts the returned file-row index or exact
+filename. `hub_download` accepts a tag regular expression and attempts the requested
+file in every matching tag. Use an exact filename when downloading across multiple
+tags. Network-backed work may continue after the immediate reply; verify the opened
+window or destination file.
 
 ## Tracking discovery and status
 
