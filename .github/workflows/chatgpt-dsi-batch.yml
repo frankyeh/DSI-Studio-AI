@@ -1,0 +1,178 @@
+name: chatgpt-dsi-batch
+run-name: chatgpt-dsi-batch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/chatgpt-dsi-batch-request.json
+      - .github/workflows/chatgpt-dsi-batch.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dsi-studio-home-frank
+  cancel-in-progress: false
+
+jobs:
+  control:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run DSI batch
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if($env:RUNNER_NAME -ne 'HOME-FRANK')
+          {
+              throw "This workflow requires runner HOME-FRANK; current runner is $env:RUNNER_NAME."
+          }
+          if($env:RUNNER_OS -ne 'Windows') { throw 'This workflow requires Windows.' }
+
+          $input = Get-Content '.github/chatgpt-dsi-batch-request.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          $session = [string]$input.session
+          if($session -notmatch '^[A-Za-z0-9._:-]{1,128}$') { throw 'Invalid session.' }
+          $items = @($input.batch)
+          if($items.Count -lt 1 -or $items.Count -gt 20) { throw 'batch must contain 1 to 20 requests.' }
+
+          function Invoke-Dsi($Request)
+          {
+              $pipe = $writer = $reader = $null
+              try
+              {
+                  $pipe = [IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio')
+                  $pipe.Connect(5000)
+                  $utf8 = [Text.UTF8Encoding]::new($false)
+                  $writer = [IO.StreamWriter]::new($pipe,$utf8,1024,$true)
+                  $reader = [IO.StreamReader]::new($pipe,$utf8,$false,1024,$true)
+                  $writer.Write(($Request | ConvertTo-Json -Compress -Depth 30))
+                  $writer.Flush()
+                  return $reader.ReadToEnd()
+              }
+              finally
+              {
+                  foreach($stream in @($reader,$writer,$pipe))
+                  {
+                      if($stream) { try {$stream.Dispose()} catch [IO.IOException] {} }
+                  }
+              }
+          }
+
+          function Test-DsiReply($Reply)
+          {
+              if(([string]$Reply.status).ToLowerInvariant() -in @('error','failed','failure')) { return $false }
+              foreach($result in @($Reply.result))
+              {
+                  if($null -ne $result -and
+                     ([string]$result.status).ToLowerInvariant() -in @('error','failed','failure'))
+                  {
+                      return $false
+                  }
+              }
+              return $true
+          }
+
+          $results = @()
+          $batchStatus = 'success'
+          foreach($item in $items)
+          {
+              $kind = ([string]$item.request).ToUpperInvariant()
+              if($kind -notin @('TITLE','CHAT','LIST','LOG','CMD'))
+              {
+                  $results += [ordered]@{status='error';error="Invalid request: $kind"}
+                  $batchStatus = 'error'
+                  break
+              }
+
+              $payload = [ordered]@{agent='Codex/ChatGPT-GitHub';session=$session;request=$kind}
+              switch($kind)
+              {
+                  'TITLE'
+                  {
+                      $title = [string]$item.title
+                      if([string]::IsNullOrWhiteSpace($title)) { throw 'TITLE requires title.' }
+                      $payload.title = $title
+                  }
+                  'CHAT'
+                  {
+                      $chat = [string]$item.chat
+                      if([string]::IsNullOrWhiteSpace($chat)) { throw 'CHAT requires chat.' }
+                      $payload.chat = $chat
+                  }
+                  'CMD'
+                  {
+                      $window = [string]$item.window
+                      if($window -notmatch '^(main|recon[0-9A-Fa-f]+|tracking[0-9A-Fa-f]+|image[0-9A-Fa-f]+)$')
+                      {
+                          throw "Invalid window: $window"
+                      }
+                      $commands = @($item.command)
+                      if($commands.Count -lt 1) { throw 'CMD requires command.' }
+                      foreach($command in $commands)
+                      {
+                          $cmd = [string]$command.cmd
+                          if($cmd -notmatch '^[A-Za-z0-9_]+$') { throw "Invalid command: $cmd" }
+                      }
+                      $payload.window = $window
+                      $payload.command = $item.command
+                      if($null -ne $item.chat) { $payload.chat = [string]$item.chat }
+                  }
+              }
+
+              try
+              {
+                  $text = Invoke-Dsi $payload
+                  if([string]::IsNullOrWhiteSpace($text)) { throw 'DSI Studio returned no data.' }
+                  $reply = $text | ConvertFrom-Json
+                  $okay = Test-DsiReply $reply
+                  $results += [ordered]@{
+                      request = $kind
+                      window = if($kind -eq 'CMD') {[string]$item.window} else {$null}
+                      status = if($okay) {'success'} else {'error'}
+                      response = $reply
+                  }
+                  if(-not $okay)
+                  {
+                      $batchStatus = 'error'
+                      break
+                  }
+              }
+              catch
+              {
+                  $results += [ordered]@{
+                      request = $kind
+                      window = if($kind -eq 'CMD') {[string]$item.window} else {$null}
+                      status = 'error'
+                      error = $_.Exception.Message
+                  }
+                  $batchStatus = 'error'
+                  break
+              }
+          }
+
+          $output = [ordered]@{
+              status = $batchStatus
+              session = $session
+              run = $input.run
+              results = $results
+              updated_at = [DateTime]::UtcNow.ToString('o')
+          } | ConvertTo-Json -Depth 30
+          [IO.File]::WriteAllText(
+              (Join-Path $env:GITHUB_WORKSPACE '.github/chatgpt-dsi-batch-result.json'),
+              $output,[Text.UTF8Encoding]::new($false))
+          Write-Host $output
+
+      - name: Publish batch result
+        if: always()
+        shell: powershell
+        run: |
+          if(-not (Test-Path '.github/chatgpt-dsi-batch-result.json')) { exit 0 }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/chatgpt-dsi-batch-result.json
+          if(git diff --cached --quiet) { exit 0 }
+          git commit -m 'Update DSI batch result'
+          git push
