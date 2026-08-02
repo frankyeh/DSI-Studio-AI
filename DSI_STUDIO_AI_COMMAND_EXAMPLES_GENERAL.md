@@ -42,7 +42,7 @@ only as parameters of the documented commands below.
 | `qc_nii` | `["qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_src` | `["qc_src","C:/data/a.sz","C:/data/b.sz"]` | Run SRC/SZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_fib` | `["qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Run FIB/FZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
-| `run_cli` | `["run_cli","--action=rec --loop=C:\\data\\*.sz --method=4"]` | Parse and execute one DSI Studio CLI command line. Exactly one parameter is required and it must include a valid `--action`. Prefer a `recon...` window for an interactive reconstruction workflow; retain `run_cli` for explicit CLI or batch work. |
+| `run_cli` | `["run_cli","dir \"C:\\data\\*.fz\" /s /b"]` | Execute one restricted external command string. Only `dir` and `curl` are accepted; shell chaining, redirection, substitution, and multiline commands are rejected. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more ordinary image paths in a `view_image` window. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for the FIB tracking interface. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
@@ -67,6 +67,33 @@ collects every command element after the command name as a separate file path.
 
 After `open_src`, use the returned `recon<hex-address>` and follow
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`.
+
+## Restricted `run_cli` commands
+
+`run_cli` accepts exactly one non-empty command string. The first token must be
+`dir` or `curl`, matched case-insensitively:
+
+```json
+["run_cli","dir \"C:\\data\\*.fz\" /s /b"]
+["run_cli","curl -L -o \"C:\\data\\atlas.zip\" \"https://example.org/atlas.zip\""]
+```
+
+- Send the entire external command as one command-array element.
+- Use `dir` to inspect local files and directories. Use `curl` for HTTP or HTTPS
+  requests and downloads.
+- The exact executable token must be `dir` or `curl`; other programs and aliases are
+  rejected.
+- The characters `&`, `|`, `;`, `<`, `>`, `^`, the backtick, carriage return, and
+  newline are rejected anywhere in the command. This prevents command chaining,
+  pipelines, redirection, substitution, and multiline commands.
+- Use `curl -o` or `curl -O` instead of output redirection.
+- On Windows, DSI Studio runs the command through `cmd.exe /c`. Standard output is
+  returned and standard error is reported separately. Verify the listed files,
+  response, or downloaded destination because the handler does not validate the
+  external process exit code.
+- `run_cli` no longer accepts DSI Studio `--action=...` command lines. Use the
+  documented DSI Studio window commands for reconstruction, tracking, and other
+  application operations.
 
 ## Fiber Data Hub workflow
 
