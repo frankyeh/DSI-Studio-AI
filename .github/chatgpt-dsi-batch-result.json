@@ -1,17 +1,38 @@
 {
-    "status":  "error",
-    "session":  "chatgpt-demo-20260802",
-    "run":  2,
+    "status":  "success",
+    "session":  "a6208a59-9711-4b10-91a8-8dae60acc8a9",
+    "run":  3,
     "results":  [
                     {
                         "request":  "CMD",
                         "window":  "main",
-                        "status":  "error",
+                        "status":  "success",
                         "response":  {
-                                         "error":  "invalid session: provide resumable provider thread ID",
-                                         "status":  "error"
+                                         "result":  [
+                                                        {
+                                                            "cmd":  "voice",
+                                                            "output":  "├──ai operation: {\"request\":\"CMD\",\"window\":\"main\",\"command\":{\"cmd\":\"voice\",\"param\":[\"I will now inspect the available MRI slices and select a T1 weighted image for presentation.\"]}}\n",
+                                                            "status":  "success"
+                                                        }
+                                                    ],
+                                         "status":  "success"
+                                     }
+                    },
+                    {
+                        "request":  "CMD",
+                        "window":  "tracking25098dabb60",
+                        "status":  "success",
+                        "response":  {
+                                         "result":  [
+                                                        {
+                                                            "cmd":  "list_slice",
+                                                            "output":  "├──index\tcurrent\tname\tstatus\n├──0\t1\tqa\tready\n├──1\t0\tqir\tready\n├──2\t0\tdti_fa\tready\n├──3\t0\trd\tready\n├──4\t0\tiso\tready\n├──5\t0\trdi\tready\n├──6\t0\tvol\tready\n├──7\t0\tsub-004_FLAIR\tavailable\n├──8\t0\tsub-004_T1w\tavailable\n├──9\t0\tsub-004_T2w\tavailable\n├──10\t0\tsub-004_ce-gd_T1w\tavailable\n├──user operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"set_zoom\",\"param\":[\"0.500000\"]}}\n├──ai operation: {\"request\":\"CMD\",\"window\":\"tracking25098dabb60\",\"command\":{\"cmd\":\"list_slice\"}}\n",
+                                                            "status":  "success"
+                                                        }
+                                                    ],
+                                         "status":  "success"
                                      }
                     }
                 ],
-    "updated_at":  "2026-08-02T06:03:36.5709167Z"
+    "updated_at":  "2026-08-02T06:04:10.2385552Z"
 }
