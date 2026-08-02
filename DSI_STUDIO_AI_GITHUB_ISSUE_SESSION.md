@@ -216,7 +216,7 @@ request verify it. Avoid overlapping speech.
 - Treat the result comment as a latest-result mailbox, not an append-only history.
 - Do not reconnect while an old mutating request remains in the issue body unless
   repeating it is intentional.
-- Use `run_shell`, not the removed `run_cli` command.
+- Use `run_shell` for restricted shell access.
 
 ## Privacy and security
 
