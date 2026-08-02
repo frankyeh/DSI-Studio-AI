@@ -1,0 +1,77 @@
+name: dsi-channel-benchmark
+run-name: DSI channel benchmark
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/dsi-channel-benchmark.yml]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  benchmark:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 15
+    steps:
+      - name: Benchmark channels with fixed LIST request
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $api = $env:GITHUB_API_URL
+          $run = [int64]$env:GITHUB_RUN_ID
+          $headers = @{Authorization="Bearer $env:GH_TOKEN";Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'}
+          $results = @()
+
+          function GH([string]$method,[string]$path,$body=$null) {
+            $a=@{Method=$method;Headers=$headers;Uri="$api/repos/$repo$path";ContentType='application/json'}
+            if($null-ne$body){$a.Body=$body|ConvertTo-Json -Compress -Depth 10}
+            Invoke-RestMethod @a
+          }
+          function Publish([string]$state,[string]$next='') {
+            $text=@{run=$run;state=$state;next=$next;results=@($script:results)}|ConvertTo-Json -Depth 15
+            GH PATCH '/issues/comments/5155315695' @{body=$text}|Out-Null
+          }
+          function Parse([string]$text,[string]$channel) {
+            try{$p=$text|ConvertFrom-Json}catch{return $null}
+            if($p.channel-ne$channel-or[int64]$p.run-ne$run){return $null}
+            $p
+          }
+          function Wait([string]$channel,[scriptblock]$get) {
+            $end=[DateTime]::UtcNow.AddMinutes(2)
+            do{$p=Parse (&$get) $channel;if($p){return $p};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$end)
+            throw "timeout: $channel"
+          }
+          function DSI {
+            $p=$w=$r=$null
+            try{
+              $p=[IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio');$p.Connect(5000)
+              $u=[Text.UTF8Encoding]::new($false);$w=[IO.StreamWriter]::new($p,$u,1024,$true);$r=[IO.StreamReader]::new($p,$u,$false,1024,$true)
+              $w.Write('{"agent":"Codex/ChatGPT-GitHub","session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"LIST"}');$w.Flush();$r.ReadToEnd()
+            }finally{foreach($s in @($r,$w,$p)){if($s){$s.Dispose()}}}
+          }
+          function Test([string]$channel,[scriptblock]$get,[string]$next='') {
+            $x=Wait $channel $get;$detected=[DateTime]::UtcNow;$sent=[DateTime]::Parse([string]$x.sent_at).ToUniversalTime()
+            $sw=[Diagnostics.Stopwatch]::StartNew();$reply=DSI;$sw.Stop()
+            $script:results+=@{channel=$channel;send_to_detect_ms=[math]::Round(($detected-$sent).TotalMilliseconds);dsi_ms=$sw.ElapsedMilliseconds;status=($reply|ConvertFrom-Json).status}
+            Publish running $next
+          }
+
+          Publish ready issue_body
+          Test issue_body {(GH GET '/issues/1').body} fixed_comment
+          Test fixed_comment {(GH GET '/issues/comments/5155290430').body} new_comment
+          Test new_comment {
+            foreach($c in @((GH GET '/issues/1/comments?per_page=100')|Sort-Object id -Descending)){if(Parse $c.body new_comment){return $c.body}}
+            ''
+          } pr_body
+          Test pr_body {(GH GET '/pulls/2').body} branch_file
+          Test branch_file {
+            $b=(GH GET '/contents/.github/chatgpt-dsi-request.json?ref=dsi-command-mailbox').content-replace'\s',''
+            [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b))
+          }
+          Publish complete
