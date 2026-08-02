@@ -1,34 +1,35 @@
 # DSI Studio GitHub Issue Session
 
-This workflow lets a remote ChatGPT session control an already-open DSI Studio on
-the `HOME-FRANK` self-hosted Windows runner without starting a new runner job for
-every command.
+This workflow lets a remote ChatGPT session interact with an already-open DSI
+Studio on the `HOME-FRANK` self-hosted Windows runner without starting a new runner
+job for every command.
 
 ## Files
 
 - `.github/workflows/chatgpt-dsi-issue-session.yml` starts the persistent session.
-- `.github/scripts/dsi_issue_session.ps1` validates requests, communicates with DSI
-  Studio, and publishes results.
+- `.github/scripts/dsi_issue_session.ps1` validates commands, talks to DSI Studio,
+  and publishes results.
 - `.github/chatgpt-dsi-session-request.json` starts one session by identifying the
   issue to monitor.
 
-The existing `.github/workflows/chatgpt-dsi-studio.yml` remains available for
-one-command runs.
+The existing `.github/workflows/chatgpt-dsi-studio.yml` remains available for a
+single independent command.
 
-## Session sequence
+## Interactive sequence
 
 1. Create a new open issue in `frankyeh/DSI-Studio-AI`. The repository owner must
    be the issue author.
-2. Put the first request in the issue body.
+2. Put the first DSI Studio request in the issue body.
 3. Change `.github/chatgpt-dsi-session-request.json` to the issue number and commit
    it once.
-4. The runner creates one result comment containing
-   `"dsi_session_result": true` and monitors the issue body.
-5. For each next action, replace the issue body with one JSON request whose `id`
-   is greater than the preceding request ID.
-6. Continue only after the fixed result comment reports the submitted `last_id` and
-   a terminal state such as `done` or `error`.
-7. End the session with a higher ID and `"request":"close"`. The runner writes
+4. The runner creates one fixed result comment containing
+   `"dsi_session_result":true` and monitors the issue body.
+5. Replace the issue body with one next command whose `id` is greater than the
+   preceding ID.
+6. Read the fixed result comment. Continue only when `last_id` equals the submitted
+   ID and `state` is `done` or `error`.
+7. Use the result to decide the next interactive command.
+8. End with a higher ID and `"request":"close"`. The runner writes
    `"state":"closed"` and exits.
 
 Only one DSI Studio runner job is active at a time. A session expires after about
@@ -43,95 +44,34 @@ Example `.github/chatgpt-dsi-session-request.json`:
 ```
 
 - `issue` is the GitHub issue number.
-- `debug` should normally be `false`. Use `true` only to diagnose a failed run.
-- `run` only makes the start-file commit different. Increment it for each start.
+- `debug` should normally be `false`. Use `true` only to diagnose one failed run.
+- `run` only makes the start-file commit different. Increment it for each new
+  session start.
 
-The start-file commit launches the runner once. Subsequent commands use only issue
+The start-file commit launches the runner once. All later commands use only issue
 updates and do not create commits or workflow runs.
 
-## Fast tracking request
+## Issue request format
 
-Use `TRACK` when the goal is to open or reuse a FIB, start fiber tracking, wait for
-actual completion, return the final tract table, and optionally speak a completion
-message. This replaces several remote issue updates with one request.
+Every issue body contains exactly one JSON object. Supported request types are
+`TITLE`, `CHAT`, `LIST`, `LOG`, and `CMD`, matching the ordinary DSI Studio relay.
 
-### Open a FIB and track
+### Set the task title
 
 ```json
 {
   "id": 1,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "TRACK",
-  "path": "C:/data/subject.gqi.fz",
-  "name": "Whole Brain",
-  "timeout_seconds": 600,
-  "poll_ms": 250,
-  "voice": "Fiber tracking finished"
+  "request": "TITLE",
+  "title": "Interactive fiber tracking"
 }
 ```
-
-The runner performs these steps locally:
-
-1. `open_fib` on `main`.
-2. Extract the returned `tracking<hex-address>` ID.
-3. Optionally apply `set_params`.
-4. Start `run_tracking`.
-5. Poll `list_tract status` until the output reports `done`.
-6. Call `list_tract` and return the final bundle counts.
-7. Optionally call `voice` and `LOG`.
-
-### Reuse an existing tracking window
-
-```json
-{
-  "id": 2,
-  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "TRACK",
-  "window": "tracking7ff6ab123410",
-  "name": "CST",
-  "set_params": "max_tract_count=50000&tip_iteration=0",
-  "regions": "0:3&1:0",
-  "include_log": true
-}
-```
-
-`TRACK` fields:
-
-| Field | Requirement and behavior |
-|---|---|
-| `id` | Positive integer greater than the preceding request ID. |
-| `session` | UUID reused throughout the issue session. |
-| `request` | Must be `TRACK`. |
-| `path` | FIB/FZ path to open. Supply exactly one of `path` or `window`. |
-| `window` | Existing `tracking<hex-address>` ID. Supply exactly one of `path` or `window`. |
-| `name` | Required nonempty new tract-bundle name. |
-| `set_params` | Optional `name=value[&name=value...]` tracking settings. |
-| `regions` | Optional explicit ROI settings such as `0:3&1:0`. Validate region indices first. |
-| `timeout_seconds` | Optional completion timeout, 1–1800 seconds; default 600. |
-| `poll_ms` | Optional local DSI status interval, 100–5000 ms; default 250. |
-| `voice` | Optional text spoken after successful completion. |
-| `include_log` | Optional `true` to append the incremental DSI work log. |
-
-A successful result contains `workflow.window`, `workflow.start`,
-`workflow.status`, `workflow.poll_count`, `workflow.tracking_ms`, and
-`workflow.final`. The request is `done` only after `list_tract status` reports
-`done`; a successful `run_tracking` launch alone is not treated as completion.
-
-Validated on August 2, 2026 with
-`C:/Users/YEHFC/AppData/Local/Temp/hcp-ya/100307.gqi.fz`: one issue request opened
-the FIB, derived the tracking window, completed whole-brain tracking after two local
-status polls, returned 154,823 tracts, and spoke completion. The complete runner-side
-workflow took 4.603 seconds.
-
-## Standard issue request format
-
-Every issue body must contain exactly one JSON object.
 
 ### List windows
 
 ```json
 {
-  "id": 3,
+  "id": 2,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "LIST"
 }
@@ -141,7 +81,7 @@ Every issue body must contain exactly one JSON object.
 
 ```json
 {
-  "id": 4,
+  "id": 3,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
   "window": "main",
@@ -151,7 +91,22 @@ Every issue body must contain exactly one JSON object.
 }
 ```
 
-### Run a command and retrieve the incremental DSI work log
+### Run one command with a parameter
+
+```json
+{
+  "id": 4,
+  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
+  "request": "CMD",
+  "window": "tracking7ff6ab123410",
+  "command": {
+    "cmd": "list_tract",
+    "param": "status"
+  }
+}
+```
+
+### Include the incremental DSI work log
 
 ```json
 {
@@ -160,20 +115,32 @@ Every issue body must contain exactly one JSON object.
   "request": "CMD",
   "window": "tracking7ff6ab123410",
   "command": {
-    "cmd": "list_tract",
-    "param": "status"
+    "cmd": "list_tract"
   },
   "include_log": true
 }
 ```
 
-Standard DSI request types are `TITLE`, `CHAT`, `LIST`, `LOG`, and `CMD`. Their
-fields and DSI Studio behavior are documented in `DSI_STUDIO_AI_MANUAL.md`.
-`TRACK` is a workflow-level convenience request that composes those ordinary DSI
-commands without changing the DSI Studio relay protocol.
+Use `include_log` only when the new console/action history is needed. Large logs
+increase GitHub transfer and ChatGPT parsing time.
 
-Command parameters may be strings, numbers, arrays, or composite strings, matching
-the ordinary DSI Studio relay format.
+The `session` field must be a UUID and should remain unchanged throughout one issue
+session. Command parameters may be strings, numbers, arrays, or composite strings,
+matching the ordinary DSI Studio relay format documented in
+`DSI_STUDIO_AI_MANUAL.md`.
+
+## Interactive operating rules
+
+- Send exactly one meaningful DSI request per issue update.
+- Match each result using `last_id`; never infer completion from comment time.
+- Use the returned window ID directly after `open_src`, `open_fib`, or `open_image`.
+- Do not call `LIST` merely to rediscover a window ID that was just returned.
+- For asynchronous work such as fiber tracking, first send `run_tracking`, then use
+  later interactive requests to inspect `list_tract status` and decide what to do.
+- A successful start response means the operation started; it does not prove an
+  asynchronous task is finished.
+- Keep the session open while ChatGPT and the user continue interacting. Send
+  `close` only after the task is complete.
 
 ## Close request
 
@@ -195,22 +162,13 @@ The runner creates or reuses one issue comment marked:
 {"dsi_session_result":true}
 ```
 
-A standard successful response resembles:
+A successful response resembles:
 
 ```json
-{
-  "state": "done",
-  "id": 4,
-  "last_id": 4,
-  "duration_ms": 52,
-  "response": {
-    "status": "success"
-  },
-  "dsi_session_result": true,
-  "issue": 12,
-  "run": 30733485245,
-  "updated_at": "2026-08-02T05:05:37.2595168Z"
-}
+{"state":"done","id":3,"last_id":3,"duration_ms":52,
+ "response":{"status":"success"},"dsi_session_result":true,
+ "issue":12,"run":30733485245,
+ "updated_at":"2026-08-02T05:05:37.2595168Z"}
 ```
 
 Result states:
@@ -218,30 +176,33 @@ Result states:
 | State | Meaning |
 |---|---|
 | `ready` | Runner is connected and waiting for a higher request ID. |
-| `done` | The standard command completed, or a `TRACK` request reached definitive tracking completion. |
-| `error` | Validation, named-pipe communication, JSON parsing, or DSI Studio failed. The runner remains active for a corrected higher ID. |
+| `done` | DSI Studio completed the immediate request without an error. |
+| `error` | Validation, pipe communication, JSON parsing, or DSI Studio failed. The runner remains active for a corrected higher ID. |
 | `closed` | The issue was closed or a `close` request ended the runner. |
 | `expired` | The persistent session reached its time limit. |
 
-Always match the result by `last_id`; do not infer completion from comment time or
-workflow status alone. The fixed comment is replaced for every result instead of
-adding one comment per command.
+The fixed comment is replaced for every result rather than adding one comment per
+command.
 
-## Speed and reliability behavior
+## Interactive latency optimizations
 
-- The runner polls issue changes every 250 ms using authenticated ETags.
-- The first `ready` comment is created once; a redundant startup update was removed.
-- Each DSI command still uses a new named-pipe connection. Keeping one pipe open
-  across requests is unsupported.
-- `TRACK` performs asynchronous status polling locally, avoiding repeated remote
-  issue-update and comment-read cycles.
-- DSI errors at any composed `TRACK` stage stop the workflow request and return
-  `state:error` with the failed stage.
-- Result strings are capped before publication. If the complete JSON would exceed
-  the GitHub issue-comment limit, large response fields are omitted and the result
-  reports `truncated:true` instead of failing the session.
-- GitHub mutations remain separated by at least one second to reduce secondary
-  rate-limit risk.
+- The first issue body is processed immediately after startup instead of waiting for
+  another issue poll.
+- The runner polls every 100 ms for 30 seconds after each result, when the next
+  interactive command is most likely. It backs off to 500 ms while idle.
+- Polling uses authenticated ETags and one persistent `HttpClient` connection.
+- There is no artificial one-second delay before publishing each result.
+- Results are compact JSON rather than pretty-printed JSON.
+- Each DSI request still uses a fresh named-pipe connection because the current DSI
+  Studio relay closes the connection after one response.
+- Result strings are capped before publication. If the complete JSON exceeds the
+  GitHub issue-comment limit, large fields are omitted and the result reports
+  `truncated:true` rather than terminating the session.
+
+The main remaining delay is the public GitHub round trip: ChatGPT updates the issue,
+the runner detects it, the runner updates the fixed comment, and ChatGPT reads that
+comment. Keeping one runner active removes repeated runner startup, checkout, and
+workflow-log packaging.
 
 ## Validation and recovery
 
@@ -250,13 +211,13 @@ adding one comment per command.
 - An invalid request produces `state:error` but does not stop the runner.
 - The issue must be open, must not be a pull request, and must have been opened by
   the repository owner.
-- Standard window IDs must be `main`, `recon<hex-address>`,
-  `tracking<hex-address>`, or `image<hex-address>`.
+- Window IDs must be `main`, `recon<hex-address>`, `tracking<hex-address>`, or
+  `image<hex-address>`.
 - The runner restores `last_id` from the fixed result comment if restarted on the
   same issue.
 - DSI Studio must already be open on the same desktop as the self-hosted runner.
-- After an ambiguous timeout or runner interruption, inspect `LIST`, `LOG`, or the
-  relevant DSI status before retrying a command that may already have started.
+- After an ambiguous timeout or interruption, inspect `LIST`, `LOG`, or the relevant
+  DSI status before retrying an operation that may already have started.
 
 ## Privacy and security
 
