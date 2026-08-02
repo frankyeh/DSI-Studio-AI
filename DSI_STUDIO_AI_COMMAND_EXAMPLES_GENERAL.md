@@ -42,8 +42,8 @@ only as parameters of the documented commands below.
 | `qc_nii` | `["qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_src` | `["qc_src","C:/data/a.sz","C:/data/b.sz"]` | Run SRC/SZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_fib` | `["qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Run FIB/FZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
-| `run_cli` | `["run_cli","cd \"C:\\data\""]` | Execute one restricted command string. `cd` changes DSI Studio's persistent working directory; `dir` and `curl` run external commands with shell metacharacters blocked. |
-| `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more ordinary image paths in a `view_image` window. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for the FIB tracking interface. |
+| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one restricted shell command string. `cd` changes DSI Studio's persistent working directory; `dir` and `curl` run external commands with shell metacharacters blocked. |
+| `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a `view_image` window. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
 | `hub_repo` | `["hub_repo"]` | Show the Fiber Data Hub and list available repositories. |
@@ -68,21 +68,21 @@ collects every command element after the command name as a separate file path.
 After `open_src`, use the returned `recon<hex-address>` and follow
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`.
 
-## Restricted `run_cli` commands
+## Restricted `run_shell` commands
 
-`run_cli` accepts exactly one non-empty command string. The first token must be
+`run_shell` accepts exactly one non-empty command string. The first token must be
 `cd`, `dir`, or `curl`, matched case-insensitively:
 
 ```json
-["run_cli","cd \"C:\\data\""]
-["run_cli","cd"]
-["run_cli","dir \"*.fz\" /s /b"]
-["run_cli","curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""]
+["run_shell","cd \"C:\\data\""]
+["run_shell","cd"]
+["run_shell","dir \"*.fz\" /s /b"]
+["run_shell","curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""]
 ```
 
 - Send the entire command as one command-array element.
 - `cd <path>` changes DSI Studio's own current working directory directly. The new
-  directory persists across later `run_cli` calls. Enclose a path containing spaces
+  directory persists across later `run_shell` calls. Enclose a path containing spaces
   in one pair of double quotes.
 - `cd` without a path reports the current working directory. Do not use `cd /d`;
   `cd` receives the remaining text as the directory path rather than Windows shell
@@ -101,7 +101,7 @@ After `open_src`, use the returned `recon<hex-address>` and follow
   and standard error is reported separately. Verify the listed files, response, or
   downloaded destination because the handler does not validate the external process
   exit code.
-- `run_cli` no longer accepts DSI Studio `--action=...` command lines. Use the
+- `run_shell` does not accept DSI Studio `--action=...` command lines. Use the
   documented DSI Studio window commands for reconstruction, tracking, and other
   application operations.
 
