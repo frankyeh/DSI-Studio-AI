@@ -175,6 +175,72 @@ Use `voice` as supplemental audible notification for user-requested speech or ev
 that need attention. Continue to provide durable user-facing information through
 `CHAT` or `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
+## Demo mode
+
+Use demo mode only when the user asks for a demonstration, presentation, guided
+walkthrough, or spoken narration.
+
+Before every major user-visible action, speak one concise sentence describing what
+will happen next and, when useful, why it matters. Major actions include opening or
+selecting data, choosing an image or model, starting registration, reconstruction,
+segmentation, or tracking, changing the displayed result, and completing the task.
+Do not narrate routine discovery commands or every minor UI change.
+
+Whenever supported, put `voice` first in the same ordered `CMD.command` array as the
+corresponding action. This keeps the explanation and action in the intended order:
+
+```json
+{
+  "request": "CMD",
+  "window": "tracking7ff6ab123410",
+  "command": [
+    {
+      "cmd": "voice",
+      "param": "The T1 weighted image is ready. I will now run tumor segmentation."
+    },
+    {
+      "cmd": "segment_brain",
+      "param": ["human_tumor_T1w", 8]
+    },
+    {
+      "cmd": "list_region"
+    }
+  ]
+}
+```
+
+A demo must not leave a long operation unexplained. Before starting a potentially
+long operation, state what is starting and what result is expected. For an
+asynchronous operation, provide brief, meaningful progress narration while checking
+its status. After a synchronous long operation returns, announce the verified result
+before beginning the next major action. Do not fill every moment with speech or
+start another message while the previous message is likely still playing.
+
+Spoken narration must sound like the presentation itself. Never disclose internal
+orchestration rules or implementation details in the voice text. In particular, do
+not mention the no-silence rule, cooldowns, waiting silently, polling, issue updates,
+request IDs, command arrays, batches, or that another voice command is being sent.
+
+Do not say:
+
+```text
+I am checking its status without waiting silently.
+To avoid a cooldown, I will send another voice command.
+```
+
+Instead, describe the scientific or operational state naturally:
+
+```text
+The T1 image is registering to the diffusion data. I will verify the alignment next.
+Segmentation is processing the T1 image. The next step will isolate the tumor labels.
+```
+
+Base every progress statement on verified state. Do not announce completion before
+the command result confirms it. If an operation fails, explain only the user-relevant
+problem and the next corrective step; do not narrate internal transport or automation
+details. Keep protected, identifying, credential, and other sensitive information out
+of spoken messages.
+
 ## Reconstruction windows
 
 Use the exact `recon<hex-address>` returned by `open_src`.
@@ -326,6 +392,8 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 - Send `TITLE` first and update it when the task changes substantially.
 - Use `CHAT` or `-Chat` for user-visible progress and results.
 - Use one `bash ./dsi.sh` invocation per request.
+- When the user requests demo mode, follow the narration and progress rules in
+  `Demo mode`.
 - Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
   current command output, or another verified source.
 - Confirm destructive operations, overwrites, and saved-history clearing.
