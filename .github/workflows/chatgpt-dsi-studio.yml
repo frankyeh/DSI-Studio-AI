@@ -91,7 +91,7 @@ jobs:
               $debug = [bool]$input.debug
           }
 
-          $payload = [ordered]@{agent='ChatGPT';session=$session;request=$kind}
+          $payload = [ordered]@{agent='Codex/ChatGPT-GitHub';session=$session;request=$kind}
           switch($kind)
           {
               'TITLE'
@@ -182,7 +182,7 @@ jobs:
           {
               try
               {
-                  $logPayload = [ordered]@{agent='ChatGPT';session=$session;request='LOG'}
+                  $logPayload = [ordered]@{agent='Codex/ChatGPT-GitHub';session=$session;request='LOG'}
                   $workLog = Invoke-Dsi $logPayload
                   Show-DsiResult 'DSI work log' $workLog
               }
