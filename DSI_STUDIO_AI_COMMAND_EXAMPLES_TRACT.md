@@ -38,7 +38,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `tract_to_region` | `["tract_to_region",0]` | Convert tract trajectories to a region. |
 | `endpoint_to_region` | `["endpoint_to_region",0]` | Convert tract endpoints to region(s). |
 | `update_tract` | `["update_tract"]` | Refresh counts and rendering for tract bundles. |
-| `delete_tract` | `["delete_tract",0]` | Delete one tract bundle. |
+| `delete_tract` | `["delete_tract","0&2&5"]` | Delete one or more tract bundles. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_tracts` | `["delete_all_tracts"]` | Delete all tract bundles. |
 | `copy_tract` | `["copy_tract",0]` | Duplicate one tract bundle. |
 | `merge_all_tracts` | `["merge_all_tracts"]` | Merge all checked tract bundles into the first checked row. |
@@ -109,15 +109,17 @@ Call `["list_tract"]` immediately before an indexed edit. These commands accept
 one numeric index or one `&`-separated index list:
 
 ```json
+["delete_tract","0&2&5"]
 ["delete_branch","0&2&5"]
 ["undo_tract","0&2&5"]
 ["redo_tract","0&2&5"]
 ["trim_tract","0&2&5"]
 ```
 
-With no index, they operate on checked bundles. `cut_tract_by_*`, `filter_tract`,
-`delete_repeated_tract`, `resample_tract`, and `delete_tract_by_length` use their
-second element for another parameter and always operate on checked bundles.
+With no index, `delete_tract` uses the current row; the other commands operate on
+checked bundles. `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`,
+`resample_tract`, and `delete_tract_by_length` use their second element for
+another parameter and always operate on checked bundles.
 
 ## ROI settings syntax
 
