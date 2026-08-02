@@ -1,7 +1,7 @@
 diff --git a/.github/scripts/dsi_issue_session.ps1 b/.github/scripts/dsi_issue_session.ps1
 --- a/.github/scripts/dsi_issue_session.ps1
 +++ b/.github/scripts/dsi_issue_session.ps1
-@@ -16,16 +16,12 @@ if($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch')
+@@ -16,18 +16,14 @@ if($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch')
      $issueNumberText = $env:INPUT_ISSUE
      $debugText = $env:INPUT_DEBUG
  }
@@ -24,7 +24,7 @@ diff --git a/.github/scripts/dsi_issue_session.ps1 b/.github/scripts/dsi_issue_s
  
  $issueNumber = 0
  if(-not [int]::TryParse($issueNumberText,[ref]$issueNumber) -or $issueNumber -le 0)
-@@ -224,10 +220,18 @@ function Convert-ToPayload($Command)
+@@ -224,11 +220,19 @@ function Convert-ToPayload($Command)
              {
                  throw "Invalid window: $window"
              }
