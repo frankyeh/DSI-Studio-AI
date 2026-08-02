@@ -17,7 +17,7 @@ through a dedicated request.
 | `pull_device` | `["pull_device",0]` | Move one device by +0.5 mm along its direction. Omit the index to use the current row. |
 | `copy_device` | `["copy_device",0]` | Copy one device and offset its x-position by one voxel. Omit the index to use the current row. |
 | `set_acpc` | `["set_acpc"]` | Replace AC, PC, and Inter locators from fixed MNI coordinates mapped into subject space. |
-| `delete_device` | `["delete_device",0]` | Delete one device. Omit the index to use the current row. |
+| `delete_device` | `["delete_device","0&2&5"]` | Delete one or more devices. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_devices` | `["delete_all_devices"]` | Delete all devices. |
 | `save_all_devices` | `["save_all_devices","C:/output/electrodes.dv.csv"]` | Save checked devices in table order. Without a path, open a save dialog. |
 | `show_device_statistics` | `["show_device_statistics"]` | Display device statistics in a modal dialog. |
@@ -27,7 +27,8 @@ through a dedicated request.
 
 - Device positions supplied to `new_device` and `move_device` are voxel coordinates in current FIB space.
 - `push_device` and `pull_device` use a physical 0.5 mm movement converted using voxel size.
-- `move_device`, `push_device`, `pull_device`, `copy_device`, and `delete_device` use the current row when the index is omitted.
+- `move_device`, `push_device`, `pull_device`, and `copy_device` use the current row when the index is omitted.
+- `delete_device` accepts one index or an `&`-separated index list and uses the current row when omitted.
 - Because `list_device` does not exist, prefer current-row operations when the user has selected the intended device. Otherwise ask the user to identify the target rather than guessing an index.
 - `set_acpc` removes existing locator entries before creating replacements.
 - `save_all_devices` writes only checked devices.
