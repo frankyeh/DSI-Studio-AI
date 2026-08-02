@@ -53,7 +53,7 @@ jobs:
               $p=[IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio');$p.Connect(5000)
               $u=[Text.UTF8Encoding]::new($false);$w=[IO.StreamWriter]::new($p,$u,1024,$true);$r=[IO.StreamReader]::new($p,$u,$false,1024,$true)
               $w.Write('{"agent":"Codex/ChatGPT-GitHub","session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"LIST"}');$w.Flush();$r.ReadToEnd()
-            }finally{foreach($s in @($r,$w,$p)){if($s){$s.Dispose()}}}
+            }finally{foreach($s in @($r,$w,$p)){if($s){try{$s.Dispose()}catch[IO.IOException]{}}}}
           }
           function Test([string]$channel,[scriptblock]$get,[string]$next='') {
             $x=Wait $channel $get;$detected=[DateTime]::UtcNow;$sent=[DateTime]::Parse([string]$x.sent_at).ToUniversalTime()
