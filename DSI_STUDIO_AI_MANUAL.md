@@ -195,6 +195,28 @@ Parameterless main-window commands may open a local picker. Cancellation may ret
 without an immediate error, so verify whether the expected window or file was
 created.
 
+## Restricted command-line access
+
+Use main-window `run_cli` only for the allowed `cd`, `dir`, and `curl` commands:
+
+```bash
+bash ./dsi.sh main run_cli "cd \"C:/data\""
+bash ./dsi.sh main run_cli "cd"
+bash ./dsi.sh main run_cli "dir \"*.fz\" /s /b"
+bash ./dsi.sh main run_cli "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
+```
+
+`cd <path>` changes DSI Studio's own current working directory, and that directory
+persists across later `run_cli` calls. `cd` without a path reports the current
+directory. Quote paths containing spaces and do not use `cd /d`; the remaining text
+is interpreted directly as the path.
+
+Relative `dir` paths and `curl` output paths use the persistent directory selected by
+`cd`. The external `dir` and `curl` commands reject shell chaining, pipelines,
+redirection, substitution, and multiline commands. Use `curl -o` or `curl -O` for
+file output. Other executables and DSI Studio `--action=...` command lines are not
+accepted. See `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md` for the complete restrictions.
+
 ## Windows desktop speech
 
 Use the main-window `voice` command to speak one non-empty text parameter through
