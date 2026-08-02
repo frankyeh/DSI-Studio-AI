@@ -11,6 +11,8 @@ The image-window dispatcher accepts only a command name and at most one paramete
 
 | Command | Common example | Important behavior |
 |---|---|---|
+| `bring_to_front` | `["bring_to_front"]` | Restore the image window to its normal state, raise it, and activate it. Takes no parameter. |
+| `close` | `["close"]` | Close the image window immediately. Takes no parameter; the window ID becomes invalid after success. |
 | `change_type` | `["change_type",3]` | Change voxel type: `0`=uint8, `1`=uint16, `2`=uint32, `3`=float32. |
 | `bias_field_correction` | `["bias_field_correction"]` | Iteratively estimate and remove the bias field using the positive-value mask. |
 | `brain_extraction` | `["brain_extraction","<model-ID>"]` | Run the model whose `.nz` filename stem exactly matches `<model-ID>`, then multiply the image by its foreground probability. See footnote 1. |
