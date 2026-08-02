@@ -20,17 +20,13 @@ if($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch')
     $issueNumberText = $env:INPUT_ISSUE
     $debugText = $env:INPUT_DEBUG
 }
-else
+elseif($env:GITHUB_EVENT_NAME -eq 'issues')
 {
-    $file = Invoke-RestMethod -Method Get -Headers $headers `
-      -Uri "$api/repos/$repo/contents/.github/chatgpt-dsi-session-request.json?ref=$env:GITHUB_SHA"
-    $requestText = [Text.Encoding]::UTF8.GetString(
-      [Convert]::FromBase64String(($file.content -replace '\s','')))
-    try { $start = $requestText | ConvertFrom-Json }
-    catch { throw "Invalid session request JSON: $($_.Exception.Message)" }
-    $issueNumberText = [string]$start.issue
-    $debugText = if($null -eq $start.debug) { 'false' } else { [string]$start.debug }
+    $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+    $issueNumberText = [string]$event.issue.number
+    $debugText = 'false'
 }
+else { throw "Unsupported event: $env:GITHUB_EVENT_NAME" }
 
 $issueNumber = 0
 if(-not [int]::TryParse($issueNumberText,[ref]$issueNumber) -or $issueNumber -le 0)
@@ -242,11 +238,19 @@ function Convert-ToPayload($Command)
             {
                 throw "Invalid window: $window"
             }
-            $cmd = [string]$Command.command.cmd
-            if($cmd -notmatch '^[A-Za-z0-9_]+$') { throw "Invalid command: $cmd" }
+            $commands = @($Command.command)
+            if($commands.Count -eq 0) { throw 'CMD requires command.' }
+            $validated = @()
+            foreach($item in $commands)
+            {
+                $cmd = [string]$item.cmd
+                if($cmd -notmatch '^[A-Za-z0-9_]+$') { throw "Invalid command: $cmd" }
+                $entry = [ordered]@{cmd=$cmd}
+                if($null -ne $item.param) { $entry.param = $item.param }
+                $validated += $entry
+            }
             $payload.window = $window
-            $payload.command = [ordered]@{cmd=$cmd}
-            if($null -ne $Command.command.param) { $payload.command.param = $Command.command.param }
+            $payload.command = $validated
             if($null -ne $Command.chat)
             {
                 $chat = [string]$Command.chat
