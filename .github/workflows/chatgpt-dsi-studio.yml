@@ -1,0 +1,232 @@
+name: chatgpt-dsi-studio
+run-name: chatgpt-dsi-studio
+
+on:
+  workflow_dispatch:
+    inputs:
+      request:
+        description: Structured DSI Studio request JSON
+        required: true
+        default: '{"session":"chatgpt-github","request":"LIST","include_log":true,"debug":false}'
+  push:
+    branches: [main]
+    paths:
+      - .github/chatgpt-dsi-request.json
+      - .github/workflows/chatgpt-dsi-studio.yml
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: dsi-studio-home-frank
+  cancel-in-progress: false
+
+jobs:
+  control:
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 10
+    steps:
+      - name: Publish run
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $body = @{
+            state = 'pending'
+            context = 'chatgpt-dsi-studio'
+            description = 'DSI Studio command running'
+            target_url = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          } | ConvertTo-Json -Compress
+          Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' `
+            -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" `
+            -Body $body | Out-Null
+
+      - uses: actions/checkout@v6
+
+      - name: Control DSI Studio
+        id: control
+        shell: powershell
+        env:
+          INPUT_REQUEST: ${{ inputs.request }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if($env:RUNNER_NAME -ne 'HOME-FRANK')
+          {
+              throw "This workflow requires runner HOME-FRANK; current runner is $env:RUNNER_NAME."
+          }
+          if($env:RUNNER_OS -ne 'Windows') { throw 'This workflow requires Windows.' }
+
+          if($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch')
+          {
+              $requestText = $env:INPUT_REQUEST
+          }
+          else
+          {
+              $requestText = Get-Content '.github/chatgpt-dsi-request.json' -Raw -Encoding UTF8
+          }
+          try { $input = $requestText | ConvertFrom-Json }
+          catch { throw "Invalid request JSON: $($_.Exception.Message)" }
+
+          $session = [string]$input.session
+          if($session -notmatch '^[A-Za-z0-9._:-]{1,128}$') { throw 'Invalid session.' }
+          $kind = ([string]$input.request).ToUpperInvariant()
+          if($kind -notin @('TITLE','CHAT','LIST','LOG','CMD')) { throw "Invalid request: $kind" }
+
+          $includeLog = $true
+          if($null -ne $input.include_log)
+          {
+              if($input.include_log -isnot [bool]) { throw 'include_log must be boolean.' }
+              $includeLog = [bool]$input.include_log
+          }
+          $debug = $false
+          if($null -ne $input.debug)
+          {
+              if($input.debug -isnot [bool]) { throw 'debug must be boolean.' }
+              $debug = [bool]$input.debug
+          }
+
+          $payload = [ordered]@{agent='ChatGPT';session=$session;request=$kind}
+          switch($kind)
+          {
+              'TITLE'
+              {
+                  $title = [string]$input.title
+                  if([string]::IsNullOrWhiteSpace($title)) { throw 'TITLE requires title.' }
+                  $payload.title = $title
+              }
+              'CHAT'
+              {
+                  $chat = [string]$input.chat
+                  if([string]::IsNullOrWhiteSpace($chat)) { throw 'CHAT requires chat.' }
+                  $payload.chat = $chat
+              }
+              'CMD'
+              {
+                  $window = [string]$input.window
+                  if($window -notmatch '^(main|recon[0-9A-Fa-f]+|tracking[0-9A-Fa-f]+|image[0-9A-Fa-f]+)$')
+                  {
+                      throw "Invalid window: $window"
+                  }
+                  $cmd = [string]$input.command.cmd
+                  if($cmd -notmatch '^[A-Za-z0-9_]+$') { throw "Invalid command: $cmd" }
+                  $payload.window = $window
+                  $payload.command = [ordered]@{cmd=$cmd}
+                  if($null -ne $input.command.param) { $payload.command.param = $input.command.param }
+                  if($null -ne $input.chat)
+                  {
+                      $chat = [string]$input.chat
+                      if([string]::IsNullOrWhiteSpace($chat)) { throw 'chat must be non-empty when provided.' }
+                      $payload.chat = $chat
+                  }
+              }
+          }
+
+          function Invoke-Dsi([System.Collections.IDictionary]$Request)
+          {
+              $pipe = $writer = $reader = $null
+              try
+              {
+                  $pipe = [IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio')
+                  $pipe.Connect(5000)
+                  $utf8 = [Text.UTF8Encoding]::new($false)
+                  $writer = [IO.StreamWriter]::new($pipe,$utf8,1024,$true)
+                  $reader = [IO.StreamReader]::new($pipe,$utf8,$false,1024,$true)
+                  $json = $Request | ConvertTo-Json -Compress -Depth 8
+                  if($debug) { Write-Host "request=$json" }
+                  $writer.Write($json)
+                  $writer.Flush()
+                  return $reader.ReadToEnd()
+              }
+              finally
+              {
+                  foreach($stream in @($reader,$writer,$pipe))
+                  {
+                      if($stream) { try {$stream.Dispose()} catch [IO.IOException] {} }
+                  }
+              }
+          }
+
+          function Show-DsiResult([string]$Title,[string]$Text)
+          {
+              if([string]::IsNullOrWhiteSpace($Text)) { throw "$Title returned no data." }
+              Write-Host "::group::$Title"
+              Write-Host $Text
+              Write-Host '::endgroup::'
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## $Title"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```json'
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $Text
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```'
+              try { $reply = $Text | ConvertFrom-Json }
+              catch { throw "$Title returned invalid JSON: $($_.Exception.Message)" }
+              if(([string]$reply.status).ToLowerInvariant() -in @('error','failed','failure'))
+              {
+                  throw "$Title failed: $Text"
+              }
+          }
+
+          $failure = $null
+          try
+          {
+              $response = Invoke-Dsi $payload
+              Show-DsiResult 'DSI response' $response
+          }
+          catch { $failure = $_ }
+
+          if($includeLog -and $kind -ne 'LOG')
+          {
+              try
+              {
+                  $logPayload = [ordered]@{agent='ChatGPT';session=$session;request='LOG'}
+                  $workLog = Invoke-Dsi $logPayload
+                  Show-DsiResult 'DSI work log' $workLog
+              }
+              catch
+              {
+                  if($failure) { Write-Warning "LOG retrieval also failed: $($_.Exception.Message)" }
+                  else { $failure = $_ }
+              }
+          }
+          if($failure) { throw $failure }
+
+      - name: Publish result
+        if: always()
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ steps.control.outcome }}
+        run: |
+          if($env:RESULT -eq 'success')
+          {
+              $state = 'success'
+              $description = 'DSI Studio command complete'
+          }
+          elseif($env:RESULT -eq 'cancelled')
+          {
+              $state = 'error'
+              $description = 'DSI Studio command cancelled'
+          }
+          else
+          {
+              $state = 'failure'
+              $description = 'DSI Studio command failed'
+          }
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $body = @{
+            state = $state
+            context = 'chatgpt-dsi-studio'
+            description = $description
+            target_url = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          } | ConvertTo-Json -Compress
+          Invoke-RestMethod -Method Post -Headers $headers -ContentType 'application/json' `
+            -Uri "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" `
+            -Body $body | Out-Null
