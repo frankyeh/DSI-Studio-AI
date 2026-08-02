@@ -1,7 +1,7 @@
 diff --git a/.github/scripts/dsi_issue_session.ps1 b/.github/scripts/dsi_issue_session.ps1
 --- a/.github/scripts/dsi_issue_session.ps1
 +++ b/.github/scripts/dsi_issue_session.ps1
-@@ -16,18 +16,14 @@ if($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch')
+@@ -16,17 +16,13 @@ if($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch')
      $issueNumberText = $env:INPUT_ISSUE
      $debugText = $env:INPUT_DEBUG
  }
