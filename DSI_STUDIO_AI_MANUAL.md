@@ -66,7 +66,7 @@ DSI Studio:
 
 | Window | Purpose |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, CLI actions, main tools, and Windows desktop speech |
+| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, restricted shell access, main tools, and Windows desktop speech |
 | `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
 | `image<hex-address>` | Standalone image inspection and processing |
@@ -197,17 +197,17 @@ created.
 
 ## Restricted command-line access
 
-Use main-window `run_cli` only for the allowed `cd`, `dir`, and `curl` commands:
+Use main-window `run_shell` only for the allowed `cd`, `dir`, and `curl` commands:
 
 ```bash
-bash ./dsi.sh main run_cli "cd \"C:/data\""
-bash ./dsi.sh main run_cli "cd"
-bash ./dsi.sh main run_cli "dir \"*.fz\" /s /b"
-bash ./dsi.sh main run_cli "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
+bash ./dsi.sh main run_shell "cd \"C:/data\""
+bash ./dsi.sh main run_shell "cd"
+bash ./dsi.sh main run_shell "dir \"*.fz\" /s /b"
+bash ./dsi.sh main run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
 ```
 
 `cd <path>` changes DSI Studio's own current working directory, and that directory
-persists across later `run_cli` calls. `cd` without a path reports the current
+persists across later `run_shell` calls. `cd` without a path reports the current
 directory. Quote paths containing spaces and do not use `cd /d`; the remaining text
 is interpreted directly as the path.
 
@@ -354,7 +354,7 @@ Omitting a parameter is intentional for commands that support a local dialog. Th
 agent can invoke the operation and let the user decide the input or output locally:
 
 ```bash
-bash ./dsi.sh recon7ff6ab111000 mask_open -Chat "Please choose the mask file in DSI Studio."
+bash ./dsi.sh recon7ff6ab111000 mask_open -Chat "Please choose the reconstruction mask in DSI Studio."
 bash ./dsi.sh recon7ff6ab111000 save_nifti -Chat "Please choose where to save the diffusion NIfTI."
 bash ./dsi.sh recon7ff6ab111000 resample -Chat "Please choose the isotropic output resolution."
 ```
@@ -478,6 +478,7 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 ## Related documents
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
+- [Direct GitHub issue control](DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
