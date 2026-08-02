@@ -48,9 +48,9 @@ only as parameters of the documented commands below.
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
 | `hub_repo` | `["hub_repo"]` | Show the Fiber Data Hub and list available repositories. |
 | `hub_tags` | `["hub_tags","<repo>"]` | List release tags for the exact repository returned by `hub_repo`. |
-| `hub_files` | `["hub_files","<repo>","<tag>",".fz",0,20]` | List files using the Hub router's filter, offset, and limit parameters. |
-| `hub_open` | `["hub_open","<repo>","<tag>",12]` | Download to temporary cache when needed and open the selected Hub file by returned row index. An exact filename may be used instead. |
-| `hub_download` | `["hub_download","<repo>","<tag>",12,"C:/data"]` | Download the selected Hub file by returned row index to the supplied persistent directory. An exact filename may be used instead. |
+| `hub_files` | `["hub_files","<repo>","",".*\\.fz$",0,20]` | Search files across every tag matching the case-insensitive tag regular expression. The filename filter is also a case-insensitive regular expression; empty tag or filename patterns match all. Offset and limit apply to the combined matches. |
+| `hub_open` | `["hub_open","<repo>","<exact-tag>",12]` | Download to temporary cache when needed and open one selected Hub file. The tag must be one exact tag; the file may be the returned row index or exact filename. |
+| `hub_download` | `["hub_download","<repo>","^HCP.*$","subject.fz","C:/data"]` | Download the exact filename, or a row index, from every tag matching the case-insensitive tag regular expression. Use an exact filename when matching multiple tags. |
 
 ## Multiple-file parameter format
 
@@ -76,17 +76,30 @@ may use their full documented argument lists:
 ```json
 ["hub_repo"]
 ["hub_tags","<repo>"]
-["hub_files","<repo>","<tag>",".fz",0,20]
-["hub_open","<repo>","<tag>",12]
+["hub_files","<repo>","",".*\\.fz$",0,20]
+["hub_open","<repo>","<exact-tag>",12]
+["hub_download","<repo>","^HCP.*$","subject.fz","C:/data"]
 ```
 
 - Use the exact `owner/repository` string returned by `hub_repo`.
-- Use the exact tag returned by `hub_tags`.
-- `hub_files` filters before applying offset and limit. Its first column remains
-  the actual file-table row index.
-- `hub_open` and `hub_download` accept the exact filename or returned row index.
+- `hub_files` syntax is `hub_files <repo> [tag-regex] [filename-regex] [offset] [limit]`.
+  Both patterns are case-insensitive regular expressions. An empty pattern matches
+  all tags or filenames.
+- `hub_files` searches all matching tags and returns
+  `index`, `tag`, `file`, `size`, and `downloaded`. The index is the actual file-row
+  index within the reported tag.
+- Offset and limit apply after combining matching files across tags. Omit the limit
+  to return every remaining match; an explicit limit of `0` returns no rows.
+- `hub_open` requires one exact tag and accepts the exact filename or returned row
+  index.
+- `hub_download` treats its tag parameter as a case-insensitive regular expression
+  and attempts the requested file in every matching tag. Use the exact filename
+  rather than a row index when matching multiple tags. A missing filename in one tag
+  is reported as `skip`; the command succeeds when at least one matching download is
+  started.
 - Send offset, limit, and returned row indices as JSON numbers.
-- `hub_download` requires its documented destination-directory parameter.
+- `hub_download` requires its documented destination-directory parameter and creates
+  the directory when needed.
 - Verify the created window or destination file after GUI-backed network work.
 
 ## Important routing and response notes
