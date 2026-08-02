@@ -1,9 +1,6 @@
 name: Update open_image documentation
 
 on:
-  push:
-    paths:
-      - .github/workflows/manual-image-format-fix.yml
   issues:
     types: [opened]
 
@@ -13,7 +10,7 @@ permissions:
 
 jobs:
   update-manual:
-    if: github.event_name == 'push' || (github.actor == 'frankyeh' && github.event.issue.title == 'Update DSI open_image documentation')
+    if: github.event.issue.title == 'Update DSI open_image documentation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +18,9 @@ jobs:
           fetch-depth: 0
 
       - name: Update documentation
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           manual_path = Path("DSI_STUDIO_AI_MANUAL.md")
@@ -76,6 +74,7 @@ the filesystem or an external picture viewer instead.
           if "## `open_image` input restriction" not in examples:
               examples = examples.rstrip() + section + "\n"
               examples_path.write_text(examples, encoding="utf-8")
+          PY
 
       - name: Commit documentation
         id: commit
@@ -93,7 +92,6 @@ the filesystem or an external picture viewer instead.
           fi
 
       - name: Report result
-        if: github.event_name == 'issues'
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.commit.outputs.sha }}
