@@ -1,1 +1,1 @@
-{"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"CMD","window":"tracking13e8764f700","command":{"cmd":"run_tracking","param":"Whole Brain"},"chat":"The FIB file is open and the current tracking parameters were inspected. I am starting whole-brain fiber tracking.","include_log":true,"debug":false,"run":9}
+{"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"CMD","window":"tracking13e8764f700","command":{"cmd":"list_tract","param":"status"},"include_log":false,"debug":false,"run":10}
