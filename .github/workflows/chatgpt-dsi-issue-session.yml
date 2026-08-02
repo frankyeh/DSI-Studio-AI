@@ -61,7 +61,6 @@ jobs:
           INPUT_DEBUG: ${{ inputs.debug }}
         run: |
           $ErrorActionPreference = 'Stop'
-
           if($env:RUNNER_NAME -ne 'HOME-FRANK')
           {
               throw "This workflow requires runner HOME-FRANK; current runner is $env:RUNNER_NAME."
@@ -127,8 +126,10 @@ jobs:
           {
               $elapsed = ([DateTime]::UtcNow - $script:lastMutation).TotalMilliseconds
               if($elapsed -lt 1000) { Start-Sleep -Milliseconds ([int](1000-$elapsed)) }
-              $result = Invoke-RestMethod -Method $Method -Headers $headers -ContentType 'application/json' `
-                -Uri $Uri -Body ($Body | ConvertTo-Json -Compress -Depth 20)
+              $json = $Body | ConvertTo-Json -Compress -Depth 20
+              $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+              $result = Invoke-RestMethod -Method $Method -Headers $headers `
+                -ContentType 'application/json; charset=utf-8' -Uri $Uri -Body $bytes
               $script:lastMutation = [DateTime]::UtcNow
               return $result
           }
