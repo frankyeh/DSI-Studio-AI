@@ -1,1 +1,1 @@
-{"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"CHAT","chat":"I finished rereading the DSI Studio AI documentation and am starting the first remote fiber-tracking test.","include_log":false,"debug":false,"run":5}
+{"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"CMD","window":"main","command":{"cmd":"list_recent_fib"},"include_log":true,"debug":false,"run":6}
