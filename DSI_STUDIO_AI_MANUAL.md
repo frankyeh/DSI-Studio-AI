@@ -178,11 +178,18 @@ Open a FIB/FZ tracking window:
 bash ./dsi.sh main open_fib "C:/data/subject.fz"
 ```
 
-Open an ordinary image window:
+Open a supported medical image window:
 
 ```bash
 bash ./dsi.sh main open_image "C:/data/T1w.nii.gz"
 ```
+
+`open_image` accepts NIfTI images and image formats supported by DSI Studio. It does
+not open ordinary picture or screenshot formats such as `.jpg`, `.jpeg`, `.png`,
+`.bmp`, `.gif`, `.webp`, `.tif`, or `.tiff`. A file created by `save_screen`,
+`save_hd_screen`, `save_3view_screen`, `save_h3view_screen`, or
+`save_v3view_screen` must not be passed to `open_image`. Verify screenshot output by
+checking the filesystem or with an external picture viewer.
 
 Parameterless main-window commands may open a local picker. Cancellation may return
 without an immediate error, so verify whether the expected window or file was
@@ -437,6 +444,7 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 - Use one `bash ./dsi.sh` invocation per request.
 - When the user requests demo mode, follow the narration and progress rules in
   `Demo mode`.
+- Use `open_image` only for supported medical image volumes; never use it to open or verify JPG, PNG, or other screenshot files.
 - Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
   current command output, or another verified source.
 - Confirm destructive operations, overwrites, and saved-history clearing.
