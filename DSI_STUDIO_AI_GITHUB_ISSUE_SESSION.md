@@ -1,53 +1,74 @@
-# DSI Studio GitHub Issue Session
+# DSI Studio Direct GitHub Issue Channel
 
-This workflow lets a remote ChatGPT session control an already-open DSI Studio on
-the `HOME-FRANK` self-hosted Windows runner.
+Current DSI Studio can connect directly to a GitHub issue and use it as a remote
+command/result mailbox. This route does not use a self-hosted GitHub Actions runner,
+a workflow dispatch, a request file, or repository commits.
 
-## No repository commits during control
+The issue body carries the next request. One issue comment marked
+`"dsi_session_result":true` carries the latest result.
 
-Normal DSI Studio control uses only:
+## Requirements
 
-- opening one GitHub issue to start the session;
-- replacing that issue's body with each request; and
-- one fixed bot comment for the latest result.
+Before connecting:
 
-The production workflow has `contents: read` permission. It does not write request
-files, result files, or commits to the repository. Do not use a pushed JSON request
-file to start or operate a DSI Studio session.
+- DSI Studio must be open and its GitHub login must have completed.
+- The issue URL must have the exact form
+  `https://github.com/<owner>/<repository>/issues/<number>`.
+- The issue must be open and must not be a pull request.
+- The issue creator must be the repository owner named in the URL.
+- The issue title must start exactly with `DSI Studio session`.
+- DSI Studio's GitHub token must be able to read the issue and create or edit issue
+  comments.
 
-## Start a session
+The repository may be public or private if the token has access. The privacy rules
+below still apply because command results can expose local information to everyone
+who can read the issue.
 
-Create a new issue in `frankyeh/DSI-Studio-AI`:
+## Connect DSI Studio
 
-1. The issue must be opened by `frankyeh`.
-2. Its title must start with `DSI Studio session`.
-3. Its body must contain the first complete JSON request.
+1. Open the DSI Studio AI Agent window.
+2. Click **Connect Issue**.
+3. Paste the full GitHub issue URL.
+4. Wait for the AI Agent status to report that it connected.
 
-Example:
+DSI Studio validates the issue and searches its comments for a JSON object containing:
 
 ```json
-{"id":1,"session":"7dd34326-b99a-4ba5-9de6-2d48188022f3","request":"LIST"}
+{"dsi_session_result":true}
 ```
 
-Opening the issue starts `.github/workflows/chatgpt-dsi-issue-session.yml`. The
-workflow runs on `HOME-FRANK`, connects to `\\.\pipe\dsi-studio`, and creates one
-fixed result comment containing `"dsi_session_result":true`.
-
-Continue only when the result comment reports the submitted ID in `last_id` and
-`state` is `done` or `error`.
-
-Only one DSI Studio runner job is active at a time. A session expires after about
-350 minutes if it is not closed first.
+If no such comment exists, DSI Studio creates one with an initial `idle` result.
+After connection, DSI Studio polls the issue body about twice per second and uses an
+ETag to avoid reprocessing an unchanged body.
 
 ## Issue request format
 
-Every issue body contains exactly one JSON object. Supported request types are
-`TITLE`, `CHAT`, `LIST`, `LOG`, and `CMD`, matching the ordinary DSI Studio relay.
-The `session` field must be a UUID and remain unchanged throughout one issue session.
+The issue body must contain one JSON object. Each actionable body needs a numeric
+`id` greater than the last ID processed during the current connection.
 
-Increase `id` for every issue-body update. Never reuse or decrease it.
+Normal DSI Studio requests require a UUID `session` and use the same fields as the
+named-pipe relay:
 
-### Send one command
+- `TITLE`
+- `CHAT`
+- `LIST`
+- `LOG`
+- `CMD`
+
+DSI Studio supplies the issue channel's agent identity internally. Do not add or rely
+on an `agent` field in the issue body.
+
+### List windows
+
+```json
+{
+  "id": 1,
+  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
+  "request": "LIST"
+}
+```
+
+### Run one command
 
 ```json
 {
@@ -56,15 +77,13 @@ Increase `id` for every issue-body update. Never reuse or decrease it.
   "request": "CMD",
   "window": "main",
   "command": {
-    "cmd": "hub_repo"
+    "cmd": "run_shell",
+    "param": "dir \"C:\\data\\*.fz\" /s /b"
   }
 }
 ```
 
-### Send an ordered command array
-
-DSI Studio accepts an ordered array in `command`. The issue action validates every
-item and forwards the complete array in one `CMD` request.
+### Run an ordered command array
 
 ```json
 {
@@ -88,56 +107,11 @@ item and forwards the complete array in one `CMD` request.
 }
 ```
 
-Commands execute in array order. The response contains one result entry per item.
-Use one array when narration and the following action must be sent together.
+Commands execute in array order. The reply contains one command result per item.
+A `voice` item in a batch can be routed to the main window while the remaining
+commands use the declared target window.
 
-In DSI Studio builds containing commit
-`ec6576812b0e6d24a6092e85e1f9ec1ff7e58ce4`, a `voice` item inside a batch targeted
-at a tracking, reconstruction, or image window is routed internally to the main
-window. The remaining items continue on the requested target window. Rebuild and
-restart DSI Studio after that source change before relying on this cross-window
-voice routing.
-
-All non-`voice` commands in one batch target the declared `window`.
-
-### Demo mode
-
-When the user requests demo mode, follow the full `Demo mode` section in
-`DSI_STUDIO_AI_MANUAL.md`.
-
-Use a `voice` item before each major action, preferably as the first item in the same
-ordered command array. Narrate opening or selecting data, choosing an image or model,
-starting a substantial operation, changing the displayed result, verified progress,
-and completion. Do not narrate routine discovery or every minor command.
-
-Do not leave a long-running operation unexplained. State what is starting before the
-operation. If an asynchronous operation remains active, give concise progress based
-on its verified status before the next status check. After a synchronous operation
-returns, provide its verified outcome before starting the next major action.
-
-Voice text must contain only natural presentation content. Never say or imply that
-the agent is following a no-silence rule, avoiding a cooldown, waiting silently,
-polling GitHub, editing an issue, incrementing an ID, sending a batch, or issuing
-another voice command. Do not expose the remote-control mechanism to the audience.
-
-Bad narration:
-
-```text
-I am checking its status without waiting silently.
-I will send another voice command to avoid a cooldown.
-```
-
-Appropriate narration:
-
-```text
-The T1 image is registering to the diffusion data. I will verify the alignment next.
-Segmentation is processing the T1 image. The next step will isolate the tumor labels.
-```
-
-Do not claim success until the result comment confirms it. Avoid overlapping speech;
-meaningful progress updates are preferred over continuous narration.
-
-### Include the incremental DSI work log
+### Include the incremental work log
 
 ```json
 {
@@ -145,29 +119,27 @@ meaningful progress updates are preferred over continuous narration.
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
   "window": "tracking7ff6ab123410",
-  "command": {"cmd":"list_tract"},
+  "command": {"cmd":"list_tract","param":"status"},
   "include_log": true
 }
 ```
 
-Use `include_log` only when new console/action history is needed. Large logs increase
-GitHub transfer and parsing time.
+When `include_log` is true, DSI Studio runs the requested operation and then performs
+a separate `LOG` request for the same session. The result places that second reply in
+`response.log`. Use this only when the new console/action history is needed because
+large output increases GitHub transfer and parsing cost.
 
-Command parameters may be strings, numbers, arrays, or composite strings, matching
-`DSI_STUDIO_AI_MANUAL.md`.
+## Read the result comment
 
-## Read the result
-
-The runner edits the same bot comment after every request. Match the response using
-`last_id`, never timestamps.
-
-A successful batch resembles:
+DSI Studio edits the same result comment after each processed request. A typical
+result is:
 
 ```json
 {
   "state": "done",
   "id": 3,
   "last_id": 3,
+  "duration_ms": 120,
   "response": {
     "status": "success",
     "result": [
@@ -176,64 +148,84 @@ A successful batch resembles:
       {"cmd":"list_region","status":"success"}
     ]
   },
-  "dsi_session_result": true
+  "dsi_session_result": true,
+  "issue": 12,
+  "updated_at": "2026-08-02T18:00:00Z"
 }
 ```
 
-Result states:
+Always match the result using `last_id`. Do not infer completion from the comment
+edit time.
 
-| State | Meaning |
-|---|---|
-| `ready` | Runner is connected and waiting for a higher request ID. |
-| `done` | DSI Studio completed the immediate request without an error. |
-| `error` | Validation, pipe communication, JSON parsing, or DSI Studio failed. The runner remains active for a corrected higher ID. |
-| `closed` | The issue was closed or a `close` request ended the runner. |
-| `expired` | The persistent session reached its time limit. |
+The outer issue-channel `state` is `idle` before the first processed request and
+`done` after a request is forwarded. A forwarded DSI request can still fail, so always
+inspect the nested `response.status`, `response.error`, and per-command results.
 
-A successful `voice` result confirms that DSI Studio started the PowerShell/SAPI
-process. It does not prove that audible speech completed.
+If the serialized result exceeds about 60 KiB, DSI Studio replaces `response` with a
+truncation error instead of posting an oversized comment.
 
-A successful start response for a long-running operation does not prove that the
-operation finished. Use a later status command rather than automatically retrying.
+A successful reply for an asynchronous operation means the start command was
+accepted; it does not prove the operation completed. Use the documented status
+command in a later higher-ID request.
 
-## Close the session
+## Disconnect
 
-Replace the issue body with a higher ID:
+The local user can click **Disconnect Issue** in the AI Agent window.
+
+A remote controller can disconnect by replacing the issue body with a higher ID and:
 
 ```json
 {"id":5,"request":"close"}
 ```
 
-Wait for:
+The `close` request disconnects the issue channel immediately. It does not close the
+GitHub issue and does not publish a new final result comment. Do not wait for a
+`closed` result state. Close the GitHub issue separately after confirming with the
+local user that remote control has ended.
 
-```json
-{"state":"closed","last_id":5}
-```
+Closing the GitHub issue alone is not the documented disconnect mechanism. Use the
+button or the explicit higher-ID `close` request.
 
-Then close the GitHub issue. Closing the issue directly also stops the runner after
-its next poll, but explicit `close` provides a deterministic final result.
+## Reconnection behavior
+
+Connecting starts a new local polling state with `last_id` reset to zero. Therefore,
+reconnecting to an issue whose body still contains an old actionable request may run
+that request again. Before reconnecting, replace the body with the next intended
+higher-ID request or a harmless request whose effect is understood.
+
+## Demo mode
+
+When the user requests demo mode, follow the complete `Demo mode` rules in
+`DSI_STUDIO_AI_MANUAL.md`.
+
+Put a concise `voice` item before each major user-visible action, preferably in the
+same ordered command array. Narrate the scientific or operational action rather than
+the issue channel, polling, IDs, command arrays, or other orchestration details.
+
+Do not claim success until the nested DSI response and any required later status
+request verify it. Avoid overlapping speech.
 
 ## Operational rules
 
-- Send one meaningful DSI request per issue-body update.
-- Put related DSI operations in one `command` array when ordering matters.
-- Match every response using `last_id`.
-- Use exact returned window IDs; do not construct or guess them.
-- For asynchronous work, send the start command once and inspect its status in a
-  later request.
-- When demo mode is requested, follow the demo narration rules and keep internal
-  orchestration language out of spoken text.
-- An invalid request produces `state:error` without terminating the session.
-- The issue must remain open, must not be a pull request, and must be owned by the
-  repository owner.
-- DSI Studio must already be open on the same desktop as the self-hosted runner.
+- Use one meaningful request per issue-body update.
+- Increase `id` for every request during one connection.
+- Keep one UUID `session` for related DSI work so `LOG` remains incremental.
+- Use exact returned window IDs and verified file paths, indices, model IDs, and
+  parameter IDs.
+- Send asynchronous start commands only once, then inspect status with a later ID.
+- Treat the result comment as a latest-result mailbox, not an append-only history.
+- Do not reconnect while an old mutating request remains in the issue body unless
+  repeating it is intentional.
+- Use `run_shell`, not the removed `run_cli` command.
 
 ## Privacy and security
 
-`DSI-Studio-AI` is public. Issue bodies and comments may expose local paths,
-filenames, window titles, parameters, DSI output, or logs. Do not send credentials,
-protected information, patient-identifying information, or other sensitive content
-through this channel.
+Issue bodies and result comments can expose local paths, filenames, window titles,
+command parameters, DSI Studio output, screenshots paths, and incremental logs. Do
+not send credentials, protected information, patient-identifying information, or
+other sensitive content through this channel.
 
-Use a new issue for each independent control session, send `close` when finished,
-and close the issue after reviewing the final result.
+The issue-author and title checks restrict which issue can be connected, but they do
+not make issue content confidential. Use a private repository when appropriate,
+limit the token's permissions, disconnect after use, and close the issue when the
+session record is no longer needed.
