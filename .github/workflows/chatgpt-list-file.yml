@@ -29,6 +29,9 @@ on:
         required: false
         type: boolean
         default: false
+  pull_request:
+    paths:
+      - .github/workflows/chatgpt-list-file.yml
 
 permissions:
   contents: read
@@ -36,6 +39,7 @@ permissions:
 
 jobs:
   list:
+    if: github.event_name == 'workflow_dispatch'
     uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@f889a5543b8b80fc88810e47e42518d602a1d1b8
     with:
       ref: ${{ inputs.ref }}
@@ -43,3 +47,13 @@ jobs:
       max_results: ${{ inputs.max_results }}
       max_total_bytes: ${{ inputs.max_total_bytes }}
       debug: ${{ inputs.debug }}
+
+  test-installation:
+    if: github.event_name == 'pull_request'
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@f889a5543b8b80fc88810e47e42518d602a1d1b8
+    with:
+      ref: trigger
+      path: .
+      max_results: 5000
+      max_total_bytes: 500000
+      debug: true
