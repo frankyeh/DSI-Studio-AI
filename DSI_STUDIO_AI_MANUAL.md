@@ -111,21 +111,23 @@ bash ./dsi.sh recon7ff6ab111000 set_voxel_size "1.5 1.5 2.0"
 For commands accepting multiple files, pass one path per argument. Never send a
 filesystem path by itself as the complete request.
 
-### Window focus
+### Window focus and state
 
 Use `bring_to_front` to show a supported DSI Studio window in its normal state,
-raise it, and activate it. The command takes no arguments and is available for
-`main`, reconstruction, tracking, and standalone image windows:
+raise it, and activate it. Use `minimize` or `maximize` to change its window state
+instead. All three take no arguments and are available for `main`, reconstruction,
+tracking, and standalone image windows:
 
 ```bash
 bash ./dsi.sh main bring_to_front
 bash ./dsi.sh recon7ff6ab111000 bring_to_front
-bash ./dsi.sh tracking7ff6ab123410 bring_to_front
-bash ./dsi.sh image7ff6ab222000 bring_to_front
+bash ./dsi.sh tracking7ff6ab123410 minimize
+bash ./dsi.sh image7ff6ab222000 maximize
 ```
 
-Use the exact current window ID returned by DSI Studio. This command changes only
-window visibility and focus; it does not modify the loaded data or processing state.
+Use the exact current window ID returned by DSI Studio. These commands change only
+window visibility, focus, or window state; they do not modify the loaded data or
+processing state.
 
 ### Window closing
 
