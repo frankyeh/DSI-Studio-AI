@@ -2,52 +2,51 @@ name: chatgpt-list-file
 run-name: chatgpt-list-file
 
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: Branch, tag, commit, or trigger
-        required: false
-        type: string
-        default: trigger
-      path:
-        description: Repository path to list
-        required: true
-        type: string
-        default: .
-      max_results:
-        description: Maximum paths printed directly in the log
-        required: false
-        type: number
-        default: 5000
-      max_total_bytes:
-        description: Maximum UTF-8 bytes printed directly in the log
-        required: false
-        type: number
-        default: 500000
-      debug:
-        description: Enable diagnostic command tracing
-        required: false
-        type: boolean
-        default: false
   issue_comment:
     types: [created]
 
 permissions:
   contents: read
-  statuses: write
+  issues: write
 
 jobs:
   list:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.title == 'chatgpt-list-file' &&
-       github.event.issue.pull_request == null &&
-       github.event.comment.user.login == github.repository_owner &&
-       startsWith(github.event.comment.body, '{'))
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@f889a5543b8b80fc88810e47e42518d602a1d1b8
-    with:
-      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || fromJSON(github.event.comment.body).ref }}
-      path: ${{ github.event_name == 'workflow_dispatch' && inputs.path || fromJSON(github.event.comment.body).path }}
-      max_results: ${{ github.event_name == 'workflow_dispatch' && inputs.max_results || fromJSON(github.event.comment.body).max_results }}
-      max_total_bytes: ${{ github.event_name == 'workflow_dispatch' && inputs.max_total_bytes || fromJSON(github.event.comment.body).max_total_bytes }}
-      debug: ${{ github.event_name == 'workflow_dispatch' && inputs.debug || fromJSON(github.event.comment.body).debug }}
+      github.event.issue.title == 'chatgpt-list-file' &&
+      github.event.issue.pull_request == null &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '{')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: List tracked files
+        env:
+          REQUEST: ${{ github.event.comment.body }}
+          ISSUE: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ref=$(jq -er '.ref // "main"' <<<"$REQUEST")
+          path=$(jq -er '.path // "."' <<<"$REQUEST")
+          max_results=$(jq -er '.max_results // 5000' <<<"$REQUEST")
+          max_total_bytes=$(jq -er '.max_total_bytes // 500000' <<<"$REQUEST")
+          [[ "$path" == "." || ( -n "$path" && "$path" != /* && "$path" != -* && "$path" != *\\* && "$path" != ".." && "$path" != ../* && "$path" != */../* && "$path" != */.. ) ]] || { echo 'invalid path'; exit 1; }
+          [[ "$ref" != -* && ! "$ref" =~ [[:space:][:cntrl:]] ]] || { echo 'invalid ref'; exit 1; }
+          [[ "$max_results" =~ ^[0-9]+$ && "$max_results" -ge 1 && "$max_results" -le 100000 ]] || { echo 'invalid max_results'; exit 1; }
+          [[ "$max_total_bytes" =~ ^[0-9]+$ && "$max_total_bytes" -ge 1 && "$max_total_bytes" -le 10000000 ]] || { echo 'invalid max_total_bytes'; exit 1; }
+          git fetch --quiet --depth=1 origin "$ref"
+          git checkout --quiet --detach FETCH_HEAD
+          result=$RUNNER_TEMP/list-files.txt
+          git -c core.quotePath=false ls-files -- "$path" > "$result"
+          count=$(wc -l < "$result")
+          bytes=$(wc -c < "$result")
+          if (( count > max_results || bytes > max_total_bytes )); then
+            body="Tracked files: $count. Output is too large for an issue comment. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          else
+            body=$(printf 'Tracked files: %s\n\n```text\n%s\n```' "$count" "$(cat "$result")")
+          fi
+          jq -n --arg body "$body" '{body:$body}' > "$RUNNER_TEMP/comment.json"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments" --input "$RUNNER_TEMP/comment.json" >/dev/null
