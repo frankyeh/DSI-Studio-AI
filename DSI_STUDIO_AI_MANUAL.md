@@ -46,6 +46,10 @@ bash ./dsi.sh TITLE "Corticospinal tract analysis"
 
 Set a concise task title and update it when the task changes substantially.
 
+`title` is valid only in a standalone `TITLE` request. Never include a `title` field
+in `CHAT`, `LIST`, `LOG`, or `CMD`, and never piggyback a title change on another
+request. Send a separate `TITLE` request first.
+
 ### `CHAT`
 
 ```bash
@@ -461,7 +465,8 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 
 ## Operational rules
 
-- Send `TITLE` first and update it when the task changes substantially.
+- Send `TITLE` as its own request first and update it with another standalone `TITLE`
+  request when the task changes substantially. Never add `title` to any other request.
 - Use `CHAT` or `-Chat` for user-visible progress and results.
 - Use one `bash ./dsi.sh` invocation per request.
 - When the user requests demo mode, follow the narration and progress rules in
