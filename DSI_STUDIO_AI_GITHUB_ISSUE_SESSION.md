@@ -216,14 +216,29 @@ named-pipe interface:
 - `LOG`
 - `CMD`
 
+The `title` field is valid only when `request` is `TITLE`. Never include `title` in a
+`CHAT`, `LIST`, `LOG`, `CMD`, or `close` request, and never piggyback a title change
+on another operation. Send a separate higher-ID `TITLE` request.
+
 DSI Studio supplies the issue channel's agent identity internally. Do not add or rely
 on an `agent` field in the issue body.
+
+### Set the task title
+
+```json
+{
+  "id": 1,
+  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
+  "request": "TITLE",
+  "title": "Tumor segmentation demo"
+}
+```
 
 ### List windows
 
 ```json
 {
-  "id": 1,
+  "id": 2,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "LIST"
 }
@@ -233,7 +248,7 @@ on an `agent` field in the issue body.
 
 ```json
 {
-  "id": 2,
+  "id": 3,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
   "window": "main",
@@ -248,7 +263,7 @@ on an `agent` field in the issue body.
 
 ```json
 {
-  "id": 3,
+  "id": 4,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
   "window": "tracking7ff6ab123410",
@@ -276,7 +291,7 @@ remaining commands use the declared target window.
 
 ```json
 {
-  "id": 4,
+  "id": 5,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "request": "CMD",
   "window": "tracking7ff6ab123410",
@@ -298,8 +313,8 @@ result is:
 ```json
 {
   "state": "done",
-  "id": 3,
-  "last_id": 3,
+  "id": 4,
+  "last_id": 4,
   "duration_ms": 120,
   "response": {
     "status": "success",
@@ -341,7 +356,7 @@ The local user can click **Disconnect Issue** in the AI Agent window.
 A remote agent should replace the issue body with a higher ID and:
 
 ```json
-{"id":5,"request":"close"}
+{"id":6,"request":"close"}
 ```
 
 DSI Studio attempts to publish `state:"closed"` and then disconnects the local issue
@@ -426,6 +441,7 @@ other sensitive information out of spoken messages.
 - Use one meaningful request per issue-body update.
 - Increase `id` for every request and never reuse an ID.
 - Keep one UUID `session` for related DSI work so `LOG` remains incremental.
+- Send `TITLE` as a separate request and never include `title` in any other request.
 - Use exact returned window IDs and verified file paths, indices, model IDs, and
   parameter IDs.
 - Send asynchronous start commands only once, then inspect status with a later ID.
