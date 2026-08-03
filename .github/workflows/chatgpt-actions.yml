@@ -22,10 +22,27 @@ jobs:
       action: ${{ steps.request.outputs.action }}
       request_id: ${{ steps.request.outputs.request_id }}
       status_sha: ${{ steps.request.outputs.status_sha }}
+      target_ref: ${{ steps.request.outputs.target_ref }}
+      base_sha: ${{ steps.request.outputs.base_sha }}
       ref: ${{ steps.request.outputs.ref }}
+      mode: ${{ steps.request.outputs.mode }}
+      query: ${{ steps.request.outputs.query }}
       path: ${{ steps.request.outputs.path }}
       max_results: ${{ steps.request.outputs.max_results }}
       max_total_bytes: ${{ steps.request.outputs.max_total_bytes }}
+      files: ${{ steps.request.outputs.files }}
+      sources: ${{ steps.request.outputs.sources }}
+      destination_root: ${{ steps.request.outputs.destination_root }}
+      target_paths: ${{ steps.request.outputs.target_paths }}
+      overwrite: ${{ steps.request.outputs.overwrite }}
+      message: ${{ steps.request.outputs.message }}
+      patch_base64: ${{ steps.request.outputs.patch_base64 }}
+      allow_delete: ${{ steps.request.outputs.allow_delete }}
+      moves: ${{ steps.request.outputs.moves }}
+      scope: ${{ steps.request.outputs.scope }}
+      older_than_days: ${{ steps.request.outputs.older_than_days }}
+      keep_latest: ${{ steps.request.outputs.keep_latest }}
+      confirm: ${{ steps.request.outputs.confirm }}
       debug: ${{ steps.request.outputs.debug }}
     steps:
       - name: Validate control PR
@@ -39,57 +56,215 @@ jobs:
           files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
           [[ "$files" == '.github/chatgpt-trigger' ]] || { echo 'control PR must change only .github/chatgpt-trigger'; exit 1; }
           python3 - <<'PY'
-          import json, os, pathlib, re
+          import json, os, pathlib, re, subprocess
 
           event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text(encoding='utf-8'))
           pr = event['pull_request']
           repo = event['repository']
           owner = repo['owner']['login']
+          default = repo['default_branch']
 
           def fail(message):
               raise SystemExit(message)
 
-          if pr['state'] != 'open': fail('control PR must be open')
-          if pr['title'] != '[CONTROL - DO NOT MERGE] chatgpt-actions': fail('invalid control PR title')
-          if pr['base']['ref'] != repo['default_branch']: fail('invalid base branch')
-          if pr['head']['ref'] != 'chatgpt-actions': fail('invalid control branch')
-          if pr['head']['repo']['full_name'] != repo['full_name']: fail('fork control PR rejected')
-          if pr['user']['login'] != owner or event['sender']['login'] != owner: fail('actor not approved')
+          if pr['state'] != 'open':
+              fail('control PR must be open')
+          production = (
+              pr['title'] == '[CONTROL - DO NOT MERGE] chatgpt-actions' and
+              pr['base']['ref'] == default and
+              pr['head']['ref'] == 'chatgpt-actions'
+          )
+          testing = (
+              pr['title'] == '[CONTROL TEST - DO NOT MERGE] chatgpt-actions' and
+              pr['base']['ref'] == 'ai-skill-actions-test' and
+              pr['head']['ref'] == 'chatgpt-actions-test'
+          )
+          if not (production or testing):
+              fail('invalid control PR identity')
+          if pr['head']['repo']['full_name'] != repo['full_name']:
+              fail('fork control PR rejected')
+          if pr['user']['login'] != owner or event['sender']['login'] != owner:
+              fail('actor not approved')
 
           body = pr.get('body') or ''
-          if not 1 <= len(body.encode('utf-8')) <= 20000: fail('invalid request size')
+          if not 1 <= len(body.encode('utf-8')) <= 20000:
+              fail('invalid request size')
           try:
               request = json.loads(body)
           except json.JSONDecodeError as error:
               fail(f'invalid JSON: {error}')
           if not isinstance(request, dict) or set(request) != {'version','request_id','action','inputs'}:
               fail('invalid request object')
-          if request['version'] != 1: fail('unsupported request version')
+          if request['version'] != 1:
+              fail('unsupported request version')
           request_id = request['request_id']
           if not isinstance(request_id, str) or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}', request_id):
               fail('invalid request_id')
-          if request['action'] != 'list-file': fail('unsupported action')
+          action = request['action']
+          allowed = {'list-file','search-repo','read-files','copy-files','apply-patch','move-paths','cleanup-actions'}
+          if action not in allowed:
+              fail('unsupported action')
           inputs = request['inputs']
-          if not isinstance(inputs, dict) or not set(inputs) <= {'ref','path','max_results','max_total_bytes','debug'}:
-              fail('invalid inputs')
+          if not isinstance(inputs, dict):
+              fail('inputs must be an object')
 
-          ref = inputs.get('ref', repo['default_branch'])
-          path = inputs.get('path', '.')
-          max_results = inputs.get('max_results', 5000)
-          max_total_bytes = inputs.get('max_total_bytes', 500000)
-          debug = inputs.get('debug', False)
-          if not isinstance(ref, str) or not ref or ref.startswith('-') or re.search(r'[\s\x00-\x1f]', ref): fail('invalid ref')
-          if not isinstance(path, str) or not path or path.startswith(('/', '-')) or '\\' in path or re.search(r'[\x00-\x1f]', path): fail('invalid path')
-          if path != '.' and ('..' in path.split('/')): fail('invalid path')
-          if isinstance(max_results, bool) or not isinstance(max_results, int) or not 1 <= max_results <= 100000: fail('invalid max_results')
-          if isinstance(max_total_bytes, bool) or not isinstance(max_total_bytes, int) or not 1 <= max_total_bytes <= 10000000: fail('invalid max_total_bytes')
-          if not isinstance(debug, bool): fail('invalid debug')
+          target_ref = pr['base']['ref']
+          current_sha = subprocess.check_output(
+              ['gh','api',f'repos/{repo["full_name"]}/git/ref/heads/{target_ref}','--jq','.object.sha'],
+              text=True).strip()
+          status_sha = pr['head']['sha']
+
+          def text(name, default=None, required=False, limit=20000, pattern=None):
+              value = inputs.get(name, default)
+              if required and value is None:
+                  fail(f'{name} is required')
+              if value is None:
+                  return ''
+              if not isinstance(value, str) or len(value.encode('utf-8')) > limit or any(ord(c) < 32 or ord(c) == 127 for c in value):
+                  fail(f'invalid {name}')
+              if pattern and not re.fullmatch(pattern, value):
+                  fail(f'invalid {name}')
+              return value
+
+          def integer(name, default, low, high):
+              value = inputs.get(name, default)
+              if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
+                  fail(f'invalid {name}')
+              return value
+
+          def boolean(name, default=False):
+              value = inputs.get(name, default)
+              if not isinstance(value, bool):
+                  fail(f'invalid {name}')
+              return value
+
+          def path(name, default='.', allow_dot=True):
+              value = text(name, default, required=True, limit=500)
+              parts = value.split('/')
+              valid = (allow_dot and value == '.') or (
+                  value and not value.startswith(('/', '-')) and '\\' not in value and
+                  all(part not in ('', '.', '..') for part in parts) and parts[0] != '.git'
+              )
+              if not valid:
+                  fail(f'invalid {name}')
+              return value
+
+          def string_array(name, required=True, max_items=100):
+              value = inputs.get(name)
+              if required and value is None:
+                  fail(f'{name} is required')
+              if not isinstance(value, list) or not (1 <= len(value) <= max_items) or not all(isinstance(v, str) for v in value):
+                  fail(f'invalid {name}')
+              if len(set(value)) != len(value):
+                  fail(f'{name} contains duplicates')
+              for item in value:
+                  if not item or any(ord(c) < 32 or ord(c) == 127 for c in item):
+                      fail(f'invalid {name}')
+              return json.dumps(value, separators=(',',':'), ensure_ascii=False)
+
+          values = {
+              'action': action,
+              'request_id': request_id,
+              'status_sha': status_sha,
+              'target_ref': target_ref,
+              'base_sha': '',
+              'ref': target_ref,
+              'mode': '',
+              'query': '',
+              'path': '.',
+              'max_results': '5000',
+              'max_total_bytes': '500000',
+              'files': '',
+              'sources': '',
+              'destination_root': '',
+              'target_paths': '',
+              'overwrite': 'false',
+              'message': '',
+              'patch_base64': '',
+              'allow_delete': 'false',
+              'moves': '',
+              'scope': '',
+              'older_than_days': '30',
+              'keep_latest': '10',
+              'confirm': '',
+              'debug': str(boolean('debug')).lower(),
+          }
+
+          if action == 'list-file':
+              allowed_inputs = {'ref','path','max_results','max_total_bytes','debug'}
+              values['ref'] = text('ref', target_ref, required=True, limit=200, pattern=r'[^\s\x00-\x1f]+')
+              values['path'] = path('path')
+              values['max_results'] = str(integer('max_results',5000,1,100000))
+              values['max_total_bytes'] = str(integer('max_total_bytes',500000,1,10000000))
+          elif action == 'search-repo':
+              allowed_inputs = {'ref','mode','query','path','max_results','max_total_bytes','debug'}
+              values['ref'] = text('ref', target_ref, required=True, limit=200, pattern=r'[^\s\x00-\x1f]+')
+              values['mode'] = text('mode', required=True, limit=20)
+              if values['mode'] not in {'content','regex','filename','files'}:
+                  fail('invalid mode')
+              values['query'] = text('query','',limit=2000)
+              if values['mode'] != 'files' and not values['query']:
+                  fail('query is required')
+              values['path'] = path('path')
+              values['max_results'] = str(integer('max_results',2000,1,100000))
+              values['max_total_bytes'] = str(integer('max_total_bytes',500000,1,10000000))
+          elif action == 'read-files':
+              allowed_inputs = {'ref','files','max_total_bytes','debug'}
+              values['ref'] = text('ref', target_ref, required=True, limit=200, pattern=r'[^\s\x00-\x1f]+')
+              files_value = inputs.get('files')
+              if not isinstance(files_value, list) or not 1 <= len(files_value) <= 20:
+                  fail('invalid files')
+              values['files'] = json.dumps(files_value, separators=(',',':'), ensure_ascii=False)
+              values['max_total_bytes'] = str(integer('max_total_bytes',1000000,1,1000000))
+          elif action == 'copy-files':
+              allowed_inputs = {'base_sha','sources','destination_root','target_paths','overwrite','message','debug'}
+              values['base_sha'] = text('base_sha',required=True,limit=40,pattern=r'[0-9A-Fa-f]{40}')
+              if values['base_sha'] != current_sha:
+                  fail(f'stale base_sha: current {target_ref} is {current_sha}')
+              values['sources'] = string_array('sources',max_items=50)
+              values['destination_root'] = path('destination_root',allow_dot=True)
+              values['target_paths'] = string_array('target_paths')
+              values['overwrite'] = str(boolean('overwrite')).lower()
+              values['message'] = text('message',required=True,limit=200)
+          elif action == 'apply-patch':
+              allowed_inputs = {'base_sha','target_paths','patch_base64','message','allow_delete','debug'}
+              values['base_sha'] = text('base_sha',required=True,limit=40,pattern=r'[0-9A-Fa-f]{40}')
+              if values['base_sha'] != current_sha:
+                  fail(f'stale base_sha: current {target_ref} is {current_sha}')
+              values['target_paths'] = string_array('target_paths')
+              values['patch_base64'] = text('patch_base64',required=True,limit=700000,pattern=r'[A-Za-z0-9+/=]+')
+              values['message'] = text('message',required=True,limit=200)
+              values['allow_delete'] = str(boolean('allow_delete')).lower()
+          elif action == 'move-paths':
+              allowed_inputs = {'base_sha','moves','target_paths','overwrite','message','debug'}
+              values['base_sha'] = text('base_sha',required=True,limit=40,pattern=r'[0-9A-Fa-f]{40}')
+              if values['base_sha'] != current_sha:
+                  fail(f'stale base_sha: current {target_ref} is {current_sha}')
+              moves_value = inputs.get('moves')
+              if not isinstance(moves_value,list) or not 1 <= len(moves_value) <= 50:
+                  fail('invalid moves')
+              values['moves'] = json.dumps(moves_value,separators=(',',':'),ensure_ascii=False)
+              values['target_paths'] = string_array('target_paths')
+              values['overwrite'] = str(boolean('overwrite')).lower()
+              values['message'] = text('message',required=True,limit=200)
+          else:
+              allowed_inputs = {'scope','older_than_days','keep_latest','confirm','debug'}
+              values['scope'] = text('scope',required=True,limit=20)
+              if values['scope'] not in {'chatgpt','all'}:
+                  fail('invalid scope')
+              values['older_than_days'] = str(integer('older_than_days',30,1,3650))
+              values['keep_latest'] = str(integer('keep_latest',10,0,100))
+              values['confirm'] = text('confirm',required=True,limit=20)
+              if values['confirm'] != 'DELETE':
+                  fail('confirm must be DELETE')
+
+          if set(inputs) - allowed_inputs:
+              fail(f'unexpected inputs: {sorted(set(inputs)-allowed_inputs)}')
 
           output = pathlib.Path(os.environ['GITHUB_OUTPUT'])
-          with output.open('a', encoding='utf-8') as f:
-              f.write(f'action=list-file\nrequest_id={request_id}\nstatus_sha={pr["head"]["sha"]}\n')
-              f.write(f'ref={ref}\npath={path}\nmax_results={max_results}\n')
-              f.write(f'max_total_bytes={max_total_bytes}\ndebug={str(debug).lower()}\n')
+          with output.open('a',encoding='utf-8') as stream:
+              for name,value in values.items():
+                  stream.write(f'{name}={value}\n')
           PY
 
   list-file:
@@ -98,7 +273,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@730f0332f4037fc658bcc3a437d7c6a8c5da9c63
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -106,4 +281,109 @@ jobs:
       path: ${{ needs.validate.outputs.path }}
       max_results: ${{ fromJSON(needs.validate.outputs.max_results) }}
       max_total_bytes: ${{ fromJSON(needs.validate.outputs.max_total_bytes) }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  search-repo:
+    needs: validate
+    if: needs.validate.outputs.action == 'search-repo'
+    permissions:
+      contents: read
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      ref: ${{ needs.validate.outputs.ref }}
+      mode: ${{ needs.validate.outputs.mode }}
+      query: ${{ needs.validate.outputs.query }}
+      path: ${{ needs.validate.outputs.path }}
+      max_results: ${{ fromJSON(needs.validate.outputs.max_results) }}
+      max_total_bytes: ${{ fromJSON(needs.validate.outputs.max_total_bytes) }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  read-files:
+    needs: validate
+    if: needs.validate.outputs.action == 'read-files'
+    permissions:
+      contents: read
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      ref: ${{ needs.validate.outputs.ref }}
+      files: ${{ needs.validate.outputs.files }}
+      max_total_bytes: ${{ fromJSON(needs.validate.outputs.max_total_bytes) }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  copy-files:
+    needs: validate
+    if: needs.validate.outputs.action == 'copy-files'
+    permissions:
+      contents: write
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      target_ref: ${{ needs.validate.outputs.target_ref }}
+      base_sha: ${{ needs.validate.outputs.base_sha }}
+      sources: ${{ needs.validate.outputs.sources }}
+      destination_root: ${{ needs.validate.outputs.destination_root }}
+      target_paths: ${{ needs.validate.outputs.target_paths }}
+      overwrite: ${{ fromJSON(needs.validate.outputs.overwrite) }}
+      message: ${{ needs.validate.outputs.message }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  apply-patch:
+    needs: validate
+    if: needs.validate.outputs.action == 'apply-patch'
+    permissions:
+      contents: write
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      target_ref: ${{ needs.validate.outputs.target_ref }}
+      base_sha: ${{ needs.validate.outputs.base_sha }}
+      target_paths: ${{ needs.validate.outputs.target_paths }}
+      patch_base64: ${{ needs.validate.outputs.patch_base64 }}
+      message: ${{ needs.validate.outputs.message }}
+      allow_delete: ${{ fromJSON(needs.validate.outputs.allow_delete) }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  move-paths:
+    needs: validate
+    if: needs.validate.outputs.action == 'move-paths'
+    permissions:
+      contents: write
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      target_ref: ${{ needs.validate.outputs.target_ref }}
+      base_sha: ${{ needs.validate.outputs.base_sha }}
+      moves: ${{ needs.validate.outputs.moves }}
+      target_paths: ${{ needs.validate.outputs.target_paths }}
+      overwrite: ${{ fromJSON(needs.validate.outputs.overwrite) }}
+      message: ${{ needs.validate.outputs.message }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  cleanup-actions:
+    needs: validate
+    if: needs.validate.outputs.action == 'cleanup-actions'
+    permissions:
+      actions: write
+      contents: read
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      scope: ${{ needs.validate.outputs.scope }}
+      older_than_days: ${{ fromJSON(needs.validate.outputs.older_than_days) }}
+      keep_latest: ${{ fromJSON(needs.validate.outputs.keep_latest) }}
+      confirm: ${{ needs.validate.outputs.confirm }}
       debug: ${{ fromJSON(needs.validate.outputs.debug) }}
