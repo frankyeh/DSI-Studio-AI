@@ -1,0 +1,46 @@
+name: chatgpt-list-file
+run-name: chatgpt-list-file
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Repository ref to list
+        required: false
+        default: main
+        type: string
+      path:
+        description: Repository path to list
+        required: false
+        default: .
+        type: string
+      max_results:
+        description: Maximum number of results
+        required: false
+        default: "5000"
+        type: string
+      max_total_bytes:
+        description: Maximum total output bytes
+        required: false
+        default: "500000"
+        type: string
+      debug:
+        description: Enable diagnostic output
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  list-files:
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@f889a5543b8b80fc88810e47e42518d602a1d1b8
+    with:
+      ref: ${{ inputs.ref }}
+      path: ${{ inputs.path }}
+      max_results: ${{ fromJSON(inputs.max_results) }}
+      max_total_bytes: ${{ fromJSON(inputs.max_total_bytes) }}
+      debug: ${{ inputs.debug }}
+    secrets: inherit
