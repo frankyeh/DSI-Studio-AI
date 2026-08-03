@@ -1,0 +1,109 @@
+name: chatgpt-actions
+run-name: chatgpt-actions-${{ github.event.action }}
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: chatgpt-actions-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      action: ${{ steps.request.outputs.action }}
+      request_id: ${{ steps.request.outputs.request_id }}
+      status_sha: ${{ steps.request.outputs.status_sha }}
+      ref: ${{ steps.request.outputs.ref }}
+      path: ${{ steps.request.outputs.path }}
+      max_results: ${{ steps.request.outputs.max_results }}
+      max_total_bytes: ${{ steps.request.outputs.max_total_bytes }}
+      debug: ${{ steps.request.outputs.debug }}
+    steps:
+      - name: Validate control PR
+        id: request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
+          [[ "$files" == '.github/chatgpt-trigger' ]] || { echo 'control PR must change only .github/chatgpt-trigger'; exit 1; }
+          python3 - <<'PY'
+          import json, os, pathlib, re
+
+          event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text(encoding='utf-8'))
+          pr = event['pull_request']
+          repo = event['repository']
+          owner = repo['owner']['login']
+
+          def fail(message):
+              raise SystemExit(message)
+
+          if pr['state'] != 'open': fail('control PR must be open')
+          if pr['title'] != '[CONTROL - DO NOT MERGE] chatgpt-actions': fail('invalid control PR title')
+          if pr['base']['ref'] != repo['default_branch']: fail('invalid base branch')
+          if pr['head']['ref'] != 'chatgpt-actions': fail('invalid control branch')
+          if pr['head']['repo']['full_name'] != repo['full_name']: fail('fork control PR rejected')
+          if pr['user']['login'] != owner or event['sender']['login'] != owner: fail('actor not approved')
+
+          body = pr.get('body') or ''
+          if not 1 <= len(body.encode('utf-8')) <= 20000: fail('invalid request size')
+          try:
+              request = json.loads(body)
+          except json.JSONDecodeError as error:
+              fail(f'invalid JSON: {error}')
+          if not isinstance(request, dict) or set(request) != {'version','request_id','action','inputs'}:
+              fail('invalid request object')
+          if request['version'] != 1: fail('unsupported request version')
+          request_id = request['request_id']
+          if not isinstance(request_id, str) or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}', request_id):
+              fail('invalid request_id')
+          if request['action'] != 'list-file': fail('unsupported action')
+          inputs = request['inputs']
+          if not isinstance(inputs, dict) or not set(inputs) <= {'ref','path','max_results','max_total_bytes','debug'}:
+              fail('invalid inputs')
+
+          ref = inputs.get('ref', repo['default_branch'])
+          path = inputs.get('path', '.')
+          max_results = inputs.get('max_results', 5000)
+          max_total_bytes = inputs.get('max_total_bytes', 500000)
+          debug = inputs.get('debug', False)
+          if not isinstance(ref, str) or not ref or ref.startswith('-') or re.search(r'[\s\x00-\x1f]', ref): fail('invalid ref')
+          if not isinstance(path, str) or not path or path.startswith(('/', '-')) or '\\' in path or re.search(r'[\x00-\x1f]', path): fail('invalid path')
+          if path != '.' and ('..' in path.split('/')): fail('invalid path')
+          if isinstance(max_results, bool) or not isinstance(max_results, int) or not 1 <= max_results <= 100000: fail('invalid max_results')
+          if isinstance(max_total_bytes, bool) or not isinstance(max_total_bytes, int) or not 1 <= max_total_bytes <= 10000000: fail('invalid max_total_bytes')
+          if not isinstance(debug, bool): fail('invalid debug')
+
+          output = pathlib.Path(os.environ['GITHUB_OUTPUT'])
+          with output.open('a', encoding='utf-8') as f:
+              f.write(f'action=list-file\nrequest_id={request_id}\nstatus_sha={pr["head"]["sha"]}\n')
+              f.write(f'ref={ref}\npath={path}\nmax_results={max_results}\n')
+              f.write(f'max_total_bytes={max_total_bytes}\ndebug={str(debug).lower()}\n')
+          PY
+
+  list-file:
+    needs: validate
+    if: needs.validate.outputs.action == 'list-file'
+    permissions:
+      contents: read
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@730f0332f4037fc658bcc3a437d7c6a8c5da9c63
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      ref: ${{ needs.validate.outputs.ref }}
+      path: ${{ needs.validate.outputs.path }}
+      max_results: ${{ fromJSON(needs.validate.outputs.max_results) }}
+      max_total_bytes: ${{ fromJSON(needs.validate.outputs.max_total_bytes) }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
