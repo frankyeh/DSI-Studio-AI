@@ -29,6 +29,8 @@ on:
         required: false
         type: boolean
         default: false
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -36,10 +38,16 @@ permissions:
 
 jobs:
   list:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.title == 'chatgpt-list-file' &&
+       github.event.issue.pull_request == null &&
+       github.event.comment.user.login == github.repository_owner &&
+       startsWith(github.event.comment.body, '{'))
     uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@f889a5543b8b80fc88810e47e42518d602a1d1b8
     with:
-      ref: ${{ inputs.ref }}
-      path: ${{ inputs.path }}
-      max_results: ${{ inputs.max_results }}
-      max_total_bytes: ${{ inputs.max_total_bytes }}
-      debug: ${{ inputs.debug }}
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || fromJSON(github.event.comment.body).ref }}
+      path: ${{ github.event_name == 'workflow_dispatch' && inputs.path || fromJSON(github.event.comment.body).path }}
+      max_results: ${{ github.event_name == 'workflow_dispatch' && inputs.max_results || fromJSON(github.event.comment.body).max_results }}
+      max_total_bytes: ${{ github.event_name == 'workflow_dispatch' && inputs.max_total_bytes || fromJSON(github.event.comment.body).max_total_bytes }}
+      debug: ${{ github.event_name == 'workflow_dispatch' && inputs.debug || fromJSON(github.event.comment.body).debug }}
