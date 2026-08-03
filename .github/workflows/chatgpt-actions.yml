@@ -69,17 +69,11 @@ jobs:
 
           if pr['state'] != 'open':
               fail('control PR must be open')
-          production = (
-              pr['title'] == '[CONTROL - DO NOT MERGE] chatgpt-actions' and
-              pr['base']['ref'] == default and
-              pr['head']['ref'] == 'chatgpt-actions'
-          )
-          testing = (
-              pr['title'] == '[CONTROL TEST - DO NOT MERGE] chatgpt-actions' and
-              pr['base']['ref'] == 'ai-skill-actions-test' and
-              pr['head']['ref'] == 'chatgpt-actions-test'
-          )
-          if not (production or testing):
+          if (
+              pr['title'] != '[CONTROL - DO NOT MERGE] chatgpt-actions' or
+              pr['base']['ref'] != default or
+              pr['head']['ref'] != 'chatgpt-actions'
+          ):
               fail('invalid control PR identity')
           if pr['head']['repo']['full_name'] != repo['full_name']:
               fail('fork control PR rejected')
@@ -273,7 +267,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -289,7 +283,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -307,7 +301,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -322,7 +316,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -341,7 +335,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -359,7 +353,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -378,7 +372,7 @@ jobs:
       actions: write
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@3d9b8caccc757675d762f389af1eec7a6e6883f2
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
