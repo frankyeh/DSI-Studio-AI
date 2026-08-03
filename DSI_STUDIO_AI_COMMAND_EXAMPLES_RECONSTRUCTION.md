@@ -78,6 +78,8 @@ Both setters accept `name=value[&name=value...]`.
 |---|---|---|
 | `bring_to_front` | `bash ./dsi.sh recon<hex-address> bring_to_front` | Restore the reconstruction window to its normal state, raise it, and activate it. Takes no parameter. |
 | `close` | `bash ./dsi.sh recon<hex-address> close` | Close the reconstruction window immediately. Takes no parameter; the window ID becomes invalid after success. |
+| `minimize` | `bash ./dsi.sh recon<hex-address> minimize` | Minimize the reconstruction window. Takes no parameter. |
+| `maximize` | `bash ./dsi.sh recon<hex-address> maximize` | Maximize the reconstruction window. Takes no parameter. |
 | `list_param` | `bash ./dsi.sh recon<hex-address> list_param` | List all reconstruction parameters and current values. Supply one exact parameter name to list only it. |
 | `set_param` | `bash ./dsi.sh recon<hex-address> set_param "method=4"` | Set one or more assignments in one composite parameter. |
 | `set_params` | `bash ./dsi.sh recon<hex-address> set_params "method=4&param=1.25"` | Same assignment syntax as `set_param`; useful when setting several values. |
