@@ -32,7 +32,7 @@ An action still enforces its own required options. For example, `vis` requires `
 
 `run_cli` executes inside the current DSI Studio process. It does not launch another DSI Studio executable. Relative paths use DSI Studio's current directory. A prior `run_shell "cd ..."` therefore affects later relative CLI paths. CLI actions may use or change global application state. `--thread_count` changes the process-global TIPL thread limit and is not restored after the action.
 
-The request normally remains active until the internal action returns. A failed action produces `command line failed`; the captured output or later `log` may contain the detailed cause. Unused options are reported as warnings after execution and do not by themselves change a successful result into an error.
+The request normally remains active until the internal action returns. A failed action produces `command line failed`; the captured command output may contain the detailed cause. Unused options are reported as warnings after execution and do not by themselves change a successful result into an error.
 
 ### Wildcards
 
@@ -85,9 +85,24 @@ On macOS or Linux, DSI Studio attempts to start the command directly. Since `dir
 started curl1: curl -L -o "atlas.zip" "https://example.org/atlas.zip"
 ```
 
-This confirms task registration, not successful transfer completion. While active, `list_window` includes a synthetic `curlN` entry with `status:"busy"` and the original command as its title. Poll until that entry disappears, then call `log` to inspect output or errors. There is currently no AI command to cancel a `curlN` task.
+This confirms task registration, not successful transfer completion. While active, `list_window` includes a synthetic `curlN` entry with `status:"busy"` and the original command as its title.
 
-On Windows, curl runs through `cmd.exe /c`; on macOS or Linux it is started directly. There is no completion timeout, so a stalled transfer can remain busy indefinitely. Relative output paths use DSI Studio's persistent current directory.
+The session log cursor must already be initialized to retrieve later curl output. The first-ever `log` command sets the cursor to the current end of the console and intentionally returns no earlier history. Use one of these sequences:
+
+Launcher route:
+
+```bash
+bash ./dsi.sh log
+bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
+```
+
+The initial `log` may be empty; its purpose is to initialize the cursor. Poll `list_window` until the reported `curlN` entry disappears, then call `log` again.
+
+ChatGPT (Web) route: set `include_log:true` on the curl-start request, or send a separate `log` request before curl. The immediate `response.log` may be empty, but it initializes the cursor. After `curlN` disappears, send a later higher-ID `log` request to retrieve the transfer output or error.
+
+If the session had already called `log`, no extra initialization is needed.
+
+There is currently no AI command to cancel a `curlN` task. On Windows, curl runs through `cmd.exe /c`; on macOS or Linux it is started directly. There is no completion timeout, so a stalled transfer can remain busy indefinitely. Relative output paths use DSI Studio's persistent current directory.
 
 Do not place credentials, tokens, protected data, or untrusted command text in `run_shell`.
 
@@ -99,6 +114,6 @@ Both commands are handled by MainWindow before fallback to the selected data win
 - `dir` is synchronous.
 - `curl` returns immediately.
 - Do not place a dependent open or processing command after `curl` in the same array.
-- Monitor a download in later requests with `list_window` and `log`.
+- Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 
 Never send a DSI Studio `--action=...` line through `run_shell`. Never send an operating-system command through `run_cli`.
