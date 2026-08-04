@@ -438,7 +438,8 @@ does not target the session's `set_window` selection. Wildcard looping and the
 action's own required options apply. `run_cli` normally remains active until the
 internal action returns.
 
-`run_shell` accepts only one `cd`, `dir`, or `curl` string:
+`run_shell` accepts only one `cd`, `dir`, or `curl` string. For asynchronous curl,
+initialize the log cursor on the start request:
 
 ```json
 {
@@ -446,19 +447,23 @@ internal action returns.
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
   "command": {
     "cmd": "run_shell",
-    "param": "dir \"*.fz\" /s /b"
-  }
+    "param": "curl -L -o \"subject.fz\" \"https://example.org/subject.fz\""
+  },
+  "include_log": true
 }
 ```
 
 `cd` changes DSI Studio's process-wide current directory. `dir` is synchronous.
 `curl` is asynchronous: its immediate result reports a synthetic `curlN` task ID,
-not transfer completion. Poll `list_window` until that `curlN` entry disappears, then
-use a later `log` request to inspect output or errors. Do not put a command that
-depends on the downloaded file after `curl` in the same command array.
+not transfer completion. The immediate `response.log` may be empty; on the first log
+read, DSI Studio initializes the cursor at the current end of the console. Poll
+`list_window` until that `curlN` entry disappears, then send a later higher-ID `log`
+request to retrieve transfer output or errors. A separate `log` request before curl
+is equivalent to using `include_log:true` on the start request.
 
-Never send a DSI Studio `--action=...` line through `run_shell`, and never send an
-operating-system command through `run_cli`. Read
+Do not put a command that depends on the downloaded file after `curl` in the same
+command array. Never send a DSI Studio `--action=...` line through `run_shell`, and
+never send an operating-system command through `run_cli`. Read
 `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
 
 ### First request: list windows
@@ -589,8 +594,9 @@ If the serialized result exceeds about 60 KiB, DSI Studio replaces `response` wi
 a truncation error instead of posting the oversized response.
 
 A successful reply for an asynchronous command means the operation was accepted. It
-does not prove background processing finished. For asynchronous `curl`, wait for the
-synthetic `curlN` entry to disappear from `list_window`, then inspect `log`.
+does not prove background processing finished. For asynchronous `curl`, initialize
+the log cursor on or before the start request, wait for the synthetic `curlN` entry
+to disappear from `list_window`, then inspect a later `log` reply.
 
 ## Remote close
 
@@ -652,9 +658,12 @@ window-specific command.
 ### A curl request returned success but the file is missing
 
 The initial `run_shell curl` result confirms only asynchronous task registration.
-Read its `curlN` ID, poll `list_window` until that entry disappears, and then request
-`log`. The log may report that curl could not start, did not finish, or wrote an error
-to standard error. There is no automatic transfer timeout or cancellation command.
+The log cursor must be initialized before relevant output is written. Set
+`include_log:true` on the curl-start request or send a separate `log` request first.
+Then poll `list_window` until the reported `curlN` entry disappears and request `log`
+again. That later log may report that curl could not start, did not finish, or wrote
+an error to standard error. There is no automatic transfer timeout or cancellation
+command.
 
 ### ChatGPT cannot list or create the issue
 
