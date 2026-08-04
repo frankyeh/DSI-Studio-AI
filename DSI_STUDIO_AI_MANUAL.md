@@ -201,8 +201,9 @@ bash ./dsi.sh log
 Use `log` after the user demonstrates a workflow, changes settings manually, retries
 a failed action, or performs GUI operations the agent needs to learn. It returns only
 new console and action output since the session's previous log position and then
-advances that position. Call it regularly during long demonstrations because output
-is size-limited.
+advances that position. The first-ever `log` call initializes the position at the
+current end of the console and intentionally returns no older history. Call it before
+starting an asynchronous operation when its later output must be captured.
 
 ## Reply format
 
@@ -267,15 +268,21 @@ Use `run_shell` only for the allowed `cd`, `dir`, and `curl` strings:
 bash ./dsi.sh run_shell "cd \"C:/data\""
 bash ./dsi.sh run_shell "cd"
 bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
+bash ./dsi.sh log
 bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
 ```
 
 `cd` changes DSI Studio's process-wide current directory and affects later relative
 `run_shell` and `run_cli` paths. `dir` runs synchronously. `curl` runs
 asynchronously: the initial reply returns a synthetic `curlN` task ID and does not
-prove the transfer completed. Poll `list_window` until the `curlN` entry disappears,
-then call `log` to inspect output or errors. Do not place a command that depends on
-the downloaded file after `curl` in the same command array.
+prove the transfer completed.
+
+Initialize the session log cursor before the first asynchronous curl. With the
+launcher, call `log` once before curl; the first result may be empty. With ChatGPT
+(Web), send a prior `log` request or set `include_log:true` on the curl-start request.
+Poll `list_window` until the `curlN` entry disappears, then call `log` again to
+retrieve output or errors. Do not place a command that depends on the downloaded
+file after `curl` in the same command array.
 
 For `dir` and `curl`, DSI Studio rejects common shell chaining, pipeline,
 redirection, substitution, and multiline characters. Other programs are rejected.
