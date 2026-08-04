@@ -95,8 +95,8 @@ After `open_src`, use the returned `recon<hex-address>` and follow
 - The wildcard-aware action dispatcher is used. A source wildcard may run the action
   repeatedly, and `--continue_on_error` controls whether a loop stops at its first
   failed item.
-- A failed action returns `command line failed`; inspect captured output or `log` for
-  the more specific action message.
+- A failed action returns `command line failed`; inspect captured output for the more
+  specific action message.
 
 See `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using CLI actions, especially
 wildcards, global thread settings, overwrites, or actions that depend on open windows.
@@ -124,8 +124,12 @@ wildcards, global thread settings, overwrites, or actions that depend on open wi
   exit code is not checked.
 - `curl` runs asynchronously. Its initial reply reports `started curlN: ...`; this
   means the task was registered, not that the transfer completed.
+- Initialize the session log cursor before the first asynchronous curl. With the
+  launcher, call `log` once before `run_shell curl`; the first log may be empty. With
+  ChatGPT (Web), send a prior `log` request or set `include_log:true` on the curl-start
+  request.
 - While curl is active, `list_window` reports its synthetic `curlN` ID as `busy`.
-  Poll until the entry disappears, then call `log` to inspect output or errors.
+  Poll until the entry disappears, then call `log` again to retrieve output or errors.
 - There is currently no AI command for cancelling a `curlN` task, and no completion
   timeout.
 - Relative `dir` and `curl` paths use the persistent directory selected by `cd`.
@@ -194,8 +198,9 @@ may use their full documented argument lists:
   application state.
 - A successful command result includes `output` only when text was captured. When
   no text was captured, the result contains `cmd` and `status` but no `output`.
-- A successful asynchronous `curl` start is not download completion. Verify through
-  `list_window`, then inspect `log`.
+- A successful asynchronous `curl` start is not download completion. Initialize the
+  log cursor before the transfer, verify completion through `list_window`, then read
+  the later incremental `log` output.
 - Invalid template names, database-loading failures, and image-opening failures
   propagate through the `error` field.
 - Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` before use
