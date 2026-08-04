@@ -1,15 +1,22 @@
 # DSI Studio Fiber-Tracking Guide for AI Agents
 
-Use complete launcher commands throughout this workflow:
+Use launcher commands throughout this workflow:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> <command> [parameters...]
+bash ./dsi.sh <command> [parameters...]
 ```
 
 Always include `bash` before `./dsi.sh`. After opening a FIB/FZ file with
 `open_fib`, use the exact `tracking<hex-address>` returned in
-`tracking window created, id: tracking...` from the command `output`. Use
-top-level `LIST` to confirm the ID or to discover another already-open tracking
+`tracking window created, id: tracking...` from the command `output`, and select
+it once before sending any command in this file:
+
+```bash
+bash ./dsi.sh set_window tracking<hex-address>
+```
+
+The selection persists for the session until changed by another `set_window` call.
+Use `list_window` to confirm the ID or to discover another already-open tracking
 window when needed.
 
 Tractography follows reconstructed diffusion orientations. A streamline is a
@@ -58,13 +65,13 @@ Neither represents axons or biological connection strength.
 Inspect live tracking parameters before changing them:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> list_param tracking
+bash ./dsi.sh list_param tracking
 ```
 
 Example parameter change:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> set_params "fa_threshold=0.08&min_length=20"
+bash ./dsi.sh set_params "fa_threshold=0.08&min_length=20"
 ```
 
 ## Build regions from anatomy
@@ -106,9 +113,9 @@ or a required explicit anatomical definition.
 Before `run_tracking`:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> list_param tracking
-bash ./dsi.sh tracking<hex-address> list_region
-bash ./dsi.sh tracking<hex-address> run_tracking "<bundle-name>"
+bash ./dsi.sh list_param tracking
+bash ./dsi.sh list_region
+bash ./dsi.sh run_tracking "<bundle-name>"
 ```
 
 Call `list_region` only after regions were created, loaded, segmented, or restored.
@@ -120,7 +127,7 @@ bundle before adding filters or exclusion regions.
 Explicit region-role syntax uses `region-index:role` entries joined by `&`:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> run_tracking "CST" "0:3&1:0&2:1"
+bash ./dsi.sh run_tracking "CST" "0:3&1:0&2:1"
 ```
 
 Roles are `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, and
@@ -132,13 +139,13 @@ Use AutoTrack for standard named pathways and reproducible cohort workflows. Fir
 discover the exact internal atlas identifier:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> list_auto_tract
+bash ./dsi.sh list_auto_tract
 ```
 
 Then use an exact returned name:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> run_auto_track "ProjectionBrainstem_CorticospinalTractL"
+bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
 ```
 
 Atlas names use underscore-separated hierarchical prefixes such as
@@ -155,7 +162,7 @@ seed limit: 50,000,000
 Set these limits and optionally disable automatic TIP before a cleanup workflow:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
+bash ./dsi.sh set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
 ```
 
 The seed limit prevents difficult, low-yield pathways from running indefinitely.
@@ -178,20 +185,20 @@ not need bundle-specific trimming or repeated-tract deletion. Leave a bundle wit
 - Apply one additional TIP iteration to every checked bundle:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> trim_tract
+bash ./dsi.sh trim_tract
 ```
 
 - Target one explicit bundle index:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> trim_tract <bundle-index>
+bash ./dsi.sh trim_tract <bundle-index>
 ```
 
 - Remove near-duplicate trajectories from every checked bundle using a 1-voxel
   distance threshold:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> delete_repeated_tract 1
+bash ./dsi.sh delete_repeated_tract 1
 ```
 
 Uncheck all non-target bundles before either operation. This is mandatory for
@@ -203,14 +210,14 @@ Recommended cleanup for a dense named bundle:
 1. Set dense limits and disable automatic TIP:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
+   bash ./dsi.sh set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
    ```
 
 2. Run AutoTrack with an exact name returned by `list_auto_tract`.
 3. Poll until tracking is complete:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> list_tract status
+   bash ./dsi.sh list_tract status
    ```
 
 4. Confirm the target has more than 10,000 tracts, preferably close to 50,000.
@@ -227,53 +234,53 @@ After tracking finishes:
 1. Poll until `status=done`:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> list_tract status
+   bash ./dsi.sh list_tract status
    ```
 
 2. Inspect bundle indices and tract counts:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> list_tract
+   bash ./dsi.sh list_tract
    ```
 
 3. Apply dense-bundle cleanup only when appropriate.
 4. Assign distinct bundle colors:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> color_all_cluster
+   bash ./dsi.sh color_all_cluster
    ```
 
 5. Hide the whole-brain bundle:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> check_tract <whole-brain-index> 0
+   bash ./dsi.sh check_tract <whole-brain-index> 0
    ```
 
 6. Show only the target bundle:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> show_only_tracts <target-index>
+   bash ./dsi.sh show_only_tracts <target-index>
    ```
 
 7. Turn off slice rendering:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> set_param show_slice 0
+   bash ./dsi.sh set_param show_slice 0
    ```
 
 8. Add subject-mapped built-in white-matter context:
 
    ```bash
-   bash ./dsi.sh tracking<hex-address> add_surface 0 25
+   bash ./dsi.sh add_surface 0 25
    ```
 
 Choose a useful inspection view for each bundle rather than reusing one camera. For
 the left arcuate fasciculus, start from view 0 and adjust in small increments:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> set_view 0
-bash ./dsi.sh tracking<hex-address> rotate "15 1 0 0"
-bash ./dsi.sh tracking<hex-address> rotate "20 0 1 0"
+bash ./dsi.sh set_view 0
+bash ./dsi.sh rotate "15 1 0 0"
+bash ./dsi.sh rotate "20 0 1 0"
 ```
 
 Verify orientation and capture several oblique views. Do not obscure mapped bundles
