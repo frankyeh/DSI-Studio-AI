@@ -18,6 +18,11 @@ is documented here:
 
 - [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
 
+`run_cli` and `run_shell` are also global MainWindow commands, but they have very
+different execution and completion rules. Their authoritative documentation is:
+
+- [Internal CLI actions and restricted shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
+
 Do not treat duplicate rows in an older per-window inventory as separate window
 implementations. The shared-window document takes precedence.
 
