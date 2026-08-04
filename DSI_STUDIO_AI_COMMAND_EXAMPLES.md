@@ -1,8 +1,15 @@
 # DSI Studio AI Command Examples
 
-Use these with the standard top-level `CMD` request. Command names and text,
-path, or composite parameters are strings. Send standalone numeric parameters
-as JSON numbers.
+Use these commands through the launcher documented in `DSI_STUDIO_AI_LAUNCHER.md`:
+
+```bash
+bash ./dsi.sh <command> [values...]
+```
+
+Select a non-`main` window once with `set_window` before sending commands that
+target it; the selection persists for the session until changed again. Command
+names and text, path, or composite parameters are strings. Send standalone numeric
+parameters as JSON numbers.
 
 The complete command inventory is organized by command area so each command has one authoritative documentation location:
 
@@ -16,12 +23,12 @@ The complete command inventory is organized by command area so each command has 
 
 Rows with a common example have a recommended or source-verified example. Inspect current source before using any command whose example remains blank.
 
-## `chat` with `CMD`
+## Chat alongside a command
 
-For a meaningful command, include a useful top-level `chat` update that tells the user what was verified and what the command is about to do.
+For a meaningful command, add `-Chat "..."` to tell the user what was verified and what the command is about to do:
 
-```json
-{"agent":"Codex","request":"CMD","window":"tracking7ff6ab123410","command":{"cmd":"segment_brain","param":["human_synthseg",7]},"chat":"I verified that the T1w slice is loaded and ready. I’m starting SynthSeg now; it may take a while to finish."}
+```bash
+bash ./dsi.sh segment_brain human_synthseg 7 -Chat "I verified that the T1w slice is loaded and ready. I'm starting SynthSeg now; it may take a while to finish."
 ```
 
-The `chat` field is shown to the user and does not alter command execution. Routine polling and trivial discovery commands may omit it to avoid repetitive updates.
+`-Chat` is shown to the user and does not alter command execution. Routine polling and trivial discovery commands may omit it to avoid repetitive updates.
