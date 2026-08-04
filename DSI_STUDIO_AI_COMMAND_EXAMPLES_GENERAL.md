@@ -1,8 +1,15 @@
 # DSI Studio AI General Command Examples and Inventory
 
-Use these commands with the standard top-level `CMD` request targeting the fixed
-`main` window. Command names and text or path parameters are strings. Send
-standalone numeric parameters as JSON numbers.
+These commands target the fixed `main` window. `main` is the default selection for
+a new session; if a `set_window` call has since switched to another window, return
+to `main` first:
+
+```bash
+bash ./dsi.sh set_window main
+```
+
+Command names and text or path parameters are strings. Send standalone numeric
+parameters as JSON numbers.
 
 Do not send a filesystem path by itself as a named-pipe request. Supply paths
 only as parameters of the documented commands below.
@@ -152,7 +159,7 @@ may use their full documented argument lists:
 - Commands without parameters may open a local picker. Cancellation can return
   without an immediate command error, so verify the resulting window, file, or
   application state.
-- A successful `CMD` result includes `output` only when text was captured. When
+- A successful command result includes `output` only when text was captured. When
   no text was captured, the result contains `cmd` and `status` but no `output`.
 - Invalid template names, database-loading failures, and image-opening failures
   propagate through the `error` field.
