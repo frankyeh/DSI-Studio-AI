@@ -30,14 +30,18 @@ is an ordinary command. The launcher maps arguments as follows:
 
 - The first argument, when present, is the command name; any remaining values are
   its parameters.
-- Every command targets `main` until a `set_window` command selects a different
-  window; that selection persists for the session until changed again. Use
-  `set_window <exact recon/tracking/image ID>` before sending a command meant for a
-  non-`main` window, and `set_window main` (or `set_window` with no parameter) to
+- Every session starts with `main` selected until a `set_window` command selects a
+  different window. That selection persists for the session until changed again.
+  Use `set_window <exact recon/tracking/image ID>` before sending a command meant for
+  a non-`main` window, and `set_window main` (or `set_window` with no parameter) to
   switch back.
 - Standalone integers and floating-point values become JSON numbers. Paths, names,
   and composite expressions remain strings.
 - `-Chat "message"` may accompany any command, or stand alone with no command at all.
+
+The shared `bring_to_front`, `minimize`, `maximize`, and `close` commands are handled
+centrally before ordinary MainWindow/window routing. Read
+`DSI_STUDIO_AI_WINDOW_COMMANDS.md` for their exact behavior.
 
 ## Commonly used commands
 
@@ -123,12 +127,14 @@ bash ./dsi.sh set_voxel_size "1.5 1.5 2.0"
 For commands accepting multiple files, pass one path per argument. Never send a
 filesystem path by itself as the complete request.
 
-### Window focus and state
+### Shared window focus and state
 
-Use `bring_to_front` to show a supported DSI Studio window in its normal state,
-raise it, and activate it. Use `minimize` or `maximize` to change its window state
-instead. All three take no arguments and act on whichever window is currently
-selected (`main`, reconstruction, tracking, or standalone image):
+`bring_to_front`, `minimize`, and `maximize` are dispatcher-level commands. They act
+on whichever supported window is currently selected: `main`, reconstruction,
+tracking, or standalone image. They do not first route through `MainWindow` or an
+individual window's `command()` implementation.
+
+All three take no arguments:
 
 ```bash
 bash ./dsi.sh bring_to_front
@@ -140,27 +146,48 @@ bash ./dsi.sh set_window image7ff6ab222000
 bash ./dsi.sh maximize
 ```
 
-Use the exact current window ID returned by DSI Studio (`set_window` first switches
-to it if it is not already selected). These commands change only window visibility,
-focus, or window state; they do not modify the loaded data or processing state.
+`bring_to_front` calls `showNormal()`, then raises and activates the selected window.
+It therefore restores a minimized or maximized window to its normal state before
+bringing it forward. `minimize` calls `showMinimized()`, and `maximize` calls
+`showMaximized()`.
 
-### Window closing
+These commands change only window visibility, focus, or state; they do not modify
+the loaded data or processing state. If another AI command currently has a supported
+window locked, a control command can fail with `another CMD is running; check opened
+windows`. Inspect `list_window` and retry only after the active command finishes.
 
-Use `close` to close the currently selected reconstruction, tracking, or standalone
-image window. The command takes no arguments and is not available for `main`:
+### Shared window closing
+
+`close` is also handled centrally and takes no argument. It closes the currently
+selected reconstruction, tracking, or standalone image window. AI is not permitted
+to close `main`:
 
 ```bash
 bash ./dsi.sh set_window recon7ff6ab111000
 bash ./dsi.sh close
 ```
 
-After a successful close, the window ID is no longer valid. Use `list_window` when
-needed to confirm that the window disappeared.
+A tracking-window close issued by AI bypasses the local `Tractography not saved`
+prompt. Confirm the operation before sending it whenever unsaved tracts may exist.
+Reconstruction and standalone image windows are also closed directly.
 
-An agent-issued tracking-window `close` bypasses the local `Tractography not saved`
-prompt and closes immediately. Confirm the close before sending it when any tract may
-contain unsaved work. A user-originated tracking close still presents the prompt.
-Reconstruction and standalone image `close` commands close their windows directly.
+The dispatcher reports success after issuing the close operation. Use `list_window`
+to verify disappearance when it matters. A successful close invalidates the window
+ID, but the session still remembers that now-invalid ID. Immediately select another
+target before later window-specific commands:
+
+```bash
+bash ./dsi.sh set_window main
+```
+
+Without that reset, a later window command can fail with `target window not found,
+terminated by user? Use set_window to select a window first.` Put `close` last in a
+multi-command request.
+
+For ChatGPT (Web), `{"command":{"cmd":"close"}}` closes the selected DSI Studio
+window, whereas `{"id":7,"request":"close"}` disconnects the GitHub issue channel.
+Never substitute one form for the other. See `DSI_STUDIO_AI_WINDOW_COMMANDS.md` and
+`DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md`.
 
 ### Reading the log
 
@@ -489,10 +516,14 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 - Use one `bash ./dsi.sh` invocation per request.
 - When the user requests demo mode, follow the narration and progress rules in
   `Demo mode`.
-- Use `open_image` only for supported medical image volumes; never use it to open or verify JPG, PNG, or other screenshot files.
+- Use `open_image` only for supported medical image volumes; never use it to open or
+  verify JPG, PNG, or other screenshot files.
 - Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
   current command output, or another verified source.
-- Confirm destructive operations, overwrites, and saved-history clearing.
+- Confirm destructive operations, overwrites, saved-history clearing, and every
+  tracking-window `close` that may discard unsaved tracts.
+- After closing a selected window, immediately use `set_window main` or another valid
+  current ID; the session does not reset its target automatically.
 - A local modal dialog is a supported way for the user to choose an input; do not
   answer it remotely or mistake `waiting` for failure.
 - A timeout does not prove failure; verify state before retrying.
@@ -501,6 +532,7 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 ## Related documents
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
+- [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
 - [Direct GitHub issue control](DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
