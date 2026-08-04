@@ -143,6 +143,11 @@ For each command in a request, the current dispatcher applies this order:
 5. Only a command unknown to `MainWindow` falls through to the persistently selected
    reconstruction, tracking, or image window.
 
-This is why a global command such as `voice`, `run_shell`, or `open_fib` remains
-available even while a non-main window is selected, while the four shared window
-controls always act on the selected target.
+Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fib`
+remain available even while a non-main window is selected. `run_cli` and `run_shell`
+do not act on the selected window: `run_cli` invokes its own internal CLI action
+logic, while `run_shell` performs only its restricted `cd`, `dir`, or `curl`
+operation. Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for their exact behavior.
+
+The four shared window controls are different: they always act on the selected
+target before ordinary MainWindow-first routing begins.
