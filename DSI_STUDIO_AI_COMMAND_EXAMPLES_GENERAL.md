@@ -49,7 +49,8 @@ only as parameters of the documented commands below.
 | `qc_nii` | `["qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_src` | `["qc_src","C:/data/a.sz","C:/data/b.sz"]` | Run SRC/SZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
 | `qc_fib` | `["qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Run FIB/FZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
-| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one restricted shell command string. `cd` changes DSI Studio's persistent working directory; `dir` and `curl` run external commands with shell metacharacters blocked. |
+| `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]` | Parse and execute one DSI Studio command-line string inside the running process. Missing `--action` defaults to `vis`; wildcard looping and each action's own requirements apply. |
+| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one restricted command string. `cd` changes DSI Studio's process-wide current directory, `dir` runs synchronously, and `curl` runs asynchronously as a synthetic `curlN` task. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a `view_image` window. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
@@ -75,6 +76,31 @@ collects every command element after the command name as a separate file path.
 After `open_src`, use the returned `recon<hex-address>` and follow
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`.
 
+## Internal `run_cli` actions
+
+`run_cli` accepts exactly one non-empty command-line string:
+
+```json
+["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]
+["run_cli","--action=rec --source=C:/data/*.sz"]
+```
+
+- Keep the entire command line in one string.
+- The optional exact lowercase prefix `dsi_studio ` is removed before parsing.
+- Missing `--action` defaults to `vis`.
+- The action runs inside the current DSI Studio process, not in a new executable.
+- Relative paths use DSI Studio's current directory.
+- `run_cli` does not target the AI session's `set_window` selection; each CLI action
+  uses its own global command-line behavior.
+- The wildcard-aware action dispatcher is used. A source wildcard may run the action
+  repeatedly, and `--continue_on_error` controls whether a loop stops at its first
+  failed item.
+- A failed action returns `command line failed`; inspect captured output or `log` for
+  the more specific action message.
+
+See `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using CLI actions, especially
+wildcards, global thread settings, overwrites, or actions that depend on open windows.
+
 ## Restricted `run_shell` commands
 
 `run_shell` accepts exactly one non-empty command string. The first token must be
@@ -88,29 +114,33 @@ After `open_src`, use the returned `recon<hex-address>` and follow
 ```
 
 - Send the entire command as one command-array element.
-- `cd <path>` changes DSI Studio's own current working directory directly. The new
-  directory persists across later `run_shell` calls. Enclose a path containing spaces
-  in one pair of double quotes.
-- `cd` without a path reports the current working directory. Do not use `cd /d`;
-  `cd` receives the remaining text as the directory path rather than Windows shell
-  options.
-- Use `dir` to inspect local files and directories. Relative paths are resolved from
-  the persistent directory selected by `cd`.
-- Use `curl` for HTTP or HTTPS requests and downloads. Relative output paths are also
-  resolved from the persistent directory selected by `cd`.
+- `cd <path>` changes DSI Studio's process-wide current directory directly. The new
+  directory persists across later `run_shell`, `run_cli`, and relative-path calls.
+  Enclose a path containing spaces in one pair of double quotes.
+- `cd` without a path reports the current directory. Do not use `cd /d`; the
+  remaining text is interpreted as the path.
+- `dir` runs synchronously. On Windows it uses `cmd.exe /c` and waits without a
+  timeout. Standard output is returned and standard error is logged. The external
+  exit code is not checked.
+- `curl` runs asynchronously. Its initial reply reports `started curlN: ...`; this
+  means the task was registered, not that the transfer completed.
+- While curl is active, `list_window` reports its synthetic `curlN` ID as `busy`.
+  Poll until the entry disappears, then call `log` to inspect output or errors.
+- There is currently no AI command for cancelling a `curlN` task, and no completion
+  timeout.
+- Relative `dir` and `curl` paths use the persistent directory selected by `cd`.
 - The exact first token must be `cd`, `dir`, or `curl`; other programs and aliases
   are rejected.
-- For `dir` and `curl`, the characters `&`, `|`, `;`, `<`, `>`, `^`, the backtick,
-  carriage return, and newline are rejected anywhere in the command. This prevents
-  command chaining, pipelines, redirection, substitution, and multiline commands.
+- For `dir` and `curl`, ampersand, vertical bar, semicolon, angle brackets, caret,
+  backtick, carriage return, and newline are rejected anywhere in the command.
 - Use `curl -o` or `curl -O` instead of output redirection.
-- On Windows, `dir` and `curl` run through `cmd.exe /c`. Standard output is returned
-  and standard error is reported separately. Verify the listed files, response, or
-  downloaded destination because the handler does not validate the external process
-  exit code.
-- `run_shell` does not accept DSI Studio `--action=...` command lines. Use the
-  documented DSI Studio window commands for reconstruction, tracking, and other
-  application operations.
+- `run_shell` does not accept DSI Studio `--action=...` command lines. Use `run_cli`
+  for a DSI Studio CLI action.
+- Do not place credentials, tokens, protected data, or untrusted command text in
+  `run_shell`.
+
+Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for platform behavior, wildcard rules,
+working-directory effects, and completion verification.
 
 ## Fiber Data Hub workflow
 
@@ -148,11 +178,14 @@ may use their full documented argument lists:
 
 ## Important routing and response notes
 
+- `run_cli` and `run_shell` are global MainWindow commands and remain available when
+  a non-main window is selected. `run_cli` action handlers use their own state rather
+  than the session's persistent window selection.
 - Target fixed `main` directly. After opening a reconstruction, tracking, or image
   window, DSI Studio normally returns its `recon<hex-address>`,
   `tracking<hex-address>`, or `image<hex-address>` ID in the command `output`; use
-  that returned ID for follow-up commands. Top-level `LIST` can confirm an ID or
-  discover another already-open supported window.
+  that returned ID for follow-up commands. Top-level `list_window` can confirm an ID
+  or discover another already-open supported window.
 - Do not invent aliases. Use `list_recent_fib` and `list_recent_src` exactly.
 - Supplying paths as documented command parameters is supported. Never send a
   path alone as the complete named-pipe request.
@@ -161,6 +194,8 @@ may use their full documented argument lists:
   application state.
 - A successful command result includes `output` only when text was captured. When
   no text was captured, the result contains `cmd` and `status` but no `output`.
+- A successful asynchronous `curl` start is not download completion. Verify through
+  `list_window`, then inspect `log`.
 - Invalid template names, database-loading failures, and image-opening failures
   propagate through the `error` field.
 - Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` before use
