@@ -1,8 +1,15 @@
 # DSI Studio AI Tract Command Examples and Inventory
 
-Use these with the standard top-level `CMD` request. Command names and text,
-path, or composite parameters are strings. Send standalone numeric parameters
-as JSON numbers.
+Use these with a `tracking<hex-address>` window. Select it once before sending
+any command below:
+
+```bash
+bash ./dsi.sh set_window tracking<hex-address>
+```
+
+The selection persists for the session until changed by another `set_window` call.
+Command names and text, path, or composite parameters are strings. Send standalone
+numeric parameters as JSON numbers.
 
 This file contains tract and automatic-tracking commands confirmed in the current source. Earlier generic inventory names that had no command handler were removed only after checking the GL, tract, region, device, and tracking dispatch chain.
 
