@@ -3,7 +3,7 @@
 Use the Bash launcher whenever Bash is available:
 
 ```bash
-bash ./dsi.sh <TITLE|CHAT|LIST|LOG|window-id> [command/values...]
+bash ./dsi.sh <command> [values...]
 ```
 
 Always include `bash` before `./dsi.sh`. Do not invoke `./dsi.sh` directly.
@@ -25,29 +25,31 @@ pass an agent name or session ID on the command line.
 ## Common syntax
 
 ```bash
-bash ./dsi.sh TITLE "Fiber tracking"
-bash ./dsi.sh CHAT "Reading the DSI Studio instructions."
-bash ./dsi.sh LIST
-bash ./dsi.sh main list_recent_fib
-bash ./dsi.sh tracking<hex-address> set_slice 7
+bash ./dsi.sh set_title "Fiber tracking"
+bash ./dsi.sh -Chat "Reading the DSI Studio instructions."
+bash ./dsi.sh list_window
+bash ./dsi.sh list_recent_fib
+bash ./dsi.sh set_window tracking<hex-address>
+bash ./dsi.sh set_slice 7
 ```
 
 The Windows wrapper accepts the same arguments:
 
 ```powershell
-./dsi TITLE "Fiber tracking"
-./dsi CHAT "Reading the DSI Studio instructions."
-./dsi LIST
-./dsi main list_recent_fib
-./dsi tracking<hex-address> set_slice 7
+./dsi set_title "Fiber tracking"
+./dsi -Chat "Reading the DSI Studio instructions."
+./dsi list_window
+./dsi list_recent_fib
+./dsi set_window tracking<hex-address>
+./dsi set_slice 7
 ```
 
 Claude may call the PowerShell implementation directly when Bash is unavailable:
 
 ```powershell
-./dsi.ps1 TITLE "Fiber tracking"
-./dsi.ps1 LIST
-./dsi.ps1 main list_recent_fib
+./dsi.ps1 set_title "Fiber tracking"
+./dsi.ps1 list_window
+./dsi.ps1 list_recent_fib
 ```
 
 ## Launcher selection
@@ -87,11 +89,16 @@ the local Unix-domain socket.
 ```
 
 These arrays describe command names and argument order; they are not executable
-requests. Execute the same command through the launcher:
+requests. Select the window once with `set_window`, then execute the same command
+through the launcher:
 
 ```bash
-bash ./dsi.sh tracking<hex-address> set_slice 7
+bash ./dsi.sh set_window tracking<hex-address>
+bash ./dsi.sh set_slice 7
 ```
+
+The selection persists for the session until changed by another `set_window` call;
+it does not need to be repeated before every command.
 
 ## Agent configuration
 
@@ -177,7 +184,7 @@ invocation rather than `-File -`.
 Use the native fallback:
 
 ```powershell
-./dsi LIST
+./dsi list_window
 ```
 
 This runs:
@@ -189,7 +196,7 @@ dsi.cmd -> dsi.ps1 -> \\.\pipe\dsi-studio
 For Claude's PowerShell tool, call the implementation directly:
 
 ```powershell
-./dsi.ps1 LIST
+./dsi.ps1 list_window
 ```
 
 ### Missing session environment
