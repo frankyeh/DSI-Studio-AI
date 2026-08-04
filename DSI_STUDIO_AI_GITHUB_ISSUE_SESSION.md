@@ -335,10 +335,11 @@ to every command in a request:
 5. If `MainWindow` reports the command as unknown, DSI Studio forwards it to the
    session's persistently selected reconstruction, tracking, or image window.
 
-This means main/global commands such as `voice`, `run_shell`, and main-window
-open/list commands remain available while a non-main window is selected. The four
-shared window controls are different: they always act on the selected target instead
-of being offered to `MainWindow` first.
+This means main/global commands such as `voice`, `run_cli`, `run_shell`, and
+main-window open/list commands remain available while a non-main window is selected.
+`run_cli` and `run_shell` use their own behavior rather than the selected data window.
+The four shared window controls are different: they always act on the selected target
+instead of being offered to `MainWindow` first.
 
 Use `set_window main`, or `set_window` with no parameter, to return the persistent
 target to `main`.
@@ -416,6 +417,50 @@ close a DSI Studio data window, DSI Studio itself, or the GitHub issue.
 
 Never substitute one form for the other.
 
+### Internal CLI and restricted shell commands
+
+`run_cli` executes one DSI Studio command-line action inside the running DSI Studio
+process. Put the complete command line in one string:
+
+```json
+{
+  "id": 9,
+  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
+  "command": {
+    "cmd": "run_cli",
+    "param": "--action=vis --source=C:/data/subject.fz --cmd=list_tract"
+  }
+}
+```
+
+Missing `--action` defaults to `vis`. The action uses its own CLI/global state and
+does not target the session's `set_window` selection. Wildcard looping and the
+action's own required options apply. `run_cli` normally remains active until the
+internal action returns.
+
+`run_shell` accepts only one `cd`, `dir`, or `curl` string:
+
+```json
+{
+  "id": 10,
+  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
+  "command": {
+    "cmd": "run_shell",
+    "param": "dir \"*.fz\" /s /b"
+  }
+}
+```
+
+`cd` changes DSI Studio's process-wide current directory. `dir` is synchronous.
+`curl` is asynchronous: its immediate result reports a synthetic `curlN` task ID,
+not transfer completion. Poll `list_window` until that `curlN` entry disappears, then
+use a later `log` request to inspect output or errors. Do not put a command that
+depends on the downloaded file after `curl` in the same command array.
+
+Never send a DSI Studio `--action=...` line through `run_shell`, and never send an
+operating-system command through `run_cli`. Read
+`DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
+
 ### First request: list windows
 
 ```json
@@ -433,7 +478,8 @@ Never substitute one form for the other.
 - each window's `status`: `idle`, `busy`, or `waiting`;
 - each window's current title.
 
-`waiting` means a modal local dialog needs user input.
+`waiting` means a modal local dialog needs user input. Active asynchronous shell
+transfers also appear as synthetic `curlN` entries with `status:"busy"`.
 
 ### Send user-facing progress
 
@@ -543,7 +589,8 @@ If the serialized result exceeds about 60 KiB, DSI Studio replaces `response` wi
 a truncation error instead of posting the oversized response.
 
 A successful reply for an asynchronous command means the operation was accepted. It
-does not prove background processing finished. Use a later higher-ID status request.
+does not prove background processing finished. For asynchronous `curl`, wait for the
+synthetic `curlN` entry to disappear from `list_window`, then inspect `log`.
 
 ## Remote close
 
@@ -594,9 +641,20 @@ First determine whether it is a shared dispatcher command. `bring_to_front`,
 window. Other ordinary commands are offered to `MainWindow` first and only fall
 through to the selected non-main window when unknown to `MainWindow`.
 
+`run_cli` is a global MainWindow command, but its selected CLI action uses its own
+state. For example, `vis` uses the most recently created tracking window rather than
+the AI session's `set_window` target.
+
 Use `list_window`, select an exact current ID, and inspect every per-command result.
 After closing a window, select `main` or another valid ID before the next
 window-specific command.
+
+### A curl request returned success but the file is missing
+
+The initial `run_shell curl` result confirms only asynchronous task registration.
+Read its `curlN` ID, poll `list_window` until that entry disappears, and then request
+`log`. The log may report that curl could not start, did not finish, or wrote an error
+to standard error. There is no automatic transfer timeout or cancellation command.
 
 ### ChatGPT cannot list or create the issue
 
