@@ -264,22 +264,17 @@ The next agent request must use an ID greater than the existing `last_id`.
 ## Issue request format
 
 The issue body must contain one JSON object. Each actionable request needs a positive
-numeric `id` greater than the `last_id` in the result comment.
-
-Normal requests require one UUID `session` and use the same request fields as the
-local launcher:
-
-- `TITLE`
-- `CHAT`
-- `LIST`
-- `LOG`
-- `CMD`
+numeric `id` greater than the `last_id` in the result comment, and one UUID `session`.
 
 DSI Studio supplies the Web agent identity internally. Do not add or rely on an
 `agent` field in the issue body.
 
-The `title` field is valid only when `request` is `TITLE`. Never add `title` to a
-`CHAT`, `LIST`, `LOG`, `CMD`, or `close` request.
+There is no request-type keyword and no `window` or `title` field. A request carries
+`command` (one `{"cmd":...,"param":...}` object, or an ordered array of them),
+`chat`, or both. Every command targets `main` until a `set_window` command selects a
+different window; that selection persists for the session across separate
+issue-body updates until changed again. The one exception is `{"request":"close"}`,
+reserved for ending the channel (see **Remote close**).
 
 ### Set the task title
 
@@ -287,8 +282,7 @@ The `title` field is valid only when `request` is `TITLE`. Never add `title` to 
 {
   "id": 1,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "TITLE",
-  "title": "Corticospinal tract mapping"
+  "command": {"cmd": "set_title", "param": "Corticospinal tract mapping"}
 }
 ```
 
@@ -298,10 +292,12 @@ The `title` field is valid only when `request` is `TITLE`. Never add `title` to 
 {
   "id": 2,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "CHAT",
   "chat": "I am checking the recent FIB files before opening one."
 }
 ```
+
+A `chat`-only request (no `command`) is valid and reports success once the message
+is recorded.
 
 ### List windows
 
@@ -309,7 +305,7 @@ The `title` field is valid only when `request` is `TITLE`. Never add `title` to 
 {
   "id": 3,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "LIST"
+  "command": {"cmd": "list_window"}
 }
 ```
 
@@ -319,37 +315,28 @@ The `title` field is valid only when `request` is `TITLE`. Never add `title` to 
 {
   "id": 4,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "CMD",
-  "window": "main",
-  "command": {
-    "cmd": "list_recent_fib"
-  }
+  "command": {"cmd": "list_recent_fib"}
 }
 ```
 
-### Run an ordered command array
+### Select a window, then run an ordered command array
 
 ```json
 {
   "id": 5,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "CMD",
-  "window": "tracking7ff6ab123410",
   "command": [
-    {
-      "cmd": "voice",
-      "param": "I will now map the selected tract."
-    },
-    {
-      "cmd": "run_auto_track",
-      "param": "<exact identifier returned by list_auto_tract>"
-    }
+    {"cmd": "set_window", "param": "tracking7ff6ab123410"},
+    {"cmd": "voice", "param": "I will now map the selected tract."},
+    {"cmd": "run_auto_track", "param": "<exact identifier returned by list_auto_tract>"}
   ]
 }
 ```
 
-Commands execute in order and stop at the first failure. The reply contains one
-result per attempted command.
+The `set_window` selection persists for later requests in this same session; a
+later request does not need to repeat it unless the target changes. Commands
+execute in order and stop at the first failure. The reply contains one result per
+attempted command.
 
 ### Include the incremental work log
 
@@ -357,14 +344,12 @@ result per attempted command.
 {
   "id": 6,
   "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
-  "request": "CMD",
-  "window": "tracking7ff6ab123410",
-  "command": {"cmd":"list_tract","param":"status"},
+  "command": {"cmd": "list_tract", "param": "status"},
   "include_log": true
 }
 ```
 
-When `include_log` is true, DSI Studio performs a separate `LOG` request after the
+When `include_log` is true, DSI Studio performs a separate `log` command after the
 main operation and places that reply in `response.log`. Use it only when incremental
 console or action history is needed.
 
