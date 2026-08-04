@@ -324,17 +324,21 @@ contains one result for every attempted command, including `set_window`.
 
 ### Command routing and persistent window selection
 
-The initial selected window is `main`, but the current dispatcher does not blindly
-send every command only to the selected window:
+Each session starts with `main` selected. The current dispatcher applies this order
+to every command in a request:
 
-1. Every ordinary command is offered to `MainWindow` first.
-2. Main/global commands such as `voice`, `run_shell`, and main-window open/list
-   commands therefore remain available even when a tracking, reconstruction, or
-   image window is selected.
-3. If `MainWindow` reports the command as unknown, DSI Studio forwards it to the
-   session's currently selected window.
-4. `set_window` changes that persistent fallback target for later window-specific
-   commands.
+1. `bring_to_front`, `minimize`, `maximize`, and window `close` are handled centrally
+   and act directly on the selected supported window.
+2. `set_title`, `log`, and `set_window` are handled as session commands.
+3. `list_window` is handled as dispatcher-level discovery.
+4. Every remaining command is offered to `MainWindow` first.
+5. If `MainWindow` reports the command as unknown, DSI Studio forwards it to the
+   session's persistently selected reconstruction, tracking, or image window.
+
+This means main/global commands such as `voice`, `run_shell`, and main-window
+open/list commands remain available while a non-main window is selected. The four
+shared window controls are different: they always act on the selected target instead
+of being offered to `MainWindow` first.
 
 Use `set_window main`, or `set_window` with no parameter, to return the persistent
 target to `main`.
@@ -353,6 +357,64 @@ The current interface also accepts a bare window type plus a distinctive filenam
 
 Supported bare types are `tracking`, `recon`, and `image`. Exact IDs are safer when
 more than one similar window is open.
+
+### Shared window controls
+
+The four shared controls take no parameter:
+
+```json
+{"cmd":"bring_to_front"}
+{"cmd":"minimize"}
+{"cmd":"maximize"}
+{"cmd":"close"}
+```
+
+Their behavior is:
+
+- `bring_to_front` calls `showNormal()`, raises, and activates the selected window;
+  a maximized window is restored to normal before being brought forward;
+- `minimize` calls `showMinimized()`;
+- `maximize` calls `showMaximized()`;
+- `close` closes the selected reconstruction, tracking, or image window;
+- `close` fails when `main` is selected because AI cannot close the main window.
+
+An AI-issued tracking-window close bypasses the local `Tractography not saved`
+prompt. Confirm before closing when unsaved tracts may exist. Put window `close` last
+in an ordered command array.
+
+After a window closes, the session still remembers its now-invalid ID. Verify the
+window disappeared with `list_window`, then send `set_window main` or select another
+current ID before issuing a later window-specific command. Otherwise the later
+command can fail because the target window no longer exists.
+
+If another AI command currently has a supported window locked, a shared control may
+fail with `another CMD is running; check opened windows`. Inspect `list_window` and
+retry only after the active command finishes.
+
+Read `DSI_STUDIO_AI_WINDOW_COMMANDS.md` for the complete shared-window rules.
+
+### Window close versus issue-channel close
+
+These are different protocol operations:
+
+```json
+{
+  "id": 7,
+  "session": "7dd34326-b99a-4ba5-9de6-2d48188022f3",
+  "command": {"cmd":"close"}
+}
+```
+
+closes the selected DSI Studio data window. It does not disconnect the issue channel.
+
+```json
+{"id":8,"request":"close"}
+```
+
+disconnects the GitHub issue channel after publishing `state:"closed"`. It does not
+close a DSI Studio data window, DSI Studio itself, or the GitHub issue.
+
+Never substitute one form for the other.
 
 ### First request: list windows
 
@@ -493,7 +555,8 @@ Replace the issue body with a higher request ID and:
 
 A remote-close request does not require `session`. DSI Studio attempts to publish
 `state:"closed"` and then disconnects the issue channel. It does not close the
-GitHub issue or DSI Studio. After acknowledgement, ChatGPT may close the issue.
+GitHub issue, a DSI Studio data window, or DSI Studio itself. After acknowledgement,
+ChatGPT may close the issue.
 
 Closing the GitHub issue directly also stops DSI Studio when the next poll observes
 the closed state, but the explicit close request is preferred because it provides a
@@ -526,10 +589,14 @@ a descriptive issue title or send `set_title` in a later request.
 
 ### A command ran in an unexpected window
 
-Remember that `MainWindow` receives the first attempt for every ordinary command.
-`set_window` controls the persistent fallback target for commands unknown to
-`MainWindow`. Use `list_window`, select an exact ID, and inspect every per-command
-result.
+First determine whether it is a shared dispatcher command. `bring_to_front`,
+`minimize`, `maximize`, and window `close` always act on the persistently selected
+window. Other ordinary commands are offered to `MainWindow` first and only fall
+through to the selected non-main window when unknown to `MainWindow`.
+
+Use `list_window`, select an exact current ID, and inspect every per-command result.
+After closing a window, select `main` or another valid ID before the next
+window-specific command.
 
 ### ChatGPT cannot list or create the issue
 
