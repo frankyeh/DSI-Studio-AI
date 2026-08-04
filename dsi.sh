@@ -17,12 +17,9 @@ $argv = @(for($i = 0; $i -lt [int]$env:DSI_ARGC; $i++)
 {
     [Environment]::GetEnvironmentVariable("DSI_ARG_$i")
 })
-if(!$argv.Count) { throw 'Usage: bash ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]' }
-
-$Target = $argv[0]
 [string[]]$Value = @()
 $Chat = $null
-for($i = 1; $i -lt $argv.Count; $i++)
+for($i = 0; $i -lt $argv.Count; $i++)
 {
     if($argv[$i] -ieq '-Chat')
     {
@@ -35,6 +32,7 @@ for($i = 1; $i -lt $argv.Count; $i++)
         $Value += $argv[$i]
     }
 }
+if(!$Value.Count -and !$Chat) { throw 'Usage: bash ./dsi.sh [command] [values...] [-Chat "message"]' }
 
 $Session = $env:CLAUDE_CODE_SESSION_ID
 if($Session)
@@ -61,22 +59,13 @@ function Convert-DsiValue([string]$Text)
 }
 
 $request = [ordered]@{agent=$Agent;session=$Session}
-switch($Target.ToUpperInvariant())
+if($Value.Count)
 {
-    'LIST'  {$request.request = 'LIST'}
-    'LOG'   {$request.request = 'LOG'}
-    'CHAT'  {$request.request = 'CHAT';  $request.chat = $Value -join ' '}
-    'TITLE' {$request.request = 'TITLE'; $request.title = $Value -join ' '}
-    default
-    {
-        if(!$Value.Count) { throw 'Missing command name.' }
-        $request.request = 'CMD'
-        $request.window = $Target
-        $request.command = [ordered]@{cmd=$Value[0]}
-        $param = @($Value | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
-        if($param.Count -eq 1) { $request.command.param = $param[0] }
-        elseif($param.Count -gt 1) { $request.command.param = $param }
-    }
+    $cmd = [ordered]@{cmd=$Value[0]}
+    $param = @($Value | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
+    if($param.Count -eq 1) { $cmd.param = $param[0] }
+    elseif($param.Count -gt 1) { $cmd.param = $param }
+    $request.command = $cmd
 }
 if($Chat) { $request.chat = $Chat }
 
@@ -140,10 +129,6 @@ else:
     agent = "Codex"
 
 args = sys.argv[1:]
-if not args:
-    fail("Usage: bash ./dsi.sh <TITLE|LIST|LOG|CHAT|window-id> [command/values...]")
-
-target, *args = args
 values = []
 chat = None
 i = 0
@@ -156,6 +141,9 @@ while i < len(args):
     else:
         values.append(args[i])
         i += 1
+
+if not values and chat is None:
+    fail('Usage: bash ./dsi.sh [command] [values...] [-Chat "message"]')
 
 integer = re.compile(r"^[+-]?\d+$")
 number = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
@@ -174,23 +162,14 @@ def convert(text):
 
 
 request = {"agent": agent, "session": session}
-kind = target.upper()
-if kind in {"LIST", "LOG"}:
-    request["request"] = kind
-elif kind == "CHAT":
-    request.update(request="CHAT", chat=" ".join(values))
-elif kind == "TITLE":
-    request.update(request="TITLE", title=" ".join(values))
-else:
-    if not values:
-        fail("Missing command name.")
+if values:
     command = {"cmd": values[0]}
     params = [convert(value) for value in values[1:]]
     if len(params) == 1:
         command["param"] = params[0]
     elif params:
         command["param"] = params
-    request.update(request="CMD", window=target, command=command)
+    request["command"] = command
 if chat is not None:
     request["chat"] = chat
 
