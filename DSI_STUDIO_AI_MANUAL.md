@@ -43,6 +43,9 @@ The shared `bring_to_front`, `minimize`, `maximize`, and `close` commands are ha
 centrally before ordinary MainWindow/window routing. Read
 `DSI_STUDIO_AI_WINDOW_COMMANDS.md` for their exact behavior.
 
+`run_cli` and `run_shell` are global MainWindow commands with different execution
+models. Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either one.
+
 ## Commonly used commands
 
 ### Setting the task title
@@ -243,9 +246,22 @@ Parameterless main-window commands may open a local picker. Cancellation may ret
 without an immediate error, so verify whether the expected window or file was
 created.
 
-## Restricted command-line access
+## Internal CLI and restricted shell access
 
-Use main-window `run_shell` only for the allowed `cd`, `dir`, and `curl` commands:
+Use `run_cli` for a DSI Studio command-line action that has no suitable ordinary AI
+command. Keep the complete command line in one string:
+
+```bash
+bash ./dsi.sh run_cli "--action=vis --source=C:/data/subject.fz --cmd=list_tract"
+```
+
+`run_cli` executes the internal CLI action in the current DSI Studio process. It does
+not start another executable. Missing `--action` defaults to `vis`; each action's own
+requirements and wildcard behavior still apply. CLI actions do not use the AI
+session's `set_window` selection. Relative paths use DSI Studio's process-wide
+current directory, and CLI actions may modify global application state.
+
+Use `run_shell` only for the allowed `cd`, `dir`, and `curl` strings:
 
 ```bash
 bash ./dsi.sh run_shell "cd \"C:/data\""
@@ -254,16 +270,21 @@ bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
 bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
 ```
 
-`cd <path>` changes DSI Studio's own current working directory, and that directory
-persists across later `run_shell` calls. `cd` without a path reports the current
-directory. Quote paths containing spaces and do not use `cd /d`; the remaining text
-is interpreted directly as the path.
+`cd` changes DSI Studio's process-wide current directory and affects later relative
+`run_shell` and `run_cli` paths. `dir` runs synchronously. `curl` runs
+asynchronously: the initial reply returns a synthetic `curlN` task ID and does not
+prove the transfer completed. Poll `list_window` until the `curlN` entry disappears,
+then call `log` to inspect output or errors. Do not place a command that depends on
+the downloaded file after `curl` in the same command array.
 
-Relative `dir` paths and `curl` output paths use the persistent directory selected by
-`cd`. The external `dir` and `curl` commands reject shell chaining, pipelines,
-redirection, substitution, and multiline commands. Use `curl -o` or `curl -O` for
-file output. Other executables and DSI Studio `--action=...` command lines are not
-accepted. See `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md` for the complete restrictions.
+For `dir` and `curl`, DSI Studio rejects common shell chaining, pipeline,
+redirection, substitution, and multiline characters. Other programs are rejected.
+Never send a DSI Studio `--action=...` line through `run_shell`; use `run_cli`.
+Never send an operating-system command through `run_cli`.
+
+Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for the exact action list, optional
+`dsi_studio ` prefix, wildcard loops, global thread-setting effect, platform behavior,
+character restrictions, and asynchronous curl verification.
 
 ## Windows desktop speech
 
@@ -520,8 +541,10 @@ selected; otherwise ask the user to identify the target before an indexed mutati
   verify JPG, PNG, or other screenshot files.
 - Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
   current command output, or another verified source.
-- Confirm destructive operations, overwrites, saved-history clearing, and every
-  tracking-window `close` that may discard unsaved tracts.
+- Confirm destructive operations, overwrites, saved-history clearing, wildcard CLI
+  actions, and every tracking-window `close` that may discard unsaved tracts.
+- Before using `run_cli` or `run_shell`, read
+  `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` and follow its completion-verification rules.
 - After closing a selected window, immediately use `set_window main` or another valid
   current ID; the session does not reset its target automatically.
 - A local modal dialog is a supported way for the user to choose an input; do not
@@ -533,6 +556,7 @@ selected; otherwise ask the user to identify the target before an indexed mutati
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
+- [Internal CLI actions and restricted shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
 - [Direct GitHub issue control](DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
