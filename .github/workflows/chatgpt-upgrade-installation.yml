@@ -1,0 +1,99 @@
+name: chatgpt-upgrade-installation-router
+run-name: chatgpt-upgrade-installation-${{ github.event.action }}
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: chatgpt-upgrade-installation-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      request_id: ${{ steps.request.outputs.request_id }}
+      status_sha: ${{ steps.request.outputs.status_sha }}
+      target_ref: ${{ steps.request.outputs.target_ref }}
+      base_sha: ${{ steps.request.outputs.base_sha }}
+      current_library_sha: ${{ steps.request.outputs.current_library_sha }}
+      target_library_sha: ${{ steps.request.outputs.target_library_sha }}
+      router_path: ${{ steps.request.outputs.router_path }}
+      target_paths: ${{ steps.request.outputs.target_paths }}
+      debug: ${{ steps.request.outputs.debug }}
+    steps:
+      - name: Validate upgrade control PR
+        id: request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
+          [[ "$files" == '.github/chatgpt-upgrade-trigger' ]] || { echo 'upgrade PR must change only .github/chatgpt-upgrade-trigger'; exit 1; }
+          python3 - <<'PY'
+          import json, os, pathlib, re, subprocess
+          event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text(encoding='utf-8'))
+          pr, repo = event['pull_request'], event['repository']
+          owner, default = repo['owner']['login'], repo['default_branch']
+          def fail(message): raise SystemExit(message)
+          if pr['state'] != 'open' or pr['draft']:
+              fail('upgrade control PR must be open and non-draft')
+          if pr['title'] != '[CONTROL - DO NOT MERGE] chatgpt-upgrade' or pr['base']['ref'] != default or pr['head']['ref'] != 'chatgpt-upgrade':
+              fail('invalid upgrade control PR identity')
+          if pr['head']['repo']['full_name'] != repo['full_name']:
+              fail('fork upgrade PR rejected')
+          if pr['user']['login'] != owner or event['sender']['login'] != owner:
+              fail('actor not approved')
+          try: request = json.loads(pr.get('body') or '')
+          except json.JSONDecodeError as error: fail(f'invalid JSON: {error}')
+          if not isinstance(request,dict) or set(request) != {'version','request_id','action','inputs'} or request['version'] != 1 or request['action'] != 'upgrade-installation':
+              fail('invalid upgrade request')
+          request_id, inputs = request['request_id'], request['inputs']
+          if not isinstance(request_id,str) or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}',request_id) or not isinstance(inputs,dict):
+              fail('invalid request_id or inputs')
+          allowed = {'base_sha','current_library_sha','target_library_sha','router_path','target_paths','debug'}
+          if set(inputs) - allowed: fail(f'unexpected inputs: {sorted(set(inputs)-allowed)}')
+          current_head = subprocess.check_output(['gh','api',f'repos/{repo["full_name"]}/git/ref/heads/{default}','--jq','.object.sha'],text=True).strip()
+          def sha(name):
+              value=inputs.get(name)
+              if not isinstance(value,str) or not re.fullmatch(r'[0-9A-Fa-f]{40}',value): fail(f'invalid {name}')
+              return value.lower()
+          base_sha=sha('base_sha')
+          if base_sha != current_head: fail(f'stale base_sha: current {default} is {current_head}')
+          current_sha,target_sha=sha('current_library_sha'),sha('target_library_sha')
+          router_path=inputs.get('router_path','.github/workflows/chatgpt-actions.yml')
+          if not isinstance(router_path,str) or not re.fullmatch(r'\.github/workflows/[^/]+\.ya?ml',router_path): fail('invalid router_path')
+          target_paths=inputs.get('target_paths')
+          if target_paths != [router_path]: fail('target_paths must contain only router_path')
+          debug=inputs.get('debug',False)
+          if not isinstance(debug,bool): fail('invalid debug')
+          values=dict(request_id=request_id,status_sha=pr['head']['sha'],target_ref=default,base_sha=base_sha,current_library_sha=current_sha,target_library_sha=target_sha,router_path=router_path,target_paths=json.dumps(target_paths,separators=(',',':')),debug=str(debug).lower())
+          with pathlib.Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as stream:
+              for name,value in values.items(): stream.write(f'{name}={value}\n')
+          PY
+
+  prepare-upgrade:
+    needs: validate
+    permissions:
+      contents: read
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-upgrade-installation.yml@c6220476d461aaae9e1ae3cda5afa1d7406b1996
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      target_ref: ${{ needs.validate.outputs.target_ref }}
+      base_sha: ${{ needs.validate.outputs.base_sha }}
+      current_library_sha: ${{ needs.validate.outputs.current_library_sha }}
+      target_library_sha: ${{ needs.validate.outputs.target_library_sha }}
+      router_path: ${{ needs.validate.outputs.router_path }}
+      target_paths: ${{ needs.validate.outputs.target_paths }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
