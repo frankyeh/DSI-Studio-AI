@@ -107,7 +107,7 @@ it does not need to be repeated before every command.
 Allow both supported command prefixes:
 
 ```cpp
-"--allowedTools","Bash(bash ./dsi.sh:*),PowerShell(./dsi.ps1:*)",
+"--allowedTools","Bash(bash ./dsi.sh:*),PowerShell(./dsi.ps1:*),WebFetch,WebSearch,Read,Glob,Grep",
 ```
 
 Use the Bash route when Bash is available:
