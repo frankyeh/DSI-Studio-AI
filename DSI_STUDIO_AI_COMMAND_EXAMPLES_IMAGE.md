@@ -13,14 +13,18 @@ The selection persists for the session until changed by another `set_window` cal
 Command names and text, path, or composite parameters are strings. Send a
 standalone numeric parameter as a JSON number.
 
-The image-window dispatcher accepts only a command name and at most one parameter. The examples below were checked against `view_image::command()`, `variant_image::command()`, and TIPL `command()` source.
+`bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
+window controls, not image-window operations. Read
+`DSI_STUDIO_AI_WINDOW_COMMANDS.md` for their authoritative behavior. After closing
+an image window, select `main` or another valid current ID because the session keeps
+the closed `image...` target until `set_window` changes it.
+
+The image-window dispatcher itself accepts only a command name and at most one
+parameter. The inventory below was checked against `view_image::command()`,
+`variant_image::command()`, and TIPL `command()` source.
 
 | Command | Common example | Important behavior |
 |---|---|---|
-| `bring_to_front` | `["bring_to_front"]` | Restore the image window to its normal state, raise it, and activate it. Takes no parameter. |
-| `close` | `["close"]` | Close the image window immediately. Takes no parameter; the window ID becomes invalid after success. |
-| `minimize` | `["minimize"]` | Minimize the image window. Takes no parameter. |
-| `maximize` | `["maximize"]` | Maximize the image window. Takes no parameter. |
 | `change_type` | `["change_type",3]` | Change voxel type: `0`=uint8, `1`=uint16, `2`=uint32, `3`=float32. |
 | `bias_field_correction` | `["bias_field_correction"]` | Iteratively estimate and remove the bias field using the positive-value mask. |
 | `brain_extraction` | `["brain_extraction","<model-ID>"]` | Run the model whose `.nz` filename stem exactly matches `<model-ID>`, then multiply the image by its foreground probability. See footnote 1. |
@@ -92,13 +96,31 @@ The image-window dispatcher accepts only a command name and at most one paramete
 
 ## Source-confirmed cautions
 
-- Image-window `CMD` accepts no more than two command-array elements: the command name and one parameter. A standalone numeric parameter may be a JSON number; combine multiple numeric components inside one composite string.
-- Parameterless morphology, filter, flip, up/downsampling, and header/swap commands are real commands; do not add a dummy value.
-- `flip_*` changes voxel data, while `header_flip_*` changes metadata only. Pair them only when that combined spatial change is intended.
-- `rotate_to_image` and `warp_to_image` replace the current image with its registered/resampled result and retain the mapping for a later `apply_to_image` command.
-- Commands ending in `_image` or `_label` require an existing file and map it into the current image space using linear interpolation for images or majority interpolation for labels.
-- `save` can show a modal prompt when the image window was opened with additional batch files. Avoid unattended batch saves unless this workflow is expected.
+- The image-window handler accepts no more than a command name and one parameter.
+  The four shared window controls are intercepted earlier by the central dispatcher
+  and are not subject to this image-handler limit.
+- After shared `close`, verify the window disappeared with `list_window`, then call
+  `set_window main` or select another valid ID before issuing another window command.
+- Parameterless morphology, filter, flip, up/downsampling, and header/swap commands
+  are real commands; do not add a dummy value.
+- `flip_*` changes voxel data, while `header_flip_*` changes metadata only. Pair them
+  only when that combined spatial change is intended.
+- `rotate_to_image` and `warp_to_image` replace the current image with its
+  registered/resampled result and retain the mapping for a later `apply_to_image`
+  command.
+- Commands ending in `_image` or `_label` require an existing file and map it into
+  the current image space using linear interpolation for images or majority
+  interpolation for labels.
+- `save` can show a modal prompt when the image window was opened with additional
+  batch files. Avoid unattended batch saves unless this workflow is expected.
 
 ## Footnotes
 
-1. The model catalog is loaded at startup from the packaged `unet/README.md`, not from this repository. Each image-window model action stores `std::filesystem::path(model_url).stem()` as its command argument, and `download_unet_model()` requires an exact match to the downloaded `.nz` filename stem. A tracking window's `["list_unet"]` reports this value in its `model` column. The image window currently has no equivalent model-list command, so discover the ID from `list_unet` when a tracking window is available or from the packaged model catalog.
+1. The model catalog is loaded at startup from the packaged `unet/README.md`, not
+   from this repository. Each image-window model action stores
+   `std::filesystem::path(model_url).stem()` as its command argument, and
+   `download_unet_model()` requires an exact match to the downloaded `.nz` filename
+   stem. A tracking window's `["list_unet"]` reports this value in its `model`
+   column. The image window currently has no equivalent model-list command, so
+   discover the ID from `list_unet` when a tracking window is available or from the
+   packaged model catalog.
