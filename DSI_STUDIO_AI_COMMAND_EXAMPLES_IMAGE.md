@@ -2,10 +2,16 @@
 
 Use these commands with an `image<hex-address>` window ID. After `open_image`,
 DSI Studio normally returns the new ID in `image window created, id: image...`
-from the command `output`; use that returned ID for follow-up commands. Top-level
-`LIST` can confirm the ID or discover another already-open image window. Command
-names and text, path, or composite parameters are strings. Send a standalone
-numeric parameter as a JSON number.
+from the command `output`; select it once before sending any command below:
+
+```bash
+bash ./dsi.sh set_window image<hex-address>
+```
+
+The selection persists for the session until changed by another `set_window` call.
+`list_window` can confirm the ID or discover another already-open image window.
+Command names and text, path, or composite parameters are strings. Send a
+standalone numeric parameter as a JSON number.
 
 The image-window dispatcher accepts only a command name and at most one parameter. The examples below were checked against `view_image::command()`, `variant_image::command()`, and TIPL `command()` source.
 
