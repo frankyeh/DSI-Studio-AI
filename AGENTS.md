@@ -229,6 +229,12 @@ When the user demonstrates a workflow, changes settings manually, or retries a f
 action, run `bash ./dsi.sh log` and inspect the returned action history instead
 of relying on memory.
 
+Before using `run_cli` or `run_shell`, read
+`DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md`. `run_cli` invokes DSI Studio's internal CLI
+action dispatcher and may use global application state; `run_shell` permits only its
+restricted `cd`, `dir`, and asynchronous `curl` operations. Do not treat either as a
+general shell command.
+
 The same folder contains `DSI_STUDIO_AI_MANUAL.md` for relay rules,
 `DSI_STUDIO_AI_SKILL_*.md` for task workflows, and
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` for command syntax and inventories. Read only
