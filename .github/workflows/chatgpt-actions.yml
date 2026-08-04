@@ -95,7 +95,7 @@ jobs:
           if not isinstance(request_id, str) or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}', request_id):
               fail('invalid request_id')
           action = request['action']
-          allowed = {'list-file','search-repo','read-files','copy-files','apply-patch','move-paths','cleanup-actions'}
+          allowed = {'list-file','search-repo','read-files','copy-files','apply-patch','move-paths','cleanup-actions','validate-installation'}
           if action not in allowed:
               fail('unsupported action')
           inputs = request['inputs']
@@ -241,6 +241,8 @@ jobs:
               values['target_paths'] = string_array('target_paths')
               values['overwrite'] = str(boolean('overwrite')).lower()
               values['message'] = text('message',required=True,limit=200)
+          elif action == 'validate-installation':
+              allowed_inputs = {'debug'}
           else:
               allowed_inputs = {'scope','older_than_days','keep_latest','confirm','debug'}
               values['scope'] = text('scope',required=True,limit=20)
@@ -267,7 +269,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -283,7 +285,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -301,7 +303,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -316,7 +318,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -335,7 +337,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -353,7 +355,7 @@ jobs:
     permissions:
       contents: write
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -372,7 +374,7 @@ jobs:
       actions: write
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@161c684995d9ddf5814d0c3d00c32c3ca8f0c88a
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -380,4 +382,20 @@ jobs:
       older_than_days: ${{ fromJSON(needs.validate.outputs.older_than_days) }}
       keep_latest: ${{ fromJSON(needs.validate.outputs.keep_latest) }}
       confirm: ${{ needs.validate.outputs.confirm }}
+      debug: ${{ fromJSON(needs.validate.outputs.debug) }}
+
+  validate-installation:
+    needs: validate
+    if: needs.validate.outputs.action == 'validate-installation'
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-validate-installation.yml@4513aab4a9f1d4445500bd624edfcb6d63ec11ec
+    with:
+      request_id: ${{ needs.validate.outputs.request_id }}
+      status_sha: ${{ needs.validate.outputs.status_sha }}
+      expected_library_sha: 4513aab4a9f1d4445500bd624edfcb6d63ec11ec
+      router_path: .github/workflows/chatgpt-actions.yml
+      required_actions: '["list-file","search-repo","read-files","copy-files","apply-patch","move-paths","cleanup-actions","validate-installation"]'
       debug: ${{ fromJSON(needs.validate.outputs.debug) }}
