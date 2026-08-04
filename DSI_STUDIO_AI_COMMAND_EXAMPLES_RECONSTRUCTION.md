@@ -20,9 +20,16 @@ bash ./dsi.sh set_window recon<hex-address>
 ```
 
 The selection persists for this session until changed by another `set_window` call;
-it does not need to be repeated before every command. The reconstruction-window
-dispatcher accepts one command name and at most one parameter. Keep multiple values
-or assignments in one quoted composite string.
+it does not need to be repeated before every command.
+
+`bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
+window controls, not reconstruction-window operations. Read
+`DSI_STUDIO_AI_WINDOW_COMMANDS.md` for their authoritative behavior. In particular,
+after closing this window, select `main` or another valid current window ID because
+the session retains the closed `recon...` ID.
+
+The reconstruction-window dispatcher accepts one command name and at most one
+parameter. Keep multiple values or assignments in one quoted composite string.
 
 ## Naming rule
 
@@ -79,14 +86,10 @@ Both setters accept `name=value[&name=value...]`.
 | `hist_tensor_smoothing` | Histology tensor smoothing |
 | `hist_resolution` | Isotropic histology resolution |
 
-## Command inventory
+## Reconstruction command inventory
 
 | Command | Complete example | Behavior |
 |---|---|---|
-| `bring_to_front` | `bash ./dsi.sh bring_to_front` | Restore the reconstruction window to its normal state, raise it, and activate it. Takes no parameter. |
-| `close` | `bash ./dsi.sh close` | Close the reconstruction window immediately. Takes no parameter; the window ID becomes invalid after success. |
-| `minimize` | `bash ./dsi.sh minimize` | Minimize the reconstruction window. Takes no parameter. |
-| `maximize` | `bash ./dsi.sh maximize` | Maximize the reconstruction window. Takes no parameter. |
 | `list_param` | `bash ./dsi.sh list_param` | List all reconstruction parameters and current values. Supply one exact parameter name to list only it. |
 | `set_param` | `bash ./dsi.sh set_param "method=4"` | Set one or more assignments in one composite parameter. |
 | `set_params` | `bash ./dsi.sh set_params "method=4&param=1.25"` | Same assignment syntax as `set_param`; useful when setting several values. |
@@ -180,6 +183,9 @@ inspect the visible mask before continuing.
 
 - Reconstruction-window operations are synchronous from the relay's perspective. A
   client timeout does not prove processing stopped; do not immediately resend.
+- The shared `close` command is not a reconstruction handler. It closes the selected
+  window through the central dispatcher. Verify with `list_window`, then reset the
+  target with `set_window main` or another valid ID.
 - The AI path does not show the user-only pre-reconstruction confirmation sequence.
   Apply resampling, bias-field correction, or orientation correction only when the
   workflow or user calls for it.
