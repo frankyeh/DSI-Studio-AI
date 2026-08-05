@@ -1,6 +1,6 @@
 # DSI Studio
 
-These instructions are shared by Codex and Claude.
+These instructions are shared by Codex and Claude agents.
 
 Use the recommended launcher for every request:
 
