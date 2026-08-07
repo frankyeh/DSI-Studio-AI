@@ -1,4 +1,4 @@
-# DSI Studio AI CLI and Restricted Shell Commands
+# DSI Studio AI CLI and Shell Commands
 
 `run_cli` and `run_shell` are global MainWindow commands. They remain available even when the AI session has selected a reconstruction, tracking, or image window.
 
@@ -115,8 +115,9 @@ Do not place credentials, tokens, protected data, or untrusted command text in `
 Both commands are handled by MainWindow before fallback to the selected data window.
 
 - `run_cli` is normally synchronous.
-- `dir` is synchronous.
-- `curl` returns immediately.
+- `run_shell` commands other than `curl` are synchronous (after the confirmation dialog, if any).
+- `curl` returns immediately once approved.
+- Any `run_shell` command other than `cd` pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes `run_shell` will not proceed past it until the user responds.
 - Do not place a dependent open or processing command after `curl` in the same array.
 - Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 
