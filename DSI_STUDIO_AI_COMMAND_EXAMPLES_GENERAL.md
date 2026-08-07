@@ -119,11 +119,19 @@ wildcards, global thread settings, overwrites, or actions that depend on open wi
   Enclose a path containing spaces in one pair of double quotes.
 - `cd` without a path reports the current directory. Do not use `cd /d`; the
   remaining text is interpreted as the path.
-- `dir` runs synchronously. On Windows it uses `cmd.exe /c` and waits without a
-  timeout. Standard output is returned and standard error is logged. The external
-  exit code is not checked.
-- `curl` runs asynchronously. Its initial reply reports `started curlN: ...`; this
-  means the task was registered, not that the transfer completed.
+- `cd` runs with no confirmation dialog and no external process. Every other
+  `run_shell` command shows the local user a confirmation dialog with the exact
+  command text and only runs if they approve it; there is no whitelist or character
+  restriction anymore, the dialog is the only gate. `run_shell` therefore cannot
+  complete unattended with nobody present to approve it, and a batched command array
+  containing `run_shell` pauses at that dialog before continuing.
+- `dir` (and any other approved, non-`curl` command) runs synchronously once
+  approved. On Windows it uses `cmd.exe /c` and waits without a timeout. Standard
+  output is returned and standard error is logged. The external exit code is checked
+  and a non-zero exit fails with `command exited with code <N>`.
+- `curl` runs asynchronously once approved. Its initial reply reports
+  `started curlN: ...`; this means the task was registered, not that the transfer
+  completed.
 - Initialize the session log cursor before the first asynchronous curl. With the
   launcher, call `log` once before `run_shell curl`; the first log may be empty. With
   ChatGPT (Web), send a prior `log` request or set `include_log:true` on the curl-start
@@ -133,15 +141,12 @@ wildcards, global thread settings, overwrites, or actions that depend on open wi
 - There is currently no AI command for cancelling a `curlN` task, and no completion
   timeout.
 - Relative `dir` and `curl` paths use the persistent directory selected by `cd`.
-- The exact first token must be `cd`, `dir`, or `curl`; other programs and aliases
-  are rejected.
-- For `dir` and `curl`, ampersand, vertical bar, semicolon, angle brackets, caret,
-  backtick, carriage return, and newline are rejected anywhere in the command.
 - Use `curl -o` or `curl -O` instead of output redirection.
 - `run_shell` does not accept DSI Studio `--action=...` command lines. Use `run_cli`
   for a DSI Studio CLI action.
 - Do not place credentials, tokens, protected data, or untrusted command text in
-  `run_shell`.
+  `run_shell` — the local user sees the exact text in the confirmation dialog either
+  way.
 
 Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for platform behavior, wildcard rules,
 working-directory effects, and completion verification.
