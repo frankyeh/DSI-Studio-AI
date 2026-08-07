@@ -1,26 +1,20 @@
 # DSI Studio AI Reconstruction Commands and Examples
 
-Use these commands with the exact `recon<hex-address>` returned by opening an SRC/SZ
-file:
+Open an SRC/SZ file with:
 
 ```bash
 bash ./dsi.sh open_src "C:/data/subject.sz"
 ```
 
-The successful reply includes:
+A successful reply includes:
 
 ```text
 recon window created, id: recon...
 ```
 
-Copy that ID, then select it once before sending any of the commands below:
-
-```bash
-bash ./dsi.sh set_window recon<hex-address>
-```
-
-The selection persists for this session until changed by another `set_window` call;
-it does not need to be repeated before every command.
+It also automatically selects that new reconstruction window, so commands below can
+act on it directly. Use `set_window` only when switching to another already-open
+window.
 
 `bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
 window controls, not reconstruction-window operations. Read
@@ -148,11 +142,10 @@ bash ./dsi.sh list_recent_src
 bash ./dsi.sh open_src "<exact path returned by list_recent_src>"
 ```
 
-Select the `recon...` ID returned by `open_src`, inspect the current configuration,
-set the intended GQI values, and reconstruct:
+The new reconstruction window is already selected by `open_src`. Inspect the current
+configuration, set the intended GQI values, and reconstruct:
 
 ```bash
-bash ./dsi.sh set_window "<exact recon ID returned by open_src>"
 bash ./dsi.sh list_param
 bash ./dsi.sh set_params "method=4&param=1.25&other_output=fa,md,rd,rdi"
 bash ./dsi.sh recon 4

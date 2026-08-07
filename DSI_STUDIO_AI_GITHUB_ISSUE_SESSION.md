@@ -341,6 +341,10 @@ main-window open/list commands remain available while a non-main window is selec
 The four shared window controls are different: they always act on the selected target
 instead of being offered to `MainWindow` first.
 
+Successful `open_src`, `open_fib`, and `open_image` also replace the persistent
+target with the newly created window, so the next command can use it directly
+without `set_window`, including later commands in the same ordered array.
+
 Use `set_window main`, or `set_window` with no parameter, to return the persistent
 target to `main`.
 

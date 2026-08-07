@@ -6,18 +6,12 @@ Use launcher commands throughout this workflow:
 bash ./dsi.sh <command> [parameters...]
 ```
 
-Always include `bash` before `./dsi.sh`. After opening a FIB/FZ file with
-`open_fib`, use the exact `tracking<hex-address>` returned in
-`tracking window created, id: tracking...` from the command `output`, and select
-it once before sending any command in this file:
-
-```bash
-bash ./dsi.sh set_window tracking<hex-address>
-```
-
-The selection persists for the session until changed by another `set_window` call.
-Use `list_window` to confirm the ID or to discover another already-open tracking
-window when needed.
+Always include `bash` before `./dsi.sh`. A successful `open_fib` returns the exact
+`tracking<hex-address>` in `tracking window created, id: tracking...` and
+automatically selects that new tracking window, so commands in this file can act on
+it directly. Use `set_window` only when switching to another already-open tracking
+window. Use `list_window` to confirm the ID or discover another tracking window when
+needed.
 
 Tractography follows reconstructed diffusion orientations. A streamline is a
 computational trajectory, not an observed axon or a measure of connectivity

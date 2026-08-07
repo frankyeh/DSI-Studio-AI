@@ -1,17 +1,11 @@
 # DSI Studio AI Image Command Examples and Inventory
 
-Use these commands with an `image<hex-address>` window ID. After `open_image`,
-DSI Studio normally returns the new ID in `image window created, id: image...`
-from the command `output`; select it once before sending any command below:
-
-```bash
-bash ./dsi.sh set_window image<hex-address>
-```
-
-The selection persists for the session until changed by another `set_window` call.
-`list_window` can confirm the ID or discover another already-open image window.
-Command names and text, path, or composite parameters are strings. Send a
-standalone numeric parameter as a JSON number.
+A successful `open_image` returns the new `image<hex-address>` ID in
+`image window created, id: image...` and automatically selects that window, so
+commands below can act on it directly. Use `set_window` only when switching to
+another already-open image window. `list_window` can confirm the ID or discover
+another already-open image window. Command names and text, path, or composite
+parameters are strings. Send a standalone numeric parameter as a JSON number.
 
 `bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
 window controls, not image-window operations. Read

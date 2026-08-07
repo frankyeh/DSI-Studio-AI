@@ -8,7 +8,8 @@ implementations in reconstruction, tracking, or image command handlers.
 ## Select the target window
 
 Each AI session starts with `main` selected. `set_window` changes the persistent
-target used by these shared commands and by later window-specific commands.
+target used by shared and later window-specific commands. Successful `open_src`,
+`open_fib`, and `open_image` also replace it with the newly created window.
 
 Use an exact current ID whenever possible:
 

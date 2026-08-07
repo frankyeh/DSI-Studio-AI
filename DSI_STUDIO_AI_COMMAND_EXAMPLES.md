@@ -6,10 +6,11 @@ Use these commands through the launcher documented in `DSI_STUDIO_AI_LAUNCHER.md
 bash ./dsi.sh <command> [values...]
 ```
 
-Select a non-`main` window once with `set_window` before sending commands that
-target it; the selection persists for the session until changed again. Command
-names and text, path, or composite parameters are strings. Send standalone numeric
-parameters as JSON numbers.
+Successful `open_src`, `open_fib`, and `open_image` commands automatically select
+the newly created window. Use `set_window` when switching to another already-open
+window; the selection persists until changed again. Command names and text, path,
+or composite parameters are strings. Send standalone numeric parameters as JSON
+numbers.
 
 The shared `bring_to_front`, `minimize`, `maximize`, and `close` commands are handled
 centrally before ordinary MainWindow/window routing. Their authoritative behavior,
