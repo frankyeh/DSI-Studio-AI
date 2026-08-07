@@ -34,7 +34,8 @@ The launcher maps requests as follows:
 
 1. The first argument is the command name; remaining values are its parameters.
 2. Every session starts with `main` selected. `set_window` changes the selected
-   target, and that selection persists until changed again.
+   target and that selection persists. Successful `open_src`, `open_fib`, and
+   `open_image` commands automatically select the newly created window.
 3. Standalone integers and floating-point values become JSON numbers. Paths, names,
    and composite expressions remain strings.
 4. `-Chat "message"` may accompany a command or may be sent by itself.
@@ -105,15 +106,17 @@ tracking window created, id: tracking...
 image window created, id: image...
 ```
 
-Copy the exact returned ID. Do not construct an ID, replace it with a filename, or
-reuse it after the window closes. Use `list_window` to confirm an ID or discover
-another already-open supported window, not merely to rediscover a window whose ID
-was just returned.
+They also make that newly created window the session's current target, so following
+commands can act on it directly without `set_window`. Copy the exact returned ID for
+later switching. Do not construct an ID, replace it with a filename, or reuse it
+after the window closes. Use `list_window` to confirm an ID or discover another
+already-open supported window, not merely to rediscover a window whose ID was just
+returned.
 
 `list_window` reports `idle`, `busy`, or `waiting`. `waiting` means a modal local
 dialog is awaiting the user's decision.
 
-### 3.2 Select a window once
+### 3.2 Select another window when needed
 
 ```bash
 bash ./dsi.sh set_window tracking<hex-address>
@@ -253,13 +256,11 @@ directly.
 If reconstruction does not apply to the task, study this section without running
 materially altering commands.
 
-### 5.1 Select the reconstruction window
+### 5.1 Reconstruction window targeting
 
-Copy the exact `recon<hex-address>` returned by `open_src` and select it once:
-
-```bash
-bash ./dsi.sh set_window recon<hex-address>
-```
+A successful `open_src` automatically selects the newly created
+`recon<hex-address>` window. Use `set_window` only when switching to another already
+open window.
 
 ### 5.2 Inspect and set parameters
 
@@ -309,13 +310,11 @@ source data or running reconstruction.
 If tracking does not apply to the task, study this section without running materially
 altering commands.
 
-### 6.1 Select the tracking window
+### 6.1 Tracking window targeting
 
-Copy the exact `tracking<hex-address>` returned by `open_fib` and select it once:
-
-```bash
-bash ./dsi.sh set_window tracking<hex-address>
-```
+A successful `open_fib` automatically selects the newly created
+`tracking<hex-address>` window. Use `set_window` only when switching to another
+already open window.
 
 ### 6.2 Inspect and load slices
 
