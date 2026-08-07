@@ -25,7 +25,7 @@ only as parameters of the documented commands below.
 | `rename_dicom` | `["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Rename one or more DICOM files in their current parent directories. Each file is a separate command element. Without file parameters, open a file picker. |
 | `rename_dicom_dir` | `["rename_dicom_dir","C:/dicom"]` | Rename DICOM files recursively at the supplied directory. Without a parameter, open a directory picker. |
 | `convert_dicom_dir` | `["convert_dicom_dir","C:/dicom"]` | Recursively convert DICOM series in the supplied directory to SRC/SZ or NIfTI output without overwriting existing output. Without a parameter, open a directory picker. |
-| `bids_to_src` | `["bids_to_src","C:/bids"]` | Search the supplied BIDS folder for diffusion NIfTI data, ask the local user to choose an output folder, and create SRC/SZ files. Without an input parameter, first open a BIDS-folder picker. |
+| `bids_to_src` | `["bids_to_src","C:/bids","C:/bids/derivatives"]` | Search the supplied BIDS folder for diffusion NIfTI data and create SRC/SZ files in the supplied output folder. Without an input parameter, first open a BIDS-folder picker. Without an output parameter (a second element), ask the local user to choose one. |
 | `nifti_dir_to_src` | `["nifti_dir_to_src","C:/nifti"]` | Find diffusion NIfTI data in the supplied directory and create SRC/SZ files there. Existing outputs may prompt for overwrite decisions. Without a parameter, open a directory picker. |
 | `collect_network_measures` | `["collect_network_measures","C:/net/a.txt","C:/net/b.txt"]` | Collect one or more network-measure text files into `<first-file>.collected.txt`. Each file is a separate command element. Without file parameters, open a file picker. |
 | `open_src` | `["open_src","C:/data/a.sz","C:/data/b.sz"]` | Open one or more SRC/SZ or histology inputs in one reconstruction window. Each file is a separate command element. A successful command selects the new reconstruction window and reports `recon window created, id: recon...` in `output`. Without file parameters, open a file picker. |
@@ -210,8 +210,9 @@ may use their full documented argument lists:
 
 ## GUI interaction notes
 
-- `bids_to_src` always asks the local user to select an output directory, even
-  when the input BIDS path is supplied.
+- `bids_to_src` asks the local user to select an output directory only when the
+  output-folder parameter (the second element) is omitted; supply it to run
+  unattended.
 - `open_dwi_nifti`, `open_dwi_dicom`, and `open_dwi_2dseq` enter the DWI-import
   workflow; they do not directly guarantee a returned reconstruction-window ID.
 - Picker-based commands require local GUI interaction and their cancellation may
