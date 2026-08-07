@@ -211,7 +211,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'list-file'
     permissions: {contents: read, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-list-file.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -225,7 +225,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'search-repo'
     permissions: {contents: read, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-search-repo.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -241,7 +241,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'read-files'
     permissions: {contents: read, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-read-files.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -254,7 +254,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'copy-files'
     permissions: {contents: write, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-copy-files.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -271,7 +271,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'apply-patch'
     permissions: {contents: write, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-apply-patch.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -287,7 +287,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'replace-text'
     permissions: {contents: write, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-replace-text.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-replace-text.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -302,7 +302,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'move-paths'
     permissions: {contents: write, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-move-paths.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -318,7 +318,7 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'cleanup-actions'
     permissions: {actions: write, contents: read, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-cleanup-actions.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
@@ -332,11 +332,11 @@ jobs:
     needs: validate
     if: needs.validate.outputs.action == 'validate-installation'
     permissions: {contents: read, pull-requests: read, statuses: write}
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-validate-installation.yml@02f8e029c5fffad48beef3505336b8fc4ebdd552
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-validate-installation.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
-      expected_library_sha: 02f8e029c5fffad48beef3505336b8fc4ebdd552
+      expected_library_sha: d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
       router_path: .github/workflows/chatgpt-actions.yml
       required_actions: '["list-file","search-repo","read-files","copy-files","apply-patch","replace-text","move-paths","cleanup-actions","validate-installation"]'
       debug: ${{ fromJSON(needs.validate.outputs.debug) }}
