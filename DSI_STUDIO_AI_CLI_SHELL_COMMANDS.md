@@ -2,7 +2,7 @@
 
 `run_cli` and `run_shell` are global MainWindow commands. They remain available even when the AI session has selected a reconstruction, tracking, or image window.
 
-Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` only for the allowed working-directory, directory-listing, and download operations.
+Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` for operating-system shell commands; every `run_shell` command other than `cd` requires the local user to approve a confirmation dialog before it runs.
 
 ## `run_cli`
 
@@ -48,7 +48,7 @@ Confirm the intended files and overwrite behavior before using a wildcard action
 
 ## `run_shell`
 
-`run_shell` requires one non-empty command string. Its first space-delimited token is matched case-insensitively and must be `cd`, `dir`, or `curl`.
+`run_shell` requires one non-empty command string. Its first space-delimited token is matched case-insensitively; `cd` is a built-in special case, everything else is passed to the operating system shell.
 
 ```bash
 bash ./dsi.sh run_shell "cd \"C:/data\""
@@ -63,23 +63,27 @@ ChatGPT (Web) form:
 {"command":{"cmd":"run_shell","param":"dir \"*.fz\" /s /b"}}
 ```
 
-Keep the entire command in one string. `run_shell` cannot launch arbitrary programs.
+Keep the entire command in one string.
 
-For `dir` and `curl`, the following are rejected anywhere in the string: ampersand, vertical bar, semicolon, angle brackets, caret, backtick, newline, and carriage return. This blocks common chaining, pipelines, redirection, and multiline input. A literal ampersand in a URL is also rejected. Use curl's output options instead of shell redirection.
+### Local user confirmation
+
+Every `run_shell` command other than `cd` shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no character restriction or command whitelist anymore — the confirmation dialog is the only gate. This means:
+
+- `run_shell` (other than `cd`) blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
+- If the user declines, the command fails with `user declined to run this shell command`.
+- Never send credentials, tokens, or other sensitive text in a `run_shell` command, since the local user sees the exact text in the confirmation dialog and it is written to captured output/console history either way.
 
 ### `cd`
 
-`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell. The new directory is process-wide and persists across later `run_shell`, `run_cli`, and relative-path operations. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
+`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, and does not show a confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is process-wide and persists across later `run_shell`, `run_cli`, and relative-path operations. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
 
-### `dir`
+### `dir` and other synchronous commands
 
-On Windows, `dir` runs through `cmd.exe /c`. DSI Studio waits without a timeout for it to finish. Standard output is returned and standard error is written to the DSI Studio console. The implementation does not inspect the external exit code, so inspect the returned output and error text.
-
-On macOS or Linux, DSI Studio attempts to start the command directly. Since `dir` is normally unavailable there, prefer DSI Studio's own file-listing commands.
+Any command other than `curl` (after `cd`) takes the synchronous path: DSI Studio waits without a timeout for it to finish. On Windows it runs through `cmd.exe /c`; on macOS/Linux it is started directly. Standard output is returned and standard error is written to the DSI Studio console. The implementation checks the external exit code and fails with `command exited with code <N>` on a non-zero exit.
 
 ### `curl`
 
-`curl` is asynchronous. The immediate reply contains a synthetic task ID such as:
+`curl` is asynchronous (after the confirmation dialog is approved). The immediate reply contains a synthetic task ID such as:
 
 ```text
 started curl1: curl -L -o "atlas.zip" "https://example.org/atlas.zip"
