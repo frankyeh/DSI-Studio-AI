@@ -108,6 +108,24 @@ If the session had already called `log`, no extra initialization is needed.
 
 There is currently no AI command to cancel a `curlN` task. On Windows, curl runs through `cmd.exe /c`; on macOS or Linux it is started directly. There is no completion timeout, so a stalled transfer can remain busy indefinitely. Relative output paths use DSI Studio's persistent current directory.
 
+### Downloading from OpenNeuro
+
+Public OpenNeuro objects are available directly from the `openneuro.org` S3 bucket. Use `curl` when only selected files are needed rather than downloading the entire dataset.
+
+List objects under a subject or path with the S3 query API. Quote the complete URL; query strings containing `&` are supported by current `run_shell`:
+
+```bash
+bash ./dsi.sh run_shell "curl -s \"https://s3.amazonaws.com/openneuro.org/?list-type=2&prefix=ds001378%2Fsub-SCA201\""
+```
+
+The response is S3 XML containing object keys and sizes. For a known set of files, curl brace expansion plus `--create-dirs` can download several objects in one asynchronous command while preserving their relative paths:
+
+```bash
+bash ./dsi.sh run_shell "curl -fL --retry 3 --create-dirs -o \"ds001378/#1\" \"https://s3.amazonaws.com/openneuro.org/ds001378/{dataset_description.json,participants.tsv,sub-SCA201/ses-01/anat/sub-SCA201_ses-01_T1w.nii.gz}\""
+```
+
+For large or complete datasets, first determine the intended object set; S3 listings can be paginated and should not be assumed complete from one response. As with every asynchronous `curl`, initialize `log`, wait until its `curlN` entry disappears from `list_window`, then inspect `log` and verify representative output files before continuing.
+
 Do not place credentials, tokens, protected data, or untrusted command text in `run_shell`.
 
 ## Command arrays and routing
