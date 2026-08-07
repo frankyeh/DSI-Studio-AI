@@ -86,7 +86,7 @@ jobs:
     permissions:
       contents: read
       statuses: write
-    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-upgrade-installation.yml@c6220476d461aaae9e1ae3cda5afa1d7406b1996
+    uses: frankyeh/AI-Skill/.github/workflows/chatgpt-upgrade-installation.yml@d8bb10b4010ddfafffe6d98e06a3cfed4f9633d6
     with:
       request_id: ${{ needs.validate.outputs.request_id }}
       status_sha: ${{ needs.validate.outputs.status_sha }}
