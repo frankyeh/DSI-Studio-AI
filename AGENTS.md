@@ -431,7 +431,7 @@ bash ./dsi.sh hub_download "<exact repository>" "<tag-regex>" "<exact filename>"
 filename when downloading across multiple tags. Verify the destination file or
 opened window after network-backed work.
 
-## 8. Internal CLI and restricted shell
+## 8. Internal CLI and confirmation-gated shell
 
 Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
 
@@ -450,7 +450,7 @@ process-wide current directory, and CLI actions may modify global application st
 
 Never send an operating-system command through `run_cli`.
 
-### 8.2 Use `run_shell` only for `cd`, `dir`, and `curl`
+### 8.2 `run_shell`: `cd` is free, everything else needs local user approval
 
 ```bash
 bash ./dsi.sh run_shell "cd \"C:/data\""
@@ -459,9 +459,16 @@ bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
 ```
 
 `cd` changes DSI Studio's process-wide current directory and therefore affects later
-relative `run_shell` and `run_cli` paths. `dir` runs synchronously.
+relative `run_shell` and `run_cli` paths; it runs with no confirmation dialog and no
+external process. Every other `run_shell` command shows the local user a
+confirmation dialog with the exact command text and only runs if they approve it —
+there is no whitelist or character restriction anymore, the dialog is the only gate.
+This means `run_shell` cannot complete unattended with nobody at the DSI Studio
+machine to respond, and a batched command array containing `run_shell` pauses at
+that dialog before continuing. `dir` (and any other approved, non-`curl` command)
+runs synchronously once approved.
 
-`curl` runs asynchronously:
+`curl` runs asynchronously once approved:
 
 ```bash
 bash ./dsi.sh log
@@ -477,9 +484,9 @@ output or errors. Do not place a command that depends on the downloaded file aft
 For ChatGPT (Web), initialize logging with a prior `log` request or
 `include_log:true` on the curl-start request.
 
-For `dir` and `curl`, DSI Studio rejects common shell chaining, pipeline,
-redirection, substitution, and multiline characters. Other programs are rejected.
-Never send a DSI Studio `--action=...` line through `run_shell`.
+Never send credentials, tokens, or other sensitive text in a `run_shell` command —
+the local user sees the exact text in the confirmation dialog either way. Never send
+a DSI Studio `--action=...` line through `run_shell`.
 
 ## 9. Windows speech and demo mode
 
@@ -552,7 +559,7 @@ verified state and never announce completion before results confirm it.
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
-- [Internal CLI actions and restricted shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
+- [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
 - [Direct GitHub issue control](DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md)
 - [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
