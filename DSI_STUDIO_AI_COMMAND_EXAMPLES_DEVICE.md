@@ -27,8 +27,8 @@ through a dedicated request.
 | `delete_device` | `["delete_device","0&2&5"]` | Delete one or more devices. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_devices` | `["delete_all_devices"]` | Delete all devices. |
 | `save_all_devices` | `["save_all_devices","C:/output/electrodes.dv.csv"]` | Save checked devices in table order. Without a path, open a save dialog. |
-| `show_device_statistics` | `["show_device_statistics"]` | Display device statistics in a modal dialog. |
-| `save_device_statistics` | `["save_device_statistics","C:/output/device_stat.txt"]` | Save device statistics to a text file. |
+| `show_device_statistics` | `["show_device_statistics"]` | Compute device statistics. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
+| `save_device_statistics` | `["save_device_statistics","C:/output/device_stat.txt"]` | Same statistics as `show_device_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_device_statistics` with no path fails with a usage error. |
 
 ## Source-confirmed notes
 
@@ -39,5 +39,5 @@ through a dedicated request.
 - Because `list_device` does not exist, prefer current-row operations when the user has selected the intended device. Otherwise ask the user to identify the target rather than guessing an index.
 - `set_acpc` removes existing locator entries before creating replacements.
 - `save_all_devices` writes only checked devices.
-- Modal `show_device_statistics` is unsuitable for unattended operation; prefer `save_device_statistics`.
+- `show_device_statistics` returns the report text directly to an AI caller (no dialog); a local user still sees a modal dialog. Use `save_device_statistics` instead when the result should be written to a file rather than returned.
 - Confirm `delete_device`, `delete_all_devices`, and replacement of existing AC/PC/Inter locators before use.

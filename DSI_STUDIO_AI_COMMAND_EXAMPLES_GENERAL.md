@@ -46,11 +46,14 @@ only as parameters of the documented commands below.
 | `open_console` | `["open_console"]` | Show the singleton application console. Takes no arguments. |
 | `clear_recent_src` | `["clear_recent_src"]` | Immediately clear the recent SRC/SZ table and saved `recentSrcFileList`. Takes no arguments and asks for no confirmation. |
 | `clear_recent_fib` | `["clear_recent_fib"]` | Immediately clear the recent FIB/FZ table and saved `recentFibFileList`. Takes no arguments and asks for no confirmation. |
-| `qc_nii` | `["qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
-| `qc_src` | `["qc_src","C:/data/a.sz","C:/data/b.sz"]` | Run SRC/SZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
-| `qc_fib` | `["qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Run FIB/FZ quality checks and display a report. Each file is a separate command element. Without file parameters, open a file picker. |
+| `show_qc_nii` | `["show_qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks. Each file is a separate command element. Without file parameters, open a file picker. AI callers get the report text directly in `output`; a local user instead sees it in a dialog. |
+| `show_qc_src` | `["show_qc_src","C:/data/a.sz","C:/data/b.sz"]` | Same as `show_qc_nii` for SRC/SZ files. |
+| `show_qc_fib` | `["show_qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Same as `show_qc_nii` for FIB/FZ files. |
+| `save_qc_nii` | `["save_qc_nii","C:/report.txt","C:/data/a.nii.gz"]` | Same checks as `show_qc_nii`, but writes the report to the given path (first parameter) instead of returning it or showing a dialog. Without file parameters after the path, open a file picker. |
+| `save_qc_src` | `["save_qc_src","C:/report.txt","C:/data/a.sz"]` | Same as `save_qc_nii` for SRC/SZ files. |
+| `save_qc_fib` | `["save_qc_fib","C:/report.txt","C:/data/a.fz"]` | Same as `save_qc_nii` for FIB/FZ files. |
 | `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]` | Parse and execute one DSI Studio command-line string inside the running process. Missing `--action` defaults to `vis`; wildcard looping and each action's own requirements apply. |
-| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one restricted command string. `cd` changes DSI Studio's process-wide current directory, `dir` runs synchronously, and `curl` runs asynchronously as a synthetic `curlN` task. |
+| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one shell command string. `cd` changes DSI Studio's process-wide current directory with no confirmation dialog; every other command shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a new `view_image` window and select it. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
@@ -66,7 +69,7 @@ Commands that accept multiple files use one command-array element per file:
 
 ```json
 ["open_src","C:/data/a.sz","C:/data/b.sz"]
-["qc_fib","C:/data/a.fz","C:/data/b.fz"]
+["show_qc_fib","C:/data/a.fz","C:/data/b.fz"]
 ["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]
 ```
 

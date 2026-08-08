@@ -72,10 +72,10 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `check_tract` | `["check_tract",0,1]` | Set one tract's checked state. |
 | `check_uncheck_all_tract` | `["check_uncheck_all_tract",1]` | Check/uncheck all tracts; explicit `1` or `0` is preferred. |
 | `select_cluster_color` | `["select_cluster_color",0,4294901760]` | Set one bundle to a packed Qt ARGB color and switch to assigned coloring. |
-| `show_tract_statistics` | `["show_tract_statistics"]` | Display statistics for checked tracts in a modal dialog. |
-| `save_tract_statistics` | `["save_tract_statistics","C:/output/tract_stat.txt"]` | Save statistics for checked tracts. |
-| `show_tract_recognition` | `["show_tract_recognition","",0]` | Recognize tract index 0 and display ranked atlas matches in a modal dialog; at least one tract must be checked. |
-| `save_tract_recognition` | `["save_tract_recognition","C:/output/tract_names.txt",0]` | Save tract-recognition scores. |
+| `show_tract_statistics` | `["show_tract_statistics"]` | Compute statistics for checked tracts. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
+| `save_tract_statistics` | `["save_tract_statistics","C:/output/tract_stat.txt"]` | Same statistics as `show_tract_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_tract_statistics` with no path fails with a usage error. |
+| `show_tract_recognition` | `["show_tract_recognition","",0]` | Recognize tract index 0 and return ranked atlas matches; at least one tract must be checked. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
+| `save_tract_recognition` | `["save_tract_recognition","C:/output/tract_names.txt",0]` | Same as `show_tract_recognition`, but always written to the given path, for any caller. The path is required. |
 | `save_tract_color` | `["save_tract_color","C:/output/cst_color.txt",0]` | Save per-trajectory colors for one tract bundle. |
 | `load_tract_color` | `["load_tract_color","C:/output/cst_color.txt",0]` | Load per-trajectory colors and switch to manual tract coloring. |
 | `load_tract_values` | `["load_tract_values","C:/output/cst_values.txt",0]` | Load one value per visible trajectory; counts must match. |
