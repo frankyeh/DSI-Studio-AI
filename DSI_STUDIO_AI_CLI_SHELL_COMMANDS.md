@@ -30,7 +30,7 @@ rec trk src ana exp atl db tmp cnt cnt_cl vis ren qc reg atk xnat img
 
 An action still enforces its own required options. For example, `vis` requires `--cmd`. If no tracking window is open it also requires `--source`; otherwise it uses the most recently created tracking window. `run_cli` does not use the AI session's `set_window` selection.
 
-`run_cli` executes inside the current DSI Studio process. It does not launch another DSI Studio executable. Relative paths use DSI Studio's current directory. A prior `run_shell "cd ..."` therefore affects later relative CLI paths. CLI actions may use or change global application state. `--thread_count` changes the process-global TIPL thread limit and is not restored after the action.
+`run_cli` executes inside the current DSI Studio process. It does not launch another DSI Studio executable. Relative paths use this AI session's own current directory. A prior `run_shell "cd ..."` in the same chat therefore affects later relative CLI paths; a different chat's `cd` does not. CLI actions may use or change global application state. `--thread_count` changes the process-global TIPL thread limit and is not restored after the action.
 
 The request normally remains active until the internal action returns. A failed action produces `command line failed`; the captured command output may contain the detailed cause. Unused options are reported as warnings after execution and do not by themselves change a successful result into an error.
 
@@ -75,7 +75,7 @@ Every `run_shell` command other than `cd` shows the local user a confirmation di
 
 ### `cd`
 
-`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, and does not show a confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is process-wide and persists across later `run_shell`, `run_cli`, and relative-path operations. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
+`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, and does not show a confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is remembered per AI session (not process-wide) and reapplied automatically before every later `run_shell`, `run_cli`, and relative-path operation in the same chat; a different chat's `cd` never affects it. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
 
 ### `dir` and other synchronous commands
 
@@ -106,7 +106,7 @@ ChatGPT (Web) route: set `include_log:true` on the curl-start request, or send a
 
 If the session had already called `log`, no extra initialization is needed.
 
-There is currently no AI command to cancel a `curlN` task. On Windows, curl runs through `cmd.exe /c`; on macOS or Linux it is started directly. There is no completion timeout, so a stalled transfer can remain busy indefinitely. Relative output paths use DSI Studio's persistent current directory.
+There is currently no AI command to cancel a `curlN` task. On Windows, curl runs through `cmd.exe /c`; on macOS or Linux it is started directly. There is no completion timeout, so a stalled transfer can remain busy indefinitely. Relative output paths use this AI session's own current directory.
 
 ### Downloading from OpenNeuro
 
