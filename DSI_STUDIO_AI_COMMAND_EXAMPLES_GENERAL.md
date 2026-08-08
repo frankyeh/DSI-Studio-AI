@@ -104,10 +104,11 @@ After `open_src`, the new `recon<hex-address>` is already selected; follow
 See `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using CLI actions, especially
 wildcards, global thread settings, overwrites, or actions that depend on open windows.
 
-## Restricted `run_shell` commands
+## Confirmation-gated `run_shell` commands
 
-`run_shell` accepts exactly one non-empty command string. The first token must be
-`cd`, `dir`, or `curl`, matched case-insensitively:
+`run_shell` accepts exactly one non-empty command string. The first token is matched
+case-insensitively; `cd` is a built-in special case with no confirmation dialog,
+everything else is passed to the operating system shell after local user approval:
 
 ```json
 ["run_shell","cd \"C:\\data\""]
