@@ -83,10 +83,10 @@ Any command other than `curl` (after `cd`) takes the synchronous path: DSI Studi
 
 ### `curl`
 
-`curl` is asynchronous (after the confirmation dialog is approved). The immediate reply contains a synthetic task ID such as:
+`curl` is asynchronous (after the confirmation dialog is approved). DSI Studio always inserts ` -s -S` right after `curl` before showing the confirmation dialog and running it — curl's default progress meter redraws a single line via `\r`, which floods a captured, non-interactive log instead; `-s` silences it while `-S` still surfaces real errors. The confirmation dialog and the `started curlN: ...` reply both show the command with these flags already added, so no need to include them. The immediate reply contains a synthetic task ID such as:
 
 ```text
-started curl1: curl -L -o "atlas.zip" "https://example.org/atlas.zip"
+started curl1: curl -s -S -L -o "atlas.zip" "https://example.org/atlas.zip"
 ```
 
 This confirms task registration, not successful transfer completion. While active, `list_window` includes a synthetic `curlN` entry with `status:"busy"` and the original command as its title.
