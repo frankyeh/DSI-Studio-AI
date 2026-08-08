@@ -133,6 +133,27 @@ Both setters accept `name=value[&name=value...]`.
 | `orientation_correction` | `bash ./dsi.sh orientation_correction` | Apply automatic volume-orientation correction. |
 | `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. |
 
+## Post-correction quality control
+
+After `eddy`, `motion_correction`, or another correction, compare saved files with the
+MainWindow QC commands:
+
+```bash
+bash ./dsi.sh show_qc_src "raw.sz" "corrected.sz"
+bash ./dsi.sh show_qc_fib "raw.gqi.fz" "corrected.gqi.fz"
+```
+
+Both accept multiple files and remain available regardless of the selected window.
+`show_qc_src` reports DWI contrast, neighboring DWI correlation (including masked),
+bad slices, and outlier status. Compare before and after correction; higher
+neighboring DWI correlation indicates better inter-volume consistency, while DWI
+contrast should not be treated as simply higher-is-better. `show_qc_fib` reports
+Coherence Index (and QSDR R2 when applicable), not DWI contrast or neighboring DWI
+correlation.
+
+The verified teaching dataset `ds002087` is under `data-openneuro/others` and contains
+raw, `eddy_corrected`, and `motion_corrected` `.sz`/`.gqi.fz` pairs for two runs.
+
 ## Worked example: GQI reconstruction
 
 First discover and open an exact recent SRC/SZ path:
