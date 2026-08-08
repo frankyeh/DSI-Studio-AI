@@ -250,15 +250,22 @@ Common connection failures include:
 While connected, the main action button shows **Stop**. Clicking **Stop** disconnects
 the GitHub channel. It does not close DSI Studio, remove the chat, or close the issue.
 
-After stopping the active web session, the button shows **Resume**. Clicking it:
+After stopping the active web session, the button shows **Resume**. Clicking it
+reconnects immediately using that chat's own saved issue URL -- no dialog, no
+prompt to review or edit it. Each chat remembers its own issue URL independently,
+so resuming a different existing ChatGPT (Web) chat reconnects to *that* chat's
+URL, not whichever issue was connected most recently elsewhere.
 
-1. Opens **Resume Chat** locked to **ChatGPT (Web)**.
-2. Prefills the most recently used issue URL.
-3. Allows the URL to be reviewed or changed.
-4. Reconnects after the user clicks **Resume**.
+To review or change the issue URL instead of a plain resume, select the chat and
+click the `ChatGPT(Web)` agent label. Its caption already shows the bound issue
+(for example `ChatGPT(Web) · owner/repository/issues/12`), and clicking it opens
+**Change Issue Link**, locked to **ChatGPT (Web)** and prefilled with the current
+URL. Confirming disconnects any active channel first, then reconnects with
+whatever URL was entered. There is no separate reconnect command or button.
 
-Selecting an existing ChatGPT web chat and clicking the `ChatGPT(Web)` agent label
-opens the same reconnect dialog. There is no separate reconnect command or button.
+DSI Studio never reconnects a GitHub issue channel automatically on its own --
+not on startup, not in the background. Reconnecting always requires clicking
+**Resume** or confirming **Change Issue Link**.
 
 When resuming the same issue:
 
@@ -459,7 +466,7 @@ asynchronous curl, initialize the log cursor on the start request:
 }
 ```
 
-`cd` changes DSI Studio's process-wide current directory. `dir` is synchronous.
+`cd` changes this AI session's own current directory (remembered per chat, not process-wide). `dir` is synchronous.
 `curl` is asynchronous: its immediate result reports a synthetic `curlN` task ID,
 not transfer completion. The immediate `response.log` may be empty; on the first log
 read, DSI Studio initializes the cursor at the current end of the console. Poll
