@@ -449,8 +449,9 @@ bash ./dsi.sh run_cli "--action=vis --source=C:/data/subject.fz --cmd=list_tract
 
 `run_cli` executes the internal CLI action in the current DSI Studio process; it
 does not start another executable. Missing `--action` defaults to `vis`. CLI actions
-do not use the session's `set_window` selection. Relative paths use DSI Studio's
-process-wide current directory, and CLI actions may modify global application state.
+do not use the session's `set_window` selection. Relative paths use this AI
+session's own current directory (remembered per chat, not process-wide), and CLI
+actions may modify global application state.
 
 Never send an operating-system command through `run_cli`.
 
@@ -462,9 +463,10 @@ bash ./dsi.sh run_shell "cd"
 bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
 ```
 
-`cd` changes DSI Studio's process-wide current directory and therefore affects later
-relative `run_shell` and `run_cli` paths; it runs with no confirmation dialog and no
-external process. Every other `run_shell` command shows the local user a
+`cd` changes this AI session's own current directory (remembered per chat, not
+process-wide) and therefore affects later relative `run_shell` and `run_cli` paths
+in the same chat; it runs with no confirmation dialog and no external process.
+Every other `run_shell` command shows the local user a
 confirmation dialog with the exact command text and only runs if they approve it —
 there is no whitelist or character restriction anymore, the dialog is the only gate.
 This means `run_shell` cannot complete unattended with nobody at the DSI Studio
