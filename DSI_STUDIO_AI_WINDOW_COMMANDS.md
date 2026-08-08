@@ -112,6 +112,44 @@ another CMD is running; check opened windows
 Inspect `list_window` and retry only after the active command is finished. Do not
 assume a timeout means the earlier operation stopped.
 
+## `list_window` response shape
+
+`list_window` takes no parameter and returns its result in `output` as a JSON object:
+
+```json
+{
+  "application":{"status":"busy"},
+  "current_window":"tracking7ff6ab123410",
+  "progress":[
+    {"status":"convert DICOM to SRC or nifti files","now":3,"total":12,"at":"(3/12) 2 min"},
+    {"status":"processing DICOM at C:/data/subj03","now":0,"total":0,"at":""}
+  ],
+  "windows":{
+    "main":{"status":"idle","title":""},
+    "tracking7ff6ab123410":{"status":"busy","title":"subject.fz"}
+  }
+}
+```
+
+- `application.status` is `"idle"`, `"busy"`, or `"waiting"` (a modal dialog, such as
+  `run_shell`'s confirmation prompt, is open somewhere in the application).
+- `current_window` is the session's own persistent target (the same value `set_window`
+  reports), independent of any other window's status.
+- `windows` lists every AI-addressable window (`main`, `tracking...`, `recon...`,
+  `image...`) plus any in-flight asynchronous `curlN` task, each with its own
+  `status` (`idle`/`busy`/`waiting`) and `title`.
+- `progress` reflects every currently active internal operation, outermost first,
+  regardless of which window (if any) it belongs to. Each entry's `status` is the
+  operation's name, `now`/`total` are its step counters, and `at` is a pre-formatted
+  `"(now/total) N min"` string with a remaining-time estimate once one is available.
+  An operation that never reports intermediate steps stays at `now:0, total:0` until
+  it finishes — `progress` reflects whatever granularity the running operation itself
+  reports, not a guarantee of step-level detail for every command. `progress` is an
+  empty array when nothing is running.
+- Poll `list_window` to watch a long-running command (`run_cli`, DICOM conversion,
+  NIfTI-to-SRC batches, etc.) without waiting for its final reply, the same way an
+  active `curlN` task is already tracked in `windows`.
+
 ## Window close versus GitHub-channel close
 
 These two operations use the word `close` but affect different things:
@@ -147,8 +185,9 @@ For each command in a request, the current dispatcher applies this order:
 Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fib`
 remain available even while a non-main window is selected. `run_cli` and `run_shell`
 do not act on the selected window: `run_cli` invokes its own internal CLI action
-logic, while `run_shell` performs only its restricted `cd`, `dir`, or `curl`
-operation. Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for their exact behavior.
+logic, while `run_shell` runs any shell command after local-user confirmation
+(`cd` alone needs no confirmation). Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for
+their exact behavior.
 
 The four shared window controls are different: they always act on the selected
 target before ordinary MainWindow-first routing begins.
