@@ -92,7 +92,7 @@ Studio:
 
 | Window | Purpose |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, main tools, restricted shell access, and Windows desktop speech |
+| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, main tools, confirmation-gated shell access, and Windows desktop speech |
 | `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
 | `image<hex-address>` | Standalone medical-image inspection and processing |
