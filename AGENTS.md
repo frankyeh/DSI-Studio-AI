@@ -233,6 +233,10 @@ bash ./dsi.sh open_image "C:/data/T1w.nii.gz"
 ordinary screenshots or pictures such as JPG, PNG, BMP, GIF, WEBP, TIF, or TIFF.
 Verify screenshot output through the filesystem or an external image viewer.
 
+`open_src`, `open_fib`, and `open_image` each create a data window. Close that window
+when the task no longer needs it, then select `main` or another valid window, to keep
+the workspace uncluttered.
+
 ### 4.2 Local dialogs are valid user input
 
 Parameterless main-window or reconstruction commands may open a local picker or
