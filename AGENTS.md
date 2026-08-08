@@ -425,6 +425,23 @@ contains `tracking window created, id: tracking...`, use that exact ID. A
 network-backed open may finish after the immediate reply; if no ID is returned, use
 `list_window` to discover the newly opened window.
 
+To learn what a tag's dataset actually is, read its GitHub release note first:
+
+```bash
+bash ./dsi.sh hub_show "<exact repository>" "<exact tag>"
+```
+
+To read a `.tsv` release file's content directly instead, without opening it as the
+release-note table in the Hub window, add the file:
+
+```bash
+bash ./dsi.sh hub_show "<exact repository>" "<exact tag>" "subjects.tsv"
+```
+
+Same row-index-or-exact-filename rule as `hub_open`. Either form's reply is the
+release note or the file's raw tab-separated text directly, not a status line;
+the file form fails if the resolved file does not end in `.tsv`.
+
 For downloads:
 
 ```bash
