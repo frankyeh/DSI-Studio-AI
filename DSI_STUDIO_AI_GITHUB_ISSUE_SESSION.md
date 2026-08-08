@@ -442,8 +442,10 @@ does not target the session's `set_window` selection. Wildcard looping and the
 action's own required options apply. `run_cli` normally remains active until the
 internal action returns.
 
-`run_shell` accepts only one `cd`, `dir`, or `curl` string. For asynchronous curl,
-initialize the log cursor on the start request:
+`run_shell` accepts one command string. `cd` runs immediately with no confirmation;
+every other command shows the local user a confirmation dialog before it runs, then
+`dir`-like commands run synchronously and `curl` runs asynchronously. For
+asynchronous curl, initialize the log cursor on the start request:
 
 ```json
 {
