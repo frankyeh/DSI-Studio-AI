@@ -178,6 +178,23 @@ registration is poor; DSI Studio warns when template registration correlation is
 low. Prefer a good-quality representative when applying one orientation convention
 to a whole acquisition group.
 
+## Isotropic resolution before reconstruction
+
+Isotropic voxel size is important for reliable fiber tracking. If an SRC/SZ has
+non-isotropic resolution, resample it to an appropriate isotropic resolution before
+reconstruction:
+
+```bash
+bash ./dsi.sh resample 2
+```
+
+The scalar parameter is the target voxel size in millimeters, so `resample 2`
+produces 2 mm isotropic sampling. Resampling should usually be one of the last
+preprocessing steps before `recon`. Keep the original DWI sampling while performing
+b-table checks and corrections that may depend on the original diffusion data or
+geometry, such as TOPUP/EDDY, motion correction, or distortion correction; then
+resample after those steps and before reconstruction.
+
 ## Post-correction quality control
 
 After `eddy`, `motion_correction`, or another correction, compare saved files with the
