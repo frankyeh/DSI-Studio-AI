@@ -61,6 +61,7 @@ only as parameters of the documented commands below.
 | `hub_tags` | `["hub_tags","<repo>"]` | List release tags for the exact repository returned by `hub_repo`. |
 | `hub_files` | `["hub_files","<repo>","",".*\\.fz$",0,20]` | Search files across every tag matching the case-insensitive tag regular expression. The filename filter is also a case-insensitive regular expression; empty tag or filename patterns match all. Offset and limit apply to the combined matches. |
 | `hub_open` | `["hub_open","<repo>","<exact-tag>",12]` | Download to temporary cache when needed and open one selected Hub file. The tag must be one exact tag; the file may be the returned row index or exact filename. |
+| `hub_show` | `["hub_show","<repo>","<exact-tag>"]` or `["hub_show","<repo>","<exact-tag>","subjects.tsv"]` | Without a file: return the tag's GitHub release note (explaining what the dataset is) directly in the response. With a file: download that `.tsv` release file and return its raw tab-separated content instead, rather than opening it as the release-note table in the Hub window. The tag must be one exact tag; the file may be the returned row index or exact filename; fails if a given file does not end in `.tsv`. |
 | `hub_download` | `["hub_download","<repo>","^HCP.*$","subject.fz","C:/data"]` | Download the exact filename, or a row index, from every tag matching the case-insensitive tag regular expression. Use an exact filename when matching multiple tags. |
 
 ## Multiple-file parameter format
@@ -170,6 +171,8 @@ may use their full documented argument lists:
 ["hub_tags","<repo>"]
 ["hub_files","<repo>","",".*\\.fz$",0,20]
 ["hub_open","<repo>","<exact-tag>",12]
+["hub_show","<repo>","<exact-tag>"]
+["hub_show","<repo>","<exact-tag>","subjects.tsv"]
 ["hub_download","<repo>","^HCP.*$","subject.fz","C:/data"]
 ```
 
@@ -184,6 +187,14 @@ may use their full documented argument lists:
   to return every remaining match; an explicit limit of `0` returns no rows.
 - `hub_open` requires one exact tag and accepts the exact filename or returned row
   index.
+- `hub_show <repo> <tag>` (no file) returns that tag's GitHub release note --
+  read this first to learn what a dataset actually contains before browsing or
+  downloading its files.
+- `hub_show <repo> <tag> <file>` requires one exact tag and accepts the exact
+  filename or returned row index, same as `hub_open`. Unlike every other `hub_`
+  command, its result is the downloaded file's raw tab-separated text, not a status
+  line -- read it directly instead of treating it as a log message. Fails if the
+  resolved file is not a `.tsv` release asset.
 - `hub_download` treats its tag parameter as a case-insensitive regular expression
   and attempts the requested file in every matching tag. Use the exact filename
   rather than a row index when matching multiple tags. A missing filename in one tag
