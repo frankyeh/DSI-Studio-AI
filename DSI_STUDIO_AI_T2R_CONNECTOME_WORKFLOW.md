@@ -127,7 +127,7 @@ auto-range for each scan. Derive an appropriate range from the data or from the
 user's requested convention rather than assuming `0-1` is universally appropriate.
 
 After the rendering state is correct, save the image with the tracking-window
-`s`ave-screen command documented in the rendering manual, for example:
+`save_screen` command documented in the rendering manual, for example:
 
 ```bash
 bash ./dsi.sh save_screen "C:/output/t2r.png"
