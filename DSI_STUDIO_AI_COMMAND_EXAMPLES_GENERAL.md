@@ -53,7 +53,7 @@ only as parameters of the documented commands below.
 | `save_qc_src` | `["save_qc_src","C:/report.txt","C:/data/a.sz"]` | Same as `save_qc_nii` for SRC/SZ files. |
 | `save_qc_fib` | `["save_qc_fib","C:/report.txt","C:/data/a.fz"]` | Same as `save_qc_nii` for FIB/FZ files. |
 | `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]` | Parse and execute one DSI Studio command-line string inside the running process. Missing `--action` defaults to `vis`; wildcard looping and each action's own requirements apply. |
-| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one shell command string. `cd` changes DSI Studio's process-wide current directory with no confirmation dialog; every other command shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
+| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one shell command string. `cd` changes this AI session's own current directory (remembered per chat, reapplied on later calls) with no confirmation dialog; every other command shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a new `view_image` window and select it. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
@@ -118,9 +118,11 @@ everything else is passed to the operating system shell after local user approva
 ```
 
 - Send the entire command as one command-array element.
-- `cd <path>` changes DSI Studio's process-wide current directory directly. The new
-  directory persists across later `run_shell`, `run_cli`, and relative-path calls.
-  Enclose a path containing spaces in one pair of double quotes.
+- `cd <path>` changes this AI session's own current directory. It is remembered per
+  chat and reapplied automatically before every later `run_shell`, `run_cli`, and
+  relative-path call in the same session -- a different chat's `cd` never affects
+  it, and it survives across separate requests in the same chat. Enclose a path
+  containing spaces in one pair of double quotes.
 - `cd` without a path reports the current directory. Do not use `cd /d`; the
   remaining text is interpreted as the path.
 - `cd` runs with no confirmation dialog and no external process. Every other
@@ -133,9 +135,12 @@ everything else is passed to the operating system shell after local user approva
   approved. On Windows it uses `cmd.exe /c` and waits without a timeout. Standard
   output is returned and standard error is logged. The external exit code is checked
   and a non-zero exit fails with `command exited with code <N>`.
-- `curl` runs asynchronously once approved. Its initial reply reports
-  `started curlN: ...`; this means the task was registered, not that the transfer
-  completed.
+- `curl` runs asynchronously once approved. DSI Studio always inserts ` -s -S`
+  right after `curl` before showing the confirmation dialog, so no need to include
+  them: `-s` suppresses curl's `\r`-redrawn progress meter (it would otherwise flood
+  the log, since there is no terminal to redraw a line in), `-S` still surfaces real
+  curl errors. Its initial reply reports `started curlN: curl -s -S ...`; this means
+  the task was registered, not that the transfer completed.
 - Initialize the session log cursor before the first asynchronous curl. With the
   launcher, call `log` once before `run_shell curl`; the first log may be empty. With
   ChatGPT (Web), send a prior `log` request or set `include_log:true` on the curl-start
@@ -144,7 +149,7 @@ everything else is passed to the operating system shell after local user approva
   Poll until the entry disappears, then call `log` again to retrieve output or errors.
 - There is currently no AI command for cancelling a `curlN` task, and no completion
   timeout.
-- Relative `dir` and `curl` paths use the persistent directory selected by `cd`.
+- Relative `dir` and `curl` paths use this session's own directory selected by `cd`.
 - Use `curl -o` or `curl -O` instead of output redirection.
 - `run_shell` does not accept DSI Studio `--action=...` command lines. Use `run_cli`
   for a DSI Studio CLI action.
