@@ -116,8 +116,8 @@ Both setters accept `name=value[&name=value...]`.
 | `swap_xy` | `bash ./dsi.sh swap_xy` | Swap image X/Y axes, voxel sizes, and matching b-vector components. |
 | `swap_yz` | `bash ./dsi.sh swap_yz` | Swap image Y/Z axes, voxel sizes, and matching b-vector components. |
 | `swap_xz` | `bash ./dsi.sh swap_xz` | Swap image X/Z axes, voxel sizes, and matching b-vector components. |
-| `check_btable` | `bash ./dsi.sh check_btable` | Check and correct b-table orientation using the primary implementation. |
-| `check_btable2` | `bash ./dsi.sh check_btable2` | Check and correct b-table orientation using the alternate implementation. |
+| `check_btable` | `bash ./dsi.sh check_btable` | Check b-table orientation against the current template when available; if template loading is unavailable it falls back to the no-template method. Applies the best detected b-vector permutation/flip when it improves the score. |
+| `check_btable2` | `bash ./dsi.sh check_btable2` | Check b-table orientation without a template. It temporarily reconstructs DTI internally, scores 24 axis permutation/flip candidates, and applies the best detected b-vector orientation when it improves the score. |
 | `flip_bx` | `bash ./dsi.sh flip_bx` | Flip only b-vector X. |
 | `flip_by` | `bash ./dsi.sh flip_by` | Flip only b-vector Y. |
 | `flip_bz` | `bash ./dsi.sh flip_bz` | Flip only b-vector Z. |
@@ -132,6 +132,51 @@ Both setters accept `name=value[&name=value...]`.
 | `correct_by_t2w` | `bash ./dsi.sh correct_by_t2w "C:/data/T2w.nii.gz"` | Correct distortion using a T2-weighted image. Omit the path for a local picker. |
 | `orientation_correction` | `bash ./dsi.sh orientation_correction` | Apply automatic volume-orientation correction. |
 | `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. |
+
+## Pre-reconstruction QC and b-table orientation
+
+Before reconstruction, run SRC/SZ QC on the acquisition group and review neighboring
+DWI correlation (NDC), masked NDC, DWI contrast, bad slices, and the outlier flag:
+
+```bash
+bash ./dsi.sh show_qc_src "scan1.sz" "scan2.sz" "scan3.sz"
+```
+
+Use QC to identify poor acquisitions before choosing data for b-table orientation
+checking. The automatic `outlier` flag is based on masked NDC; inspect DWI contrast
+separately for unusually poor values. A low-SNR or artifact-heavy SRC can make
+b-table inference unreliable.
+
+For acquisitions expected to share the same b-table orientation convention, choose
+one representative `.sz` with good NDC, good signal/contrast, and no major QC
+problem, then run the no-template check:
+
+```bash
+bash ./dsi.sh open_src "good_representative.sz"
+bash ./dsi.sh check_btable2
+```
+
+`check_btable2` reconstructs DTI internally and compares 24 b-vector axis
+permutation/flip candidates; a separate `recon` is not required. If it reports a
+b-vector flip or swap, apply the identical **b-table-only** transformation to all
+acquisitions in the same group using `flip_bx`, `flip_by`, `flip_bz`, `swap_bxby`,
+`swap_bybz`, and/or `swap_bxbz` as appropriate. This assumes the scanner/export
+pipeline used the same b-table orientation convention consistently across that group.
+Do not infer group-wide orientation from a poor-SNR outlier.
+
+As an alternative, CLI QC can check every `.sz` independently against a selected
+template:
+
+```bash
+bash ./dsi.sh run_cli "--action=qc --source=C:/data/group/*.sz --check_btable=1 --template=<template> --output=C:/data/group/qc.tsv"
+```
+
+For `--action=qc`, `--check_btable=1` enables b-table checking for each matched SRC;
+providing `--template` uses template-based checking, while omitting `--template`
+uses the no-template method. Template-based checking can also be unreliable when
+registration is poor; DSI Studio warns when template registration correlation is
+low. Prefer a good-quality representative when applying one orientation convention
+to a whole acquisition group.
 
 ## Post-correction quality control
 
