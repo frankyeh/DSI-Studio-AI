@@ -421,7 +421,7 @@ close a DSI Studio data window, DSI Studio itself, or the GitHub issue.
 
 Never substitute one form for the other.
 
-### Internal CLI and restricted shell commands
+### Internal CLI and confirmation-gated shell commands
 
 `run_cli` executes one DSI Studio command-line action inside the running DSI Studio
 process. Put the complete command line in one string:
