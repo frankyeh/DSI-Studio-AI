@@ -201,9 +201,11 @@ dsi_studio --action=db --source=<group>.dz --match=consecutive \
   `--filter_type` (`.dif.dz`, `.pos_dif.dz`, or `.neg_dif.dz`), mirroring the
   GUI's "Save DB as" default naming.
 
-The resulting database has `is_longitudinal` set and cannot be re-differenced
-(`--match` again on it fails). Feed it to `--action=cnt` as `--source`.
-`--voi=longitudinal` (equivalently `Intercept`) tests whether a change
+The resulting database is marked with one of three longitudinal kinds
+(matching `--filter_type` 0/1/2: unfiltered, increase-only, or decrease-only)
+and cannot be re-differenced (`--match` again on it fails). Feed it to
+`--action=cnt` as `--source`; `get_demo` (section 2 below) reports which kind
+is currently loaded. `--voi=longitudinal` (equivalently `Intercept`) tests whether a change
 exists at all, pooling every subject in the (possibly cohort-filtered)
 database; `--voi=<a demographics column, e.g. group>` instead tests whether
 the *amount* of change differs between groups -- see 1.3.
