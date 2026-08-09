@@ -68,6 +68,183 @@ Example parameter change:
 bash ./dsi.sh set_params "fa_threshold=0.08&min_length=20"
 ```
 
+## Type 1 differential tractography: two longitudinal scans
+
+Use this workflow when the user asks for the first differential-tractography type,
+for example tracking a longitudinal FA decrease from a baseline scan to a follow-up
+scan.
+
+### Reconstruction space
+
+Prefer **GQI** for longitudinal differential tractography because it keeps the
+analysis in the subject/native diffusion space. QSDR is also supported, but QSDR is
+standard/template-space reconstruction and should not be substituted for native-space
+GQI unless the user wants standard-space analysis.
+
+For GQI, open the **baseline** `.gqi.fz` as the tracking FIB. Its built-in scalar
+metrics, such as `dti_fa`, are already available in that FIB. Do **not** export the
+baseline metric to NIfTI and add it back as another slice.
+
+Only the follow-up metric needs to be supplied as a custom slice. If it has not
+already been exported, open the follow-up GQI FIB, discover the exact metric name
+with `list_slice`, and export that metric in its own subject space:
+
+```bash
+bash ./dsi.sh open_fib "<followup.gqi.fz>"
+bash ./dsi.sh list_slice
+bash ./dsi.sh save_slice_image "<followup_dti_fa.nii.gz>" "dti_fa"
+```
+
+Then open or return to the baseline GQI FIB and add only the follow-up scalar map:
+
+```bash
+bash ./dsi.sh open_fib "<baseline.gqi.fz>"
+bash ./dsi.sh add_slice "<followup_dti_fa.nii.gz>"
+bash ./dsi.sh list_slice
+```
+
+`add_slice` performs the rigid-body alignment needed to bring the follow-up slice
+into the opened GQI diffusion space. Even when the two images have identical matrix
+size and voxel size, DSI Studio may still run rigid-body registration. Poll
+`list_slice` and do not configure differential tracking until the follow-up row
+reports `ready` rather than `registering`.
+
+### Type 1 definition and direction
+
+In the DSI Studio UI, **Type 1** is the first differential formula:
+
+```text
+(m1 - m2) / m1
+```
+
+where `m1` is the baseline metric and `m2` is the follow-up metric. Positive values
+therefore indicate a decrease from baseline to follow-up. For example, with
+`dt_threshold=0.2`, tracking requires a decrease greater than 20% at the differential
+termination criterion.
+
+The internal parameter is zero-based: **Type 1 corresponds to
+`dt_threshold_type=0`, not `1`**. The current source orders the formulas as:
+
+```text
+0  (m1-m2)/m1
+1  (m1-m2)/m2
+2  m1-m2
+3  (m2-m1)/m1
+4  (m2-m1)/m2
+5  m2-m1
+6  m1/max(m1)
+7  m2/max(m2)
+```
+
+Do not reverse `m1` and `m2` when the requested result is a longitudinal decrease.
+The streamline directions come from the opened baseline FIB; the differential metric
+acts as an additional tracking termination criterion.
+
+### Discover differential indices before setting them
+
+There are two supported ways to configure the differential metric. The safer default
+for an agent is `list_param` plus `set_param` because the dropdown indices are
+runtime-dependent.
+
+First query the exact options:
+
+```bash
+bash ./dsi.sh list_param dt_index1
+bash ./dsi.sh list_param dt_index2
+```
+
+The returned differential indices are **not the same thing as `list_slice` row
+indices**. The differential dropdown can contain synthetic entries such as `zero`
+and `one`, built-in metrics, and eligible custom slices, so never copy a
+`list_slice` index into `dt_index1` or `dt_index2` without checking `list_param`.
+
+For example, a baseline GQI window may report:
+
+```text
+options: 0=zero, 1=one, 2=qa, 3=qir, 4=dti_fa, ..., 8=followup_dti_fa
+```
+
+Then configure Type 1 as:
+
+```bash
+bash ./dsi.sh set_param dt_index1 4
+bash ./dsi.sh set_param dt_index2 8
+bash ./dsi.sh set_param dt_threshold_type 0
+bash ./dsi.sh set_param dt_threshold 0.2
+```
+
+Always use the indices returned by the current window rather than assuming `4` or
+`8` will be correct for another subject or another set of loaded slices.
+
+### Exact-name alternative: `set_dt_index`
+
+The second supported route is `set_dt_index`, which avoids dropdown-index lookup but
+requires the metric names to match exactly:
+
+```bash
+bash ./dsi.sh set_dt_index "dti_fa&<exact-followup-slice-name>" 0
+```
+
+The first name is `m1`, the second is `m2`, and the final number is the zero-based
+differential type. For Type 1, use `0`. Use `list_slice` and/or `list_param` to obtain
+the exact displayed names; do not guess abbreviated names.
+
+A successful Type 1 setup should report a differential expression equivalent to:
+
+```text
+dt metrics:(dti_fa-<followup>)/dti_fa
+```
+
+Either configuration route is valid. Do not mix up an exact slice name with a
+runtime dropdown index.
+
+### Run and verify the differential tractography
+
+Before tracking, verify the current settings:
+
+```bash
+bash ./dsi.sh list_param tracking
+bash ./dsi.sh list_param dt_index1
+bash ./dsi.sh list_param dt_index2
+```
+
+Then run tracking and wait for completion:
+
+```bash
+bash ./dsi.sh run_tracking "<descriptive differential bundle name>"
+bash ./dsi.sh list_tract status
+bash ./dsi.sh list_tract
+```
+
+Inspect the operation output and confirm the intended `dt_threshold` and differential
+formula. For a 20% baseline-normalized decrease, the formula must be
+`(baseline-followup)/baseline` and `dt_threshold` must be `0.2`.
+
+Save the finished bundle with a filename that records the reconstruction space,
+metric, direction, and threshold so it cannot be confused with a QSDR or increase
+analysis:
+
+```bash
+bash ./dsi.sh save_tract "<subject>_GQI_dtiFA_decrease20.tt.gz" <bundle-index>
+```
+
+Record at minimum the baseline FIB, follow-up metric source, reconstruction method,
+registration status, `m1`, `m2`, differential type, threshold, tracking parameters,
+tract count, seed count, and saved tract path.
+
+### Common errors
+
+| Error | Correct response |
+|---|---|
+| Exporting both baseline and follow-up FA | Open baseline GQI FIB and add only the follow-up FA; baseline `dti_fa` is already inside the FIB |
+| Using QSDR by default | Prefer GQI for native-space longitudinal analysis; use QSDR only when standard space is intended |
+| Assuming same dimensions mean no registration | `add_slice` can still run rigid-body registration; wait for `ready` |
+| Using `list_slice` row numbers as `dt_index` values | Query `list_param dt_index1`/`dt_index2`; the index spaces differ |
+| Setting Type 1 with `dt_threshold_type=1` | Type 1 is the first UI formula and uses zero-based internal value `0` |
+| Reversing baseline and follow-up | For decrease tracking use `m1=baseline`, `m2=follow-up` |
+| Guessing names with `set_dt_index` | Use exact names returned by DSI Studio |
+| Starting tracking while the follow-up slice is registering | Poll `list_slice` until the slice status is `ready` |
+
 ## Build regions from anatomy
 
 Prefer anatomical segmentation over drawing regions from scratch:
