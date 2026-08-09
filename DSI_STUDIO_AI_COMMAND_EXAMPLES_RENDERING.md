@@ -114,7 +114,7 @@ These parameter IDs come from the embedded `:/data/options.txt` resource used by
 ["set_params","tract_alpha=0.5&show_tract=1"]
 ```
 
-Send numeric values as JSON numbers with `set_param`. `set_params` keeps its combined assignment expression as one string. Enum values are zero-based indices. A bare `int` resource type is a `0–10` slider; ranged integer and float entries show their exact minimum, maximum, and step below. Colors use packed Qt RGB/ARGB integers. The options shown for metric and color-map lists are resource defaults and may be replaced for the loaded data.
+Send numeric values as JSON numbers with `set_param`. `set_params` keeps its combined assignment expression as one string. Enum values are zero-based indices. A bare `int` resource type is a `0–10` slider; ranged integer and float entries show their exact minimum, maximum, and step below. Colors use packed Qt RGB/ARGB integers. The enum options listed below for metric/color-map/style parameters are resource *defaults* and may not match what's actually loaded — for a dropdown-type parameter, `["list_param","<id>"]` on a single parameter (not a domain/`"all"` listing) also prints a second `options: 0=<text>, 1=<text>, ...` line built live from the actual dropdown, since some lists (e.g. `tract_color_metrics`) are repopulated at runtime from the loaded data. Always check that line rather than assuming the table below when the exact index-to-label mapping matters.
 
 ### Object visibility
 
