@@ -56,7 +56,7 @@ an `&`-separated list as a string.
 | `move_down_region` | `["move_down_region",3]` | Move one region down in table order. |
 | `move_region` | `["move_region","80 100 80",3]` | Move region 3 so its center is at the specified location in that region's space. Empty regions return success without moving. |
 | `move_slice_to_region` | `["move_slice_to_region",3]` | Move slice crosshairs to a region center. |
-| `show_region_statistics` | `["show_region_statistics"]` | Compute statistics for checked regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
+| `show_region_statistics` | `["show_region_statistics"]` | Compute statistics for checked regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. If the opened FIB is a connectometry database, it also adds one `<subject> mean_<metric>` row per subject per stored metric within the checked region, without needing a full correlational-tractography run — see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`. |
 | `save_region_statistics` | `["save_region_statistics","C:/output/region_stat.txt"]` | Same statistics as `show_region_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_region_statistics` with no path fails with a usage error. |
 | `show_t2r` | `["show_t2r"]` | Compute tract-to-region connectivity for checked tracts and regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
 | `save_t2r` | `["save_t2r","C:/output/tract_to_region.txt"]` | Same as `show_t2r`, but always written to the given path, for any caller. The path is required. |
