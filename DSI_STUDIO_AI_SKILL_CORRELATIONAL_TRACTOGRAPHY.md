@@ -174,9 +174,11 @@ assuming a fixed layout across studies.
 
 ### 3. Select the cohort
 
-An optional filter narrows which subjects are included, via `--select` (CLI)
-or the `select_cohort`/`apply_selection`/`show_cohort` session commands
-(GUI). The clause syntax is comma-separated `name<op>value` terms, where
+An optional filter narrows which subjects are included. Use `--select` in the CLI.
+In a `connectometry<hex>` session, set the `select_text` parameter directly or use
+`apply_selection` to append a clause, then call `show_cohort` to apply and inspect the
+selection. (`select_cohort` is an internal model operation, not a session command.)
+The clause syntax is comma-separated `name<op>value` terms, where
 `<op>` is one of `=` (equal), `>` (greater), `<` (less), or `/` (not equal —
 shown as "≠" in the GUI but sent as the literal `/` character):
 
