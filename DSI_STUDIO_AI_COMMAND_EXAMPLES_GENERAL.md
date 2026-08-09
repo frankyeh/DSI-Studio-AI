@@ -62,7 +62,7 @@ only as parameters of the documented commands below.
 | `hub_files` | `["hub_files","<repo>","",".*\\.fz$",0,20]` | Search files across every tag matching the case-insensitive tag regular expression. The filename filter is also a case-insensitive regular expression; empty tag or filename patterns match all. Offset and limit apply to the combined matches. |
 | `hub_open` | `["hub_open","<repo>","<exact-tag>",12]` | Download to temporary cache when needed and open one selected Hub file. The tag must be one exact tag; the file may be the returned row index or exact filename. |
 | `hub_show` | `["hub_show","<repo>","<exact-tag>"]` or `["hub_show","<repo>","<exact-tag>","subjects.tsv"]` | Without a file: return the tag's GitHub release note (explaining what the dataset is) directly in the response. With a file: download that `.tsv` release file and return its raw tab-separated content instead, rather than opening it as the release-note table in the Hub window. The tag must be one exact tag; the file may be the returned row index or exact filename; fails if a given file does not end in `.tsv`. |
-| `hub_download` | `["hub_download","<repo>","^HCP.*$","subject.fz","C:/data"]` | Download the exact filename, or a row index, from every tag matching the case-insensitive tag regular expression. Use an exact filename when matching multiple tags. |
+| `hub_download` | `["hub_download","<repo>","^HCP.*$","*.qsdr.fz","C:/data"]` | Download every file matching the wildcard pattern (`*`, `?`, `[...]`) in every tag matching the case-insensitive tag regular expression, so one call can fetch many files across many tags/subjects at once. |
 
 ## Multiple-file parameter format
 
@@ -173,7 +173,7 @@ may use their full documented argument lists:
 ["hub_open","<repo>","<exact-tag>",12]
 ["hub_show","<repo>","<exact-tag>"]
 ["hub_show","<repo>","<exact-tag>","subjects.tsv"]
-["hub_download","<repo>","^HCP.*$","subject.fz","C:/data"]
+["hub_download","<repo>","^HCP.*$","*.qsdr.fz","C:/data"]
 ```
 
 - Use the exact `owner/repository` string returned by `hub_repo`.
@@ -196,9 +196,12 @@ may use their full documented argument lists:
   line -- read it directly instead of treating it as a log message. Fails if the
   resolved file is not a `.tsv` release asset.
 - `hub_download` treats its tag parameter as a case-insensitive regular expression
-  and attempts the requested file in every matching tag. Use the exact filename
-  rather than a row index when matching multiple tags. A missing filename in one tag
-  is reported as `skip`; the command succeeds when at least one matching download is
+  and its file parameter as a wildcard pattern (`*`, `?`, `[...]`, e.g. `*.qsdr.fz`
+  or `*.gqi.fz`), matching every file in every matching tag -- one call can download
+  many files across many tags at once. A plain exact filename still matches only
+  that one file, since the wildcard is anchored to the full name (not a row index;
+  row indices only work for `hub_open`/`hub_show`). A tag with no matching file is
+  reported as `skip`; the command succeeds when at least one matching download is
   started.
 - Send offset, limit, and returned row indices as JSON numbers.
 - `hub_download` requires its documented destination-directory parameter and creates
