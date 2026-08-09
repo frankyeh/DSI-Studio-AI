@@ -17,20 +17,26 @@ comparison, use differential tractography instead; connectometry with
 age/sex-matching is no longer the preferred way to approximate a longitudinal
 comparison.
 
-## Availability: use the CLI batch action today
+## Availability: reachable as a `connectometry<hex>` window
 
 `group_connectometry` (the Correlational Tractography dialog) implements its
 own internal `command()` dispatcher (`open_mr_files`, `run`, `show_result`,
 `load_roi_from_atlas`, `clear_all_roi`, `load_roi_from_file`, `show_cohort`,
-`apply_selection`, `list_param`, `set_param`, `set_params`), but as of this
-writing that window is **not yet reachable through the `bash ./dsi.sh`
-named-pipe dispatcher** the way `tracking<hex>`/`recon<hex>` windows are —
-there is no `set_window`-addressable ID for it yet. Opening it from the main
-window (`create_db`, `open_db`, `open_connectometry`) works, but no follow-up
-session command can currently reach it.
+`apply_selection`, `list_param`, `set_param`, `set_params`), and is wired
+into the `bash ./dsi.sh` named-pipe dispatcher the same way
+`tracking<hex>`/`recon<hex>` windows are. Opening it from the main window
+(`open_connectometry`) registers it and assigns it an ID of the form
+`connectometry<hex>`, discoverable via `list_window` and addressable with
+`set_window` or by forwarding commands directly to that window ID.
 
-Until that wiring exists, run correlational tractography through the CLI
-batch action instead:
+Because `run` starts the permutation test asynchronously (polled to
+completion via an internal timer), `list_window` reports the window as
+`busy` for the whole duration of the run, not just for the instant the
+`run` command itself was dispatched — poll `list_window` and wait for
+`idle` before issuing `show_result` or another command to the same window.
+
+The CLI batch action remains available as a scriptable, headless
+alternative that does not require an open GUI session:
 
 ```bash
 dsi_studio --action=cnt --source=<database> --demo=<covariates> \
@@ -224,7 +230,7 @@ HTML report alongside the tract files.
 | FDR looks arbitrary/unstable | `fdr_threshold=0` uses a fixed length instead of an FDR criterion — set an explicit `fdr_threshold` if a controlled FDR is required |
 | Database load fails | Subjects not all reconstructed in the same template space, or `.dz` built from mismatched index sets |
 | Region/tract statistics show only one database metric | Both `show_region_statistics` and `show_tract_statistics` should iterate every stored database metric; a single-metric result indicates a build that predates this fix |
-| Trying to send a follow-up session command to the connectometry window | Not yet wired to `bash ./dsi.sh`; use the CLI batch action instead |
+| Follow-up command to the connectometry window seems ignored or errors | Confirm the window ID via `list_window` (`connectometry<hex>`) and that its status is `idle`, not `busy`, before sending the next command |
 
 ## Example Commands
 
