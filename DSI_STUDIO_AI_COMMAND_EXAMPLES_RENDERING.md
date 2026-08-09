@@ -99,6 +99,7 @@ an actual image is preferable to reading the text form.
 - Surface appearance and visibility are controlled through `set_param` using `surface_*` and `show_surface`; there are no `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`, `set_surface_alpha`, or `set_surface_visible` command handlers.
 - `set_device_color` has no command handler; use the device table UI for device color.
 - Default to `save_lr_screen` when saving a 3D rendering to illustrate anatomy, tract shape, or a tract/region overlay. Use plain `save_screen` only when the user explicitly asks for a single screenshot.
+- `rotate_view`'s left/right/up/down-to-axis-sign mapping is a reasonable but not empirically re-verified choice; if a rotation visibly goes the wrong way, re-check with `preview_screen,3d` after a small-angle test call before doing a larger rotation.
 - `preview_screen` fails if `command[1]` is missing or not exactly `"roi"`/`"3d"`, and fails a zoom request (`command[2]` given) for a channel that has no prior non-zoom capture cached yet.
 - `preview_screen` is for the agent to inspect the scene inline via text; use `save_lr_screen`/`save_roi_screen` when the user wants an actual image file.
 
