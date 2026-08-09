@@ -150,8 +150,10 @@ assume a timeout means the earlier operation stopped.
   asynchronous `run` (permutation test), not just for the instant the command
   was dispatched. For percent-complete during a long run, use that window's
   own `progress` session command (`not_started`, or
-  `<running|finished>\t<percent>`) rather than `list_window`, which only
-  ever reports coarse `idle`/`busy`/`waiting`. See
+  `<running|finished|stopped>\t<percent>` -- `stopped` covers both this
+  session's own `stop` command and a local user's own Stop click) rather
+  than `list_window`, which only ever reports coarse `idle`/`busy`/
+  `waiting`. See
   `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md` for details, including
   that an AI-initiated run suppresses the local completion popup.
 - `progress` reflects every currently active internal operation, outermost first,
