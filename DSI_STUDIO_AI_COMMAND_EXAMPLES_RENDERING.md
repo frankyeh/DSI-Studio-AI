@@ -16,10 +16,11 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | Command | Common example | Important behavior |
 |---|---|---|
 | `rotate` | `["rotate","15 1 0 0"]` | Rotate the 3D view by degrees around axis `x y z`. |
+| `rotate_view` | `["rotate_view","left",15]` | Rotate the 3D view by a `command[2]` angle in degrees toward `command[1]`: `"left"`/`"right"` yaw around the vertical axis, `"up"`/`"down"` pitch around the horizontal axis. A friendlier alternative to `rotate` when the exact axis vector doesn't matter. |
 | `set_view` | `["set_view",0]` | Reset to numeric view `0`, `1`, or `2`; repeated calls toggle the corresponding 180-degree flipped view. |
 | `set_zoom` | `["set_zoom",1.5]` | Set the absolute camera zoom derived from the transformation-matrix determinant; zero is rejected. |
 | `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera transformation with the first 16 supplied floats. |
-| `get_camera` | `["get_camera"]` | Print the current 16-float camera transformation to the log as `camera: <16 floats>`, for reading the camera location without writing a file. |
+| `get_camera` | `["get_camera"]` | Print the camera as `view_direction: x y z (looking toward <LPS label>, viewed from <LPS label>)` and `view_position (voxel): x y z` — an anatomically meaningful read of the raw transformation matrix (see below), not the raw 16 floats. Use `save_camera` for the raw, round-trippable matrix. |
 | `preview_screen` | `["preview_screen","3d"]` | **Recommended way for an agent to "see" the window without saving/opening an image file.** `command[1]` selects the view: `"3d"` for the OpenGL scene or `"roi"` for the 2D ROI/slice scene. Prints a digit-grid text rendering plus summary stats directly to the log — no file needs to be opened. See "Reading `preview_screen` output" below. |
 | `open_camera` | `["open_camera","C:/work/camera.txt"]` | Load at least 16 camera-matrix floats from a text file. |
 | `save_camera` | `["save_camera","C:/work/camera.txt"]` | Save the current 16-float transformation matrix. |
@@ -55,17 +56,23 @@ empty first to establish the cache for the channel you want to zoom into.
 
 There is no channel argument — channels are picked automatically from what is currently visible:
 
-- `["preview_screen","3d"]` prints `camera: <16 floats>` (same as `get_camera`), then one block per
-  enabled `show_slice`/`show_region`/`show_tract`/`show_surface` toggle, each captured in isolation
-  (the other three temporarily hidden for that one capture).
+- `["preview_screen","3d"]` prints the same `view_direction`/`view_position` lines as `get_camera`,
+  then one block per enabled `show_slice`/`show_region`/`show_tract`/`show_surface` toggle, each
+  captured in isolation (the other three temporarily hidden for that one capture).
 - `["preview_screen","roi"]` prints `R_side=left` or `R_side=right` (which side of the image the
   anatomical right is on, from `orientation_convention` — the same side the 2D view's own "R" label
-  is drawn on), then a `slice` block (always present), a `region` block, and a `tract` block. The
-  latter two are read from the 2D scene's own cached region/tract layers and only appear when that
-  layer is both enabled (a region checked / "Show Tracts" toolbutton on) and actually non-empty for
-  the current slice position — e.g. a checked region that doesn't intersect this slice produces no
-  `region` block. This is only accurate for the single-slice ROI layout; in 3-view/mosaic layout it
-  falls back to a full per-channel re-render gated on the toolbutton/checked-region state alone.
+  is drawn on), then `slice_info: <modality name> <sagittal|coronal|axial> <position>/<total>` (e.g.
+  `slice_info: qa axial 41/80`, matching the currently selected row in the Slice Modality box, which
+  of the three orientations is active, and the 1-based position among all slices along that axis),
+  then a `slice` block (the plain anatomy, always present), a `region` block, and a
+  `tract` block. The latter two show *only* that layer's own content (transparent background, so it
+  reads as black) rather than composited onto the anatomy — a small region blob or thin tract line
+  would otherwise be swamped by the much larger, dominant brain-shape luminance pattern in a coarse
+  digit grid and be unreadable. They only appear when that layer is both enabled (a region checked /
+  "Show Tracts" toolbutton on) and actually non-empty for the current slice position — e.g. a checked
+  region that doesn't intersect this slice produces no `region` block. This is only accurate for the
+  single-slice ROI layout; in 3-view/mosaic layout it falls back to a full per-channel re-render
+  (composited, like the live view) gated on the toolbutton/checked-region state alone.
 
 Each channel block is:
 
