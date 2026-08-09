@@ -109,16 +109,12 @@ available for recovery.
 
 ## Busy-window behavior
 
-The dispatcher resolves and temporarily locks the selected target for these
-commands. If another AI command currently has a supported window locked, the control
-request can fail with:
+Shared `bring_to_front`, `minimize`, `maximize`, and `close` use a direct window
+lookup and do not acquire the ordinary command busy lock. They can therefore act on
+the selected window even while another operation reports that window as `busy`.
 
-```text
-another CMD is running; check opened windows
-```
-
-Inspect `list_window` and retry only after the active command is finished. Do not
-assume a timeout means the earlier operation stopped.
+Use `list_window` to inspect state before a destructive `close`; a busy status does
+not imply that the shared control will be rejected.
 
 ## `list_window` response shape
 
