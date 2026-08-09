@@ -20,7 +20,7 @@ only as parameters of the documented commands below.
 |---|---|---|
 | `list_recent_fib` | `["list_recent_fib"]` | List saved recent FIB/FZ paths using forward slashes. Takes no arguments. |
 | `list_recent_src` | `["list_recent_src"]` | List saved recent SRC/SZ paths using forward slashes. Takes no arguments. |
-| `reset_settings` | `["reset_settings"]` | Clear all application settings, synchronize them, and show a confirmation message. Takes no arguments. |
+| `reset_settings` | `["reset_settings"]` | Clear all application settings and synchronize them. Takes no arguments. |
 | `set_work_dir` | `["set_work_dir","C:/work"]` | Add the supplied directory to the work-directory list. Without a parameter, open a directory picker. |
 | `rename_dicom` | `["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Rename one or more DICOM files in their current parent directories. Each file is a separate command element. Without file parameters, open a file picker. |
 | `rename_dicom_dir` | `["rename_dicom_dir","C:/dicom"]` | Rename DICOM files recursively at the supplied directory. Without a parameter, open a directory picker. |
@@ -132,10 +132,11 @@ everything else is passed to the operating system shell after local user approva
   restriction anymore, the dialog is the only gate. `run_shell` therefore cannot
   complete unattended with nobody present to approve it, and a batched command array
   containing `run_shell` pauses at that dialog before continuing.
-- `dir` (and any other approved, non-`curl` command) runs synchronously once
-  approved. On Windows it uses `cmd.exe /c` and waits without a timeout. Standard
-  output is returned and standard error is logged. The external exit code is checked
-  and a non-zero exit fails with `command exited with code <N>`.
+- Approved non-`curl` commands run synchronously with a 10-minute maximum wait; a
+  timeout kills the process and fails the command. On Windows they use `cmd.exe /c`;
+  on Unix they use `/bin/sh -c`. Standard output is returned and standard error is
+  logged. The external exit code is checked and a non-zero exit fails with
+  `command exited with code <N>`.
 - `curl` runs asynchronously once approved. DSI Studio always inserts ` -s -S`
   right after `curl` before showing the confirmation dialog, so no need to include
   them: `-s` suppresses curl's `\r`-redrawn progress meter (it would otherwise flood
