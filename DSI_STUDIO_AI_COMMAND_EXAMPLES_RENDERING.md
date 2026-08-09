@@ -28,7 +28,8 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `restore_camera1` | `["restore_camera1"]` | Restore camera slot 1. |
 | `restore_camera2` | `["restore_camera2"]` | Restore camera slot 2. |
 | `set_stereoscopic` | `["set_stereoscopic"]` | Switch the OpenGL widget to stereoscopic view mode. |
-| `save_screen` | `["save_screen","C:/output/tracts.png"]` | Save the current 3D rendering. |
+| `save_screen` | `["save_screen","C:/output/tracts.png"]` | Save the current 3D rendering as a single view. Use this only when the user explicitly wants a plain screenshot; otherwise prefer `save_lr_screen` (see below). |
+| `save_lr_screen` | `["save_lr_screen","C:/output/tracts_lr.png"]` | **Recommended default for saving a 3D rendering.** Saves the same left/right stereo-pair view as the "Copy to Clipboard -> 3D Screen Left/Right Views" menu action, giving two angles of the same scene in one image so spatial/anatomical relationships (tract shape, parcel-tract overlap, bilateral structures) are legible without a live 3D session. Same filename/dialog behavior as `save_screen`. |
 | `save_hd_screen` | `["save_hd_screen","C:/output/tracts_hd.png","1920 1080"]` | Temporarily resize the GL widget, save at the supplied width and height, then restore its original size. |
 | `save_3view_screen` | `["save_3view_screen","C:/output/tracts_3view.png"]` | Save a 2×2 composite containing three 3D views and the current slice scene. |
 | `save_h3view_screen` | `["save_h3view_screen","C:/output/tracts_h3view.png"]` | Save four cropped directional views in a horizontal image. |
@@ -50,6 +51,7 @@ This file contains rendering, camera, surface, and display commands confirmed in
 - `save_rotation_video` has an early-return bug and should not be used until the unreachable encoding block is fixed.
 - Surface appearance and visibility are controlled through `set_param` using `surface_*` and `show_surface`; there are no `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`, `set_surface_alpha`, or `set_surface_visible` command handlers.
 - `get_camera` and `set_device_color` also have no command handlers. Use `save_camera` for retrieval and the device table UI for device color.
+- Default to `save_lr_screen` when saving a 3D rendering to illustrate anatomy, tract shape, or a tract/region overlay. Use plain `save_screen` only when the user explicitly asks for a single screenshot.
 
 ## Rendering parameter reference
 

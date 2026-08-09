@@ -106,8 +106,8 @@ values should color the parcels before saving the figure.
 ## 5. Region visibility must be enabled before saving a screenshot
 
 Loading atlas parcels into the Region table does not prove they are visible in the
-3D renderer. `save_screen` captures the rendered OpenGL scene; if Region Rendering
-is off, the PNG can contain the tract but no atlas parcels.
+3D renderer. `save_screen`/`save_lr_screen` capture the rendered OpenGL scene; if
+Region Rendering is off, the PNG can contain the tract but no atlas parcels.
 
 The root rendering flag `show_region` uses Qt check-state values. In the current
 implementation, a fully checked/visible state is `2` (`Qt::Checked`), not Boolean
@@ -127,10 +127,14 @@ auto-range for each scan. Derive an appropriate range from the data or from the
 user's requested convention rather than assuming `0-1` is universally appropriate.
 
 After the rendering state is correct, save the image with the tracking-window
-`save_screen` command documented in the rendering manual, for example:
+`save_lr_screen` command documented in the rendering manual. Prefer it over plain
+`save_screen` here: a T2R figure is meant to convey the spatial relationship between
+a tract and atlas parcels, and the left/right stereo-pair view makes that relationship
+legible from a single saved image. Use plain `save_screen` instead only if the user
+explicitly asked for a single-view screenshot.
 
 ```bash
-bash ./dsi.sh save_screen "C:/output/t2r.png"
+bash ./dsi.sh save_lr_screen "C:/output/t2r.png"
 ```
 
 If a screenshot is being judged visually, keep the tracking window open until the
@@ -192,7 +196,8 @@ For each cohort or subject:
 6. For a 3D plot, open one FIB, add the atlas, open/select the desired tract, enable
    Region Rendering, and select Region Color -> Metrics -> `current tract`.
 7. Verify parcel visibility and use a common color scale before saving the screenshot.
-8. Save the screenshot, then close the tracking window when it is no longer needed.
+8. Save the screenshot with `save_lr_screen` (plain `save_screen` only if the user asked
+   for a single view), then close the tracking window when it is no longer needed.
 9. Repeat one time point at a time to keep state and GitHub responses manageable.
 
 For bilateral reporting, remember that matrix generation may already have produced
