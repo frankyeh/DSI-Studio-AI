@@ -69,18 +69,17 @@ bash ./dsi.sh show_region_statistics
 ```
 
 When the opened FIB contains a connectometry database, `show_region_statistics`
-adds one row for every database subject in the form:
+adds one row for **every stored database metric, for every subject**, in the form:
 
 ```text
-<subject-name> mean_<current-database-metric>    <regional-mean>
+<subject-name> mean_<metric>    <regional-mean>
 ```
 
-The reported subject value is the mean of the **current database metric** within
-the selected region. It does not report every stored metric at once. Confirm the
-current database metric before interpreting the values, especially when the `.dz`
-contains several indices such as `qa`, `vol`, `dti_fa`, `rd`, `iso`, and `rdi`.
-For unattended output, use `save_region_statistics "<output.txt>"` instead of
-`show_region_statistics`.
+e.g. `<subject> mean_qa`, `<subject> mean_dti_fa`, `<subject> mean_iso`, one row
+each per subject when the `.dz` contains those indices. All metrics are reported
+together in one call; there is no need to change the database's current metric
+first, and doing so has no effect on this output. For unattended output, use
+`save_region_statistics "<output.txt>"` instead of `show_region_statistics`.
 
 This workflow was validated on an 18-scan SCA2 QSDR database. The tested atlas
 example was BrainSeg Cerebellum:
@@ -91,10 +90,11 @@ bash ./dsi.sh add_region_from_atlas "0 1 2"
 bash ./dsi.sh show_region_statistics
 ```
 
-The result returned the Cerebellum geometry and one `mean_qa` value for each of
-the 18 scans because `qa` was the database's current metric. This ROI-statistics
-workflow is useful for inspecting, exporting, or comparing regional measurements
-across all subjects without opening each subject FIB separately.
+The result returned the Cerebellum geometry and one `mean_<metric>` value for
+each of the 18 scans for every metric stored in the database (e.g. `qa`, in a
+single-index database). This ROI-statistics workflow is useful for inspecting,
+exporting, or comparing regional measurements across all subjects and all
+stored metrics at once, without opening each subject FIB separately.
 
 ### 2. Define the analysis
 
@@ -206,7 +206,6 @@ HTML report alongside the tract files.
 | Increase and decrease both empty | Cohort too small, effect too weak, or covariate list absorbing the true effect |
 | FDR looks arbitrary/unstable | `fdr_threshold=0` uses a fixed length instead of an FDR criterion — set an explicit `fdr_threshold` if a controlled FDR is required |
 | Database load fails | Subjects not all reconstructed in the same template space, or `.dz` built from mismatched index sets |
-| ROI statistics show only one database metric | `show_region_statistics` reports the current database metric for every subject; confirm or switch the current metric before interpreting the table |
 | Trying to send a follow-up session command to the connectometry window | Not yet wired to `bash ./dsi.sh`; use the CLI batch action instead |
 
 ## Example Commands
