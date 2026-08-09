@@ -12,7 +12,10 @@ target used by shared and later window-specific commands. Successful `open_src`,
 `open_fib`, `open_image`, and `open_connectometry` also replace it with the newly
 created window.
 
-Use an exact current ID whenever possible:
+`set_window` requires an exact current ID (or `main`) — there is no bare-type-plus-filename
+form. Get the exact ID from `list_window`, or from a successful `open_src`/`open_fib`/
+`open_image`/`open_connectometry` (which also becomes the new target automatically,
+without needing a follow-up `set_window` call):
 
 ```bash
 bash ./dsi.sh set_window tracking7ff6ab123410
@@ -33,10 +36,10 @@ Supported targets are:
 - `connectometry<hex-address>` (the Correlational Tractography dialog; see
   `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`).
 
-`set_window main`, or `set_window` without a parameter, returns to `main`.
-`set_window` also accepts a bare non-main type plus a distinctive filename, but an
-exact ID returned by `open_src`, `open_fib`, `open_image`, `open_connectometry`, or
-`list_window` is safer.
+`set_window main`, or `set_window` without a parameter, returns to `main`. Any other
+value must be an exact ID currently listed by `list_window`; an unrecognized value
+(including a bare type name like `tracking` with no hex address) fails with
+`set_window: window "<value>" not found, terminated by user?`.
 
 ## Shared controls
 
