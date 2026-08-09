@@ -10,12 +10,18 @@ NeuroImage 125 (2016): 162-171):
 group scalar-map database + demographics → permutation regression → increase/decrease pathways
 ```
 
-This is a cross-sectional, cohort-level correlation method. It answers "which
-pathways relate to this variable across subjects," not "did this pathway
-change over time in this subject." For a single subject's own before/after
-comparison, use differential tractography instead; connectometry with
-age/sex-matching is no longer the preferred way to approximate a longitudinal
-comparison.
+This is fundamentally a cross-sectional, cohort-level correlation method: it
+answers "which pathways relate to this variable across subjects," not "did
+this pathway change over time in this subject." For a single subject's own
+before/after comparison, use differential tractography instead (`DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md`)
+-- comparing two separately-recruited, age/sex-matched cross-sectional
+cohorts is not a reliable substitute for that either, since it compares
+different people rather than one subject's own change. For a genuine
+*group-level* longitudinal comparison ("did group A change more than group
+B"), connectometry does support this: build a database of matched per-subject
+scan-pair changes and test that (1.2/1.3 below) -- still a group-level
+analysis of how much subjects changed on average, not a single subject's own
+result.
 
 ## Availability: reachable as a `connectometry<hex>` window
 
@@ -460,6 +466,22 @@ after that.
   metric (`qa`, `rdi`, `nrdi*`) by the subject's isotropic diffusion map
   before regression; confirm this matches the intended analysis rather than
   leaving it at whatever the default happens to be for the chosen metric.
+- For a longitudinal group-comparison finding (1.3 phase 2), check the
+  **cross-sectional** baseline at that same location before concluding one
+  group is declining more. A location already lesioned in the affected group
+  can have a baseline metric near its floor there; further decline gets
+  capped by that floor (there is little left to lose), while the unaffected
+  group, starting higher, still has room for ordinary decline (e.g. aging).
+  The result reads as "more decline in the unaffected group at the lesion
+  site" — not because that group is deteriorating faster in any meaningful
+  sense, but because the affected group's baseline had already bottomed out
+  before this study began. Confirmed as a live example: an SCA2-vs-control
+  DTI_FA comparison found significantly more decline in CONTROL specifically
+  at locations that are SCA2's known lesion sites, alongside a separate,
+  independent significant finding of more decline in SCA2 elsewhere -- both
+  are real permutation-test results, but the first should be read against
+  SCA2's already-low cross-sectional baseline there, not taken at face value
+  as controls declining unusually fast.
 
 ### 8. Save and, if needed, visualize
 
@@ -484,6 +506,8 @@ HTML report alongside the tract files.
 | Follow-up command to the connectometry window seems ignored or errors | Confirm the window ID via `list_window` (`connectometry<hex>`) and that its status is `idle`, not `busy`, before sending the next command |
 | `set_voi` fails with "invalid variable" | Run `list_voi` first and use one of the exact `name` values (or its `index`), not a guessed demographics-file column name |
 | Result seems to ignore a covariate | `set_voi`'s variable list is a full replacement, not additive to whatever was selected before -- include every variable (covariates plus the variable of interest) in the same call |
+| `select_text`/cohort clause fails with "cannot parse selection text" for a categorical column | Same annotation gotcha as `set_voi` -- a categorical column's clause must use its full `list_voi`/`get_demo` name including the value encoding (e.g. `group(0=SCA2 1=CONTROL)=0`, not bare `group=0`) |
+| Report finding worded "less `<METRIC>` decline/increase in `<group>`" | This restates the other hypothesis's own finding ("more ... in the other group") rather than an independent result -- both hypotheses on a filtered-longitudinal categorical comparison must use the same comparative word ("more"), just naming different groups; if "less" appears, treat it as a regression of a known-fixed bug, not a real finding |
 
 ## Example Commands
 
@@ -515,7 +539,7 @@ covariates, cohort-filtered, with an explicit FDR criterion:
 ```bash
 dsi_studio --action=cnt --source=group.dz --demo=participants.tsv \
   --index_name=qa --variable_list=0,1,2 --voi=1 \
-  --select="age>18" --t_threshold=2.5 --fdr_threshold=0.05 \
+  --select="age>18" --effect_size=0.3 --fdr_threshold=0.05 \
   --tip_iteration=16 --output=age_correlation
 ```
 
@@ -529,7 +553,7 @@ bash ./dsi.sh list_voi
 bash ./dsi.sh set_voi 0 "0,1,2"
 bash ./dsi.sh set_param select_text "age>18"
 bash ./dsi.sh show_cohort
-bash ./dsi.sh set_params "threshold=2.5&fdr_control=1&fdr_threshold=0.05&tip=16"
+bash ./dsi.sh set_params "effect_size=0.3&fdr_control=1&fdr_threshold=0.05&tip=16"
 bash ./dsi.sh run
 ```
 
@@ -539,10 +563,11 @@ value encoding baked in (e.g. `group` shows as `group(0=SCA2 1=CONTROL)`),
 which is easy to mistype or mis-quote as a name -- confirmed live, a bare
 `"group"` fails with `invalid variable of interest: group`. Prefer the
 `index` column from `list_voi` for any categorical variable; a continuous
-variable's name is usually safe to use verbatim. The GUI parameter id is
-`threshold`, not the CLI's `--t_threshold` flag name -- `set_param`/
-`set_params` follow the ids `list_param` reports, not the CLI's flag names,
-and a few differ subtly.
+variable's name is usually safe to use verbatim. `effect_size` is set here
+rather than a fixed `threshold` (the GUI param id for `t_threshold` --
+`set_param`/`set_params` follow the ids `list_param` reports, not the CLI's
+flag names, and a few differ subtly), consistent with the preference for
+sample-size-independent effect size explained in step 4.
 
 `run` starts the permutation asynchronously; poll `progress` until it
 reports `finished`, then `get_result` (and/or `show_result` to visualize).
@@ -562,6 +587,10 @@ current GUI command history when reproducing an interactive workflow.
 Record:
 
 - database file, its subject list, template space, and stored scalar indices;
+- database kind (`get_demo`'s `database type:` line: cross-sectional, or
+  longitudinal unfiltered/increase-only/decrease-only), and for a
+  longitudinal database, the `--match`/`--dif_type`/`--filter_type` used to
+  build it;
 - demographics source and every feature column used;
 - variable of interest and full covariate (`variable_list`) set;
 - cohort-selection clause and resulting subject count;
