@@ -203,14 +203,16 @@ The current preferred direction is a direct control-average reference:
    averaging is invalid because the images are not aligned.
 4. The averaged output is therefore an MNI-space control reference.
 5. When the subject tracking FIB is **GQI/native space**, insert this control average
-   as an **MNI slice**, so DSI Studio maps it from MNI space into the subject.
+   as an **MNI slice** using `add_mni_slice`, so DSI Studio maps it from MNI space
+   into the subject's native diffusion space.
 6. When the tracking FIB is **QSDR/template space**, the same MNI-space average can
    be loaded as a regular slice because the tracking framework is already in the
    corresponding template space.
 
-The exact worked Type 3 command sequence should be verified in the live DSI Studio
-session before expanding this section further, especially the current `tmp` action
-syntax and MNI-slice command behavior.
+This Type 3 control-average workflow has been validated in a live DSI Studio session.
+After inserting the MNI control average into a GQI patient FIB, use `list_slice` and
+`list_param dt_index1`/`dt_index2` to verify the runtime names and dT indices before
+setting the differential comparison.
 
 ## 6. Type 4: cross-sectional comparison in template space
 
@@ -238,6 +240,22 @@ bash ./dsi.sh run_tracking "<descriptive differential bundle name>"
 bash ./dsi.sh list_tract status
 bash ./dsi.sh list_tract
 ```
+
+Pay special attention to TIP pruning in differential tractography. A large
+`tip_iteration` can remove too many differential trajectories. A practical approach
+is to set `tip_iteration=0` during tracking and then apply `trim_tract` afterward one
+round at a time, checking `list_tract` after each round. One or two trim rounds are
+often sufficient for review. Roughly 5,000-10,000 remaining tracts is usually a
+convenient range for evaluation and visualization, not a biological or statistical
+cutoff. If trimming becomes excessive, stop or use `undo_tract` rather than
+continuing a fixed number of rounds.
+
+When practical, consider showing a series of differential thresholds rather than only
+one selected threshold, for example 10%, 20%, 30%, and 40% decrease. This gives a
+more comprehensive view of how the mapped pathways persist or shrink as the required
+effect size increases and reduces dependence on a single visually favorable
+threshold. Treat this as a presentation and robustness check, not as a substitute for
+study-specific statistical analysis.
 
 Verify the operation output shows the intended `dt_threshold`, metric direction, and
 formula. Save results with filenames that encode analysis space, metric, direction,
@@ -273,4 +291,5 @@ Record at minimum:
 | Reversing metric direction | Explicitly define which image is `m1` and which is `m2` for the chosen formula |
 | Trusting Type 2 differences without checking normalization | Inspect both maps in template space; misregistration can mimic change |
 | Averaging native-space control NIfTI files voxelwise | Average only QSDR/MNI-aligned maps |
-| Loading an MNI control average as an ordinary native slice in GQI | Use an MNI-slice insertion/mapping command |
+| Loading an MNI control average as an ordinary native slice in GQI | Use `add_mni_slice` |
+| Using many TIP iterations by default for dT | Start with `tip_iteration=0` or very light pruning; use `trim_tract` incrementally and inspect tract/deleted counts |
