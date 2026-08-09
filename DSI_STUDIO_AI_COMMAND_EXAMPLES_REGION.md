@@ -23,7 +23,7 @@ an `&`-separated list as a string.
 |---|---|---|
 | `list_region` | `["list_region"]` | List region index, visibility, name, type, color, dimensions, and resolution. |
 | `list_atlas` | `["list_atlas"]` or `["list_atlas","<atlas name or index>"]` | Without an argument: list every atlas for the *current* template only (atlas index, name, region count). With an atlas name or the index from that listing: list that one atlas's region index and name. |
-| `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]` | Add labels 5 and 6 from atlas 2 of template 0. Use label IDs only when supplied by the user or another verified source; the current command interface cannot discover them. |
+| `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]` | Add labels 5 and 6 from atlas 2 of template 0. Discover label IDs first with `list_atlas "<atlas name or index>"`; do not guess them. |
 | `add_region_from_atlas` | `["add_region_from_atlas","0 2"]` | Add every label from atlas 2 of template 0. This form does not require individual label IDs. |
 | `set_region_name` | `["set_region_name",0,"Tumor Core"]` | Rename a region by index. |
 | `set_region_type` | `["set_region_type",0,3]` | Set region role: `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, `6=Limiting`. |
@@ -101,8 +101,9 @@ an `&`-separated list as a string.
 - The two-element `add_region_from_atlas` form adds all labels in one call and
   needs no prior label discovery.
 - Confirm deletion, merging, overwrite, and mask-replacement operations.
-- Modal `show_*` commands block for user interaction; prefer the corresponding
-  `save_*` command for unattended work.
+- For AI callers, `show_*` statistics commands return text directly; local GUI users
+  may see a modal dialog. Use the corresponding `save_*` command when a persistent
+  output file is needed.
 - `add_region_from_atlas` changes the active template ID before adding labels.
 
 ## Region Window parameter reference
