@@ -18,7 +18,7 @@ window.
 
 `bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
 window controls, not reconstruction-window operations. Read
-`DSI_STUDIO_AI_WINDOW_COMMANDS.md` for their authoritative behavior. In particular,
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for their authoritative behavior. In particular,
 after closing this window, select `main` or another valid current window ID because
 the session retains the closed `recon...` ID.
 
