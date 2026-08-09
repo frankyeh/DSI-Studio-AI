@@ -257,6 +257,20 @@ effect size increases and reduces dependence on a single visually favorable
 threshold. Treat this as a presentation and robustness check, not as a substitute for
 study-specific statistical analysis.
 
+For a cohort study, FDR cannot be estimated from one subject or from an incomplete
+subset of the cohort. Run the differential tractography analysis for **all controls
+and all patients** first. At each differential threshold, quantify the dT tract volume
+for each subject, calculate the mean dT tract volume in the control group and the mean
+dT tract volume in the patient group, and estimate:
+
+```text
+FDR = mean dT tract volume from controls / mean dT tract volume from patients
+```
+
+Calculate this separately for each threshold when reporting a threshold series. The
+FDR estimate is therefore a cohort-level summary that is available only after all
+subjects have been processed.
+
 Verify the operation output shows the intended `dt_threshold`, metric direction, and
 formula. Save results with filenames that encode analysis space, metric, direction,
 and threshold, for example:
@@ -293,3 +307,4 @@ Record at minimum:
 | Averaging native-space control NIfTI files voxelwise | Average only QSDR/MNI-aligned maps |
 | Loading an MNI control average as an ordinary native slice in GQI | Use `add_mni_slice` |
 | Using many TIP iterations by default for dT | Start with `tip_iteration=0` or very light pruning; use `trim_tract` incrementally and inspect tract/deleted counts |
+| Estimating FDR before completing the cohort | Process all controls and patients first; FDR uses group-averaged dT tract volumes |
