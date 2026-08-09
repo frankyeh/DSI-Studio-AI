@@ -34,8 +34,9 @@ The launcher maps requests as follows:
 
 1. The first argument is the command name; remaining values are its parameters.
 2. Every session starts with `main` selected. `set_window` changes the selected
-   target and that selection persists. Successful `open_src`, `open_fib`, and
-   `open_image` commands automatically select the newly created window.
+   target and that selection persists. Successful `open_src`, `open_fib`,
+   `open_image`, and `open_connectometry` commands automatically select the newly
+   created window.
 3. Standalone integers and floating-point values become JSON numbers. Paths, names,
    and composite expressions remain strings.
 4. `-Chat "message"` may accompany a command or may be sent by itself.
@@ -96,14 +97,16 @@ Studio:
 | `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
 | `image<hex-address>` | Standalone medical-image inspection and processing |
+| `connectometry<hex-address>` | Correlational tractography, demographics/cohort selection, permutation analysis, and result display |
 
-Successful `open_src`, `open_fib`, and `open_image` commands normally report the
-new ID directly:
+Successful `open_src`, `open_fib`, `open_image`, and `open_connectometry` commands
+normally report the new ID directly:
 
 ```text
 recon window created, id: recon...
 tracking window created, id: tracking...
 image window created, id: image...
+connectometry window created, id: connectometry...
 ```
 
 They also make that newly created window the session's current target, so following
@@ -154,8 +157,8 @@ bash ./dsi.sh maximize
 `bring_to_front` restores the selected window to normal state before raising and
 activating it. These controls change only visibility, focus, or window state.
 
-`close` also takes no argument. It closes the selected reconstruction, tracking, or
-standalone image window; AI cannot close `main`:
+`close` also takes no argument. It closes the selected reconstruction, tracking,
+standalone image, or connectometry window; AI cannot close `main`:
 
 ```bash
 bash ./dsi.sh close
