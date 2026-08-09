@@ -56,10 +56,11 @@ dsi_studio --action=db --source=<glob of *.qsdr.fz files> --demo=<participants.t
 ```
 
 All subjects must already be reconstructed into the **same template space**
-(QSDR) so their per-voxel scalar maps are spatially comparable. `--demo`
-auto-detects a `participants.tsv` alongside the sources if omitted. The GUI
-equivalent is `create_db` from the main window, followed by loading subject
-FIBs and demographics into `CreateDBDialog`.
+(QSDR) so their per-voxel scalar maps are spatially comparable. If `--demo` is
+omitted, the CLI checks for `participants.tsv` in the current working directory and
+then its parent (preferring the current directory when both exist). The GUI equivalent
+is `create_db` from the main window, followed by loading subject FIBs and demographics
+into `CreateDBDialog`.
 
 ### 1.1 Quick group comparison: region or tract statistics from the database
 
@@ -134,9 +135,9 @@ dsi_studio --action=db --source=<group>.dz --match=consecutive \
 
 - `--match=consecutive` pairs subjects by their stored order: (row 0, row 1),
   (row 2, row 3), and so on -- each pair is one subject's scan1/scan2. Confirm
-  the database's subject order actually alternates scan1/scan2 (e.g. via
-  `open_fib`/`list_window` or by inspecting the source file list used to
-  build the database) before relying on this.
+  the database's subject order actually alternates scan1/scan2 by inspecting the
+  subject list in the `open_db` GUI or the source file list used to build the database;
+  `list_window` does not report database subject order.
 - `--match=<pairs.txt>` uses explicit pairing instead: a text file of
   whitespace-separated integer subject-row indices, two per pair
   (`scan1_row scan2_row scan1_row scan2_row ...`), 0-based in the same
