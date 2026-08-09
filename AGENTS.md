@@ -452,12 +452,14 @@ the file form fails if the resolved file does not end in `.tsv`.
 For downloads:
 
 ```bash
-bash ./dsi.sh hub_download "<exact repository>" "<tag-regex>" "<exact filename>" "C:/data"
+bash ./dsi.sh hub_download "<exact repository>" "<tag-regex>" "*.qsdr.fz" "C:/data"
 ```
 
-`hub_download` attempts the requested file in every matching tag. Prefer an exact
-filename when downloading across multiple tags. Verify the destination file or
-opened window after network-backed work.
+`hub_download`'s file parameter is a wildcard pattern (`*`, `?`, `[...]`), not a
+regex, and matches every file in every matching tag -- one call can download many
+files across many tags/subjects. A plain exact filename still matches only that one
+file, since the wildcard is anchored to the full name. Verify the destination
+directory's contents after network-backed work.
 
 ## 8. Internal CLI and confirmation-gated shell
 
