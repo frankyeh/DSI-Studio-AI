@@ -35,7 +35,7 @@ only as parameters of the documented commands below.
 | `open_src_dir` | `["open_src_dir","C:/src"]` | Search the supplied directory for `*src.gz` and `.sz` files and load them into one reconstruction window. A successful command reports its `recon...` ID. Without a parameter, open a directory picker. |
 | `open_fib` | `["open_fib","C:/data/subject.fz"]` | Open the supplied `.fz`, `*fib.gz`, or `.dz` file and create and select a tracking window. Without a parameter, open a FIB picker. |
 | `open_structural_tracking` | `["open_structural_tracking","C:/data/T1w.nii.gz"]` | Pass the supplied NIfTI or 2dseq structural image to `loadFib`. Without a parameter, open a structural-image picker. |
-| `open_template` | `["open_template","<template-name>"]` | Open the exact built-in template name. An invalid name returns an error. Without a parameter, open the template currently selected in the main-window list. |
+| `open_template` | `["open_template","<template-name>"]` | Open the exact built-in population/species template FIB as a tracking window. An invalid name returns an error. Without a parameter, open the template currently selected in the main-window list. |
 | `create_db` | `["create_db"]` | Open the connectometry database-creation dialog. Takes no arguments. |
 | `create_average` | `["create_average"]` | Open the average-database creation dialog. Takes no arguments. |
 | `open_db` | `["open_db","C:/data/group.db.fz"]` | Load the supplied connectometry database and create a database window. Database-loading failures are returned through `error`. Without a parameter, open a database picker. |
@@ -63,6 +63,30 @@ only as parameters of the documented commands below.
 | `hub_open` | `["hub_open","<repo>","<exact-tag>",12]` | Download to temporary cache when needed and open one selected Hub file. The tag must be one exact tag; the file may be the returned row index or exact filename. |
 | `hub_show` | `["hub_show","<repo>","<exact-tag>"]` or `["hub_show","<repo>","<exact-tag>","subjects.tsv"]` | Without a file: return the tag's GitHub release note (explaining what the dataset is) directly in the response. With a file: download that `.tsv` release file and return its raw tab-separated content instead, rather than opening it as the release-note table in the Hub window. The tag must be one exact tag; the file may be the returned row index or exact filename; fails if a given file does not end in `.tsv`. |
 | `hub_download` | `["hub_download","<repo>","^HCP.*$","*.qsdr.fz","C:/data"]` | Download every file matching the wildcard pattern (`*`, `?`, `[...]`) in every tag matching the case-insensitive tag regular expression, so one call can fetch many files across many tags/subjects at once. |
+
+## Built-in template-space analysis
+
+`open_template` opens a built-in population/species FIB as a normal tracking window;
+use the template matching the data population. Installed names are determined by the
+packaged atlas/tract set and commonly include `human`, `human-neonate`, `rhesus`,
+`marmoset`, `rat`, and `mouse`.
+
+For common-space analysis, load scalar NIfTI maps into that template window with
+`add_mni_slice`. For `human`, this means MNI-space NIfTI; for other templates, use the
+corresponding template space. DSI Studio uses the NIfTI header transform for alignment,
+so the NIfTI may have a different voxel size or matrix from the template FIB. The
+loaded map becomes a regular slice and can be used for threshold/ROI creation, region
+statistics, tractography, atlas analysis, and rendering together with the template FIB
+metrics.
+
+```bash
+bash ./dsi.sh open_template human
+bash ./dsi.sh add_mni_slice "C:/data/mni_result.nii.gz"
+bash ./dsi.sh list_slice
+```
+
+After `open_template`, the new `tracking<hex-address>` is already selected; do not
+send `set_window` unless switching between already-open windows.
 
 ## Multiple-file parameter format
 
