@@ -28,7 +28,9 @@ Supported targets are:
 - `main`;
 - `recon<hex-address>`;
 - `tracking<hex-address>`;
-- `image<hex-address>`.
+- `image<hex-address>`;
+- `connectometry<hex-address>` (the Correlational Tractography dialog; see
+  `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`).
 
 `set_window main`, or `set_window` without a parameter, returns to `main`.
 `set_window` also accepts a bare non-main type plus a distinctive filename, but an
@@ -136,8 +138,11 @@ assume a timeout means the earlier operation stopped.
 - `current_window` is the session's own persistent target (the same value `set_window`
   reports), independent of any other window's status.
 - `windows` lists every AI-addressable window (`main`, `tracking...`, `recon...`,
-  `image...`) plus any in-flight asynchronous `curlN` task, each with its own
-  `status` (`idle`/`busy`/`waiting`) and `title`.
+  `image...`, `connectometry...`) plus any in-flight asynchronous `curlN` task,
+  each with its own `status` (`idle`/`busy`/`waiting`) and `title`. A
+  `connectometry...` window stays `busy` for the full duration of an
+  asynchronous `run` (permutation test), not just for the instant the command
+  was dispatched.
 - `progress` reflects every currently active internal operation, outermost first,
   regardless of which window (if any) it belongs to. Each entry's `status` is the
   operation's name, `now`/`total` are its step counters, and `at` is a pre-formatted
@@ -180,7 +185,7 @@ For each command in a request, the current dispatcher applies this order:
 3. Window discovery: `list_window`.
 4. All remaining commands are offered to `MainWindow` first.
 5. Only a command unknown to `MainWindow` falls through to the persistently selected
-   reconstruction, tracking, or image window.
+   reconstruction, tracking, image, or connectometry window.
 
 Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fib`
 remain available even while a non-main window is selected. `run_cli` and `run_shell`
