@@ -19,6 +19,8 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `set_view` | `["set_view",0]` | Reset to numeric view `0`, `1`, or `2`; repeated calls toggle the corresponding 180-degree flipped view. |
 | `set_zoom` | `["set_zoom",1.5]` | Set the absolute camera zoom derived from the transformation-matrix determinant; zero is rejected. |
 | `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera transformation with the first 16 supplied floats. |
+| `get_camera` | `["get_camera"]` | Print the current 16-float camera transformation to the log as `camera: <16 floats>`, for reading the camera location without writing a file. |
+| `preview_screen` | `["preview_screen","3d"]` | **Recommended way for an agent to "see" the window without saving/opening an image file.** `command[1]` selects the view: `"3d"` for the OpenGL scene or `"roi"` for the 2D ROI/slice scene. Prints a digit-grid text rendering plus summary stats directly to the log — no file needs to be opened. See "Reading `preview_screen` output" below. |
 | `open_camera` | `["open_camera","C:/work/camera.txt"]` | Load at least 16 camera-matrix floats from a text file. |
 | `save_camera` | `["save_camera","C:/work/camera.txt"]` | Save the current 16-float transformation matrix. |
 | `store_camera` | `["store_camera"]` | Store the current camera in the default `cameraa` settings slot; the current implementation shows a modal notice and records the command as canceled. |
@@ -28,12 +30,12 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `restore_camera1` | `["restore_camera1"]` | Restore camera slot 1. |
 | `restore_camera2` | `["restore_camera2"]` | Restore camera slot 2. |
 | `set_stereoscopic` | `["set_stereoscopic"]` | Switch the OpenGL widget to stereoscopic view mode. |
-| `save_screen` | `["save_screen","C:/output/tracts.png"]` | Save the current 3D rendering as a single view. Use this only when the user explicitly wants a plain screenshot; otherwise prefer `save_lr_screen` (see below). |
-| `save_lr_screen` | `["save_lr_screen","C:/output/tracts_lr.png"]` | **Recommended default for saving a 3D rendering.** Saves the same left/right stereo-pair view as the "Copy to Clipboard -> 3D Screen Left/Right Views" menu action, giving two angles of the same scene in one image so spatial/anatomical relationships (tract shape, parcel-tract overlap, bilateral structures) are legible without a live 3D session. Same filename/dialog behavior as `save_screen`. |
-| `save_hd_screen` | `["save_hd_screen","C:/output/tracts_hd.png","1920 1080"]` | Temporarily resize the GL widget, save at the supplied width and height, then restore its original size. |
-| `save_3view_screen` | `["save_3view_screen","C:/output/tracts_3view.png"]` | Save a 2×2 composite containing three 3D views and the current slice scene. |
-| `save_h3view_screen` | `["save_h3view_screen","C:/output/tracts_h3view.png"]` | Save four cropped directional views in a horizontal image. |
-| `save_v3view_screen` | `["save_v3view_screen","C:/output/tracts_v3view.png"]` | Save four directional views in a vertical image. |
+| `save_screen` | `["save_screen","C:/output/tracts.png","1920 1080"]` | Save the current 3D rendering as a single view. Use this only when the user explicitly wants a plain screenshot; otherwise prefer `save_lr_screen` (see below). Optional third element `"width height"` temporarily resizes the GL widget around the grab, then restores it. |
+| `save_lr_screen` | `["save_lr_screen","C:/output/tracts_lr.png","1920 1080"]` | **Recommended default for saving a 3D rendering.** Saves the same left/right stereo-pair view as the "Copy to Clipboard -> 3D Screen Left/Right Views" menu action, giving two angles of the same scene in one image so spatial/anatomical relationships (tract shape, parcel-tract overlap, bilateral structures) are legible without a live 3D session. Same filename/dialog/optional-size behavior as `save_screen`. |
+| `save_hd_screen` | `["save_hd_screen","C:/output/tracts_hd.png","1920 1080"]` | Prompts for a size interactively if the third element is omitted (do not omit it when scripting), then delegates to `save_screen` with that size. Functionally the same as calling `save_screen` with a size, kept for backward compatibility. |
+| `save_3view_screen` | `["save_3view_screen","C:/output/tracts_3view.png","1920 1080"]` | Save a 2×2 composite containing three 3D views and the current slice scene. Optional third element resizes like `save_screen`. |
+| `save_h3view_screen` | `["save_h3view_screen","C:/output/tracts_h3view.png","1920 1080"]` | Save four cropped directional views in a horizontal image. Optional third element resizes like `save_screen`. |
+| `save_v3view_screen` | `["save_v3view_screen","C:/output/tracts_v3view.png","1920 1080"]` | Save four directional views in a vertical image. Optional third element resizes like `save_screen`. |
 | `save_rotation_video` | `["save_rotation_video","C:/output/rotation.avi"]` | Currently broken: the handler returns immediately after validating the filename, so the AVI-writing block is unreachable. |
 | `add_surface` | `["add_surface",7,0.6]` | Create a surface from slice index 7 using threshold `0.6`; omission of the threshold opens a dialog. |
 | `add_surface` | `["add_surface",0,25]` | For a built-in slice, map the built-in ICBM152 white-matter image to subject space and create a whole-brain white-matter isosurface at threshold `25`. |
@@ -44,14 +46,49 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `add_surface_posterior` | `["add_surface_posterior",7,0.6]` | Create a surface after retaining the posterior portion relative to the current Y slice position. |
 | `add_surface_anterior` | `["add_surface_anterior",7,0.6]` | Create a surface after retaining the anterior portion relative to the current Y slice position. |
 
+## Reading `preview_screen` output
+
+`command[1]` is `"3d"` or `"roi"` (required). `command[2]` is an optional zoom rectangle
+`"x0 y0 x1 y1"`, normalized `0..1` of the previously captured image for that channel; when given,
+it crops the cached capture instead of re-rendering the scene, so call once with `command[2]`
+empty first to establish the cache for the channel you want to zoom into.
+
+There is no channel argument — channels are picked automatically from what is currently visible:
+
+- `["preview_screen","3d"]` prints `camera: <16 floats>` (same as `get_camera`), then one block per
+  enabled `show_slice`/`show_region`/`show_tract`/`show_surface` toggle, each captured in isolation
+  (the other three temporarily hidden for that one capture).
+- `["preview_screen","roi"]` prints `R_side=left` or `R_side=right` (which side of the image the
+  anatomical right is on, from `orientation_convention` — the same side the 2D view's own "R" label
+  is drawn on), then a `slice` block (always present), a `region` block (only if a region is
+  currently checked), and a `tract` block (only if the "Show Tracts" ROI toolbutton is on).
+
+Each channel block is:
+
+```text
+<label>:
+0: 0 0 3 7 9 9 7 3 0 0 0 0 0 0 0 0
+1: ...
+coverage=18% bbox=(0.34,0.12)-(0.71,0.88) left/right=48%/52% blobs=1 luminance(min/mean/max)=0/42/255
+```
+
+A 16-column digit grid (each digit `0`-`9` is that cell's foreground coverage fraction, row-labeled
+so line count doesn't have to be tracked), a small fixed 8x8 occupancy grid in the same format, then
+one summary line: `coverage`, the normalized foreground bounding box, the left/right foreground
+split, connected-component (`blobs`) count, and raw luminance range. A full capture is also written
+to a temp JPG (`dsi_preview_3d_<label>.jpg` / `dsi_preview_roi_<label>.jpg`) for cases where opening
+an actual image is preferable to reading the text form.
+
 ## Source-confirmed cautions
 
 - `set_camera` and camera files require at least 16 floats; additional values are ignored.
 - `store_camera`, `store_camera1`, and `store_camera2` display modal messages and return the command-history canceled state even though the setting is stored.
 - `save_rotation_video` has an early-return bug and should not be used until the unreachable encoding block is fixed.
 - Surface appearance and visibility are controlled through `set_param` using `surface_*` and `show_surface`; there are no `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`, `set_surface_alpha`, or `set_surface_visible` command handlers.
-- `get_camera` and `set_device_color` also have no command handlers. Use `save_camera` for retrieval and the device table UI for device color.
+- `set_device_color` has no command handler; use the device table UI for device color.
 - Default to `save_lr_screen` when saving a 3D rendering to illustrate anatomy, tract shape, or a tract/region overlay. Use plain `save_screen` only when the user explicitly asks for a single screenshot.
+- `preview_screen` fails if `command[1]` is missing or not exactly `"roi"`/`"3d"`, and fails a zoom request (`command[2]` given) for a channel that has no prior non-zoom capture cached yet.
+- `preview_screen` is for the agent to inspect the scene inline via text; use `save_lr_screen`/`save_roi_screen` when the user wants an actual image file.
 
 ## Rendering parameter reference
 
