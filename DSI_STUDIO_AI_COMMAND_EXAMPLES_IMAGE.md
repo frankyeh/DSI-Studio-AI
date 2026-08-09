@@ -9,7 +9,7 @@ parameters are strings. Send a standalone numeric parameter as a JSON number.
 
 `bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
 window controls, not image-window operations. Read
-`DSI_STUDIO_AI_WINDOW_COMMANDS.md` for their authoritative behavior. After closing
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for their authoritative behavior. After closing
 an image window, select `main` or another valid current ID because the session keeps
 the closed `image...` target until `set_window` changes it.
 
