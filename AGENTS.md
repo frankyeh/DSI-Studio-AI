@@ -355,14 +355,17 @@ exact model ID is available.
 
 ```bash
 bash ./dsi.sh list_atlas
+bash ./dsi.sh list_atlas "<atlas name or index>"
 bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index> <label-index>"
 bash ./dsi.sh list_region
 ```
 
-Join multiple label indices with `&`. Use label indices only when supplied by the
-user or another verified source. In the current BrainSeg teaching example,
-`template=0`, `atlas=1`, and labels `3&4` correspond to left and right thalamus only
-after `list_atlas` confirms that mapping.
+`list_atlas` with no argument lists atlases for the current template only, giving
+each atlas's index. Follow up with that name or index to list the atlas's exact
+region names and indices -- use those returned indices for `<label-index>`, not a
+guess or a value from an unrelated source. Join multiple label indices with `&`.
+In the current BrainSeg teaching example, `template=0`, `atlas=1`, and labels
+`3&4` correspond to left and right thalamus, confirmed via `list_atlas 1`.
 
 ### 6.5 Inspect tracking parameters and run tracking
 
