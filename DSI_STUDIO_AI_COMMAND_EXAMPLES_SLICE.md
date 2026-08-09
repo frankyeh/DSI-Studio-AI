@@ -29,6 +29,7 @@ This file contains the complete slice and segmentation inventory confirmed in th
 | `add_mni_slice` | `["add_mni_slice","C:/data/atlas.nii.gz"]` | Add a custom slice interpreted in MNI space; mapping is required. |
 | `skull_strip_slice` | `["skull_strip_slice",7]` | Apply the template mask to a custom slice; built-in slices are rejected. |
 | `save_roi_screen` | `["save_roi_screen","C:/output/roi_view.png"]` | Save the current 2D ROI/slice scene. |
+| `preview_screen` | `["preview_screen","roi"]` | Read the 2D ROI/slice scene as text (digit-grid art plus stats) without saving a file; see the "Reading `preview_screen` output" section in the rendering examples file for the full format and the `"3d"` mode. |
 | `save_slice_image` | `["save_slice_image","C:/output/qa.nii.gz","qa"]` | Export the named metric/data map in current subject space; arguments are output path then data-map name. |
 | `save_slice_mni_image` | `["save_slice_mni_image","C:/output/qa_mni.nii.gz","qa"]` | Export the named metric/data map in template/MNI space; a valid subject-to-template mapping is required. |
 | `save_slice_mapping` | `["save_slice_mapping","C:/output/T1w.linear_reg.txt",7]` | Save registration mapping for a custom slice. |
