@@ -3,13 +3,14 @@
 `bring_to_front`, `minimize`, `maximize`, and `close` are shared AI dispatcher
 commands. They are handled centrally by `MainWindow::dispatch_cmd()` before the
 normal MainWindow-first and selected-window command routing. They are not separate
-implementations in reconstruction, tracking, or image command handlers.
+implementations in reconstruction, tracking, image, or connectometry command handlers.
 
 ## Select the target window
 
 Each AI session starts with `main` selected. `set_window` changes the persistent
 target used by shared and later window-specific commands. Successful `open_src`,
-`open_fib`, and `open_image` also replace it with the newly created window.
+`open_fib`, `open_image`, and `open_connectometry` also replace it with the newly
+created window.
 
 Use an exact current ID whenever possible:
 
@@ -34,7 +35,8 @@ Supported targets are:
 
 `set_window main`, or `set_window` without a parameter, returns to `main`.
 `set_window` also accepts a bare non-main type plus a distinctive filename, but an
-exact ID returned by `open_src`, `open_fib`, `open_image`, or `list_window` is safer.
+exact ID returned by `open_src`, `open_fib`, `open_image`, `open_connectometry`, or
+`list_window` is safer.
 
 ## Shared controls
 
@@ -74,7 +76,8 @@ command in a command array.
 
 For a tracking window, an AI-issued close is non-spontaneous and bypasses the local
 `Tractography not saved` prompt. Confirm before closing whenever unsaved tracts may
-exist. Reconstruction and standalone image windows are also closed directly.
+exist. Reconstruction, standalone image, and connectometry windows are also closed
+directly.
 
 The dispatcher reports command success after issuing the close operation. Confirm
 the result with `list_window` when the disappearance matters.
@@ -163,8 +166,8 @@ These two operations use the word `close` but affect different things:
 {"command":{"cmd":"close"}}
 ```
 
-closes the currently selected DSI Studio reconstruction, tracking, or image window.
-It does not disconnect ChatGPT (Web).
+closes the currently selected DSI Studio reconstruction, tracking, image, or
+connectometry window. It does not disconnect ChatGPT (Web).
 
 ```json
 {"id":7,"request":"close"}
