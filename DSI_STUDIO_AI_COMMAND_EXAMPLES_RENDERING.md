@@ -60,8 +60,12 @@ There is no channel argument — channels are picked automatically from what is 
   (the other three temporarily hidden for that one capture).
 - `["preview_screen","roi"]` prints `R_side=left` or `R_side=right` (which side of the image the
   anatomical right is on, from `orientation_convention` — the same side the 2D view's own "R" label
-  is drawn on), then a `slice` block (always present), a `region` block (only if a region is
-  currently checked), and a `tract` block (only if the "Show Tracts" ROI toolbutton is on).
+  is drawn on), then a `slice` block (always present), a `region` block, and a `tract` block. The
+  latter two are read from the 2D scene's own cached region/tract layers and only appear when that
+  layer is both enabled (a region checked / "Show Tracts" toolbutton on) and actually non-empty for
+  the current slice position — e.g. a checked region that doesn't intersect this slice produces no
+  `region` block. This is only accurate for the single-slice ROI layout; in 3-view/mosaic layout it
+  falls back to a full per-channel re-render gated on the toolbutton/checked-region state alone.
 
 Each channel block is:
 
@@ -72,10 +76,11 @@ Each channel block is:
 coverage=18% bbox=(0.34,0.12)-(0.71,0.88) left/right=48%/52% blobs=1 luminance(min/mean/max)=0/42/255
 ```
 
-A 16-column digit grid (each digit `0`-`9` is that cell's foreground coverage fraction, row-labeled
-so line count doesn't have to be tracked), a small fixed 8x8 occupancy grid in the same format, then
-one summary line: `coverage`, the normalized foreground bounding box, the left/right foreground
-split, connected-component (`blobs`) count, and raw luminance range. A full capture is also written
+A 16-column digit grid (each digit `0`-`9` is that cell's average luminance, `0`=black to `9`=white,
+row-labeled so line count doesn't have to be tracked), a small fixed 8x8 grid in the same format,
+then one summary line: `coverage` (fraction of cells classified as foreground against the image's
+own background luminance), the normalized foreground bounding box, the left/right foreground split,
+connected-component (`blobs`) count, and raw luminance range. A full capture is also written
 to a temp JPG (`dsi_preview_3d_<label>.jpg` / `dsi_preview_roi_<label>.jpg`) for cases where opening
 an actual image is preferable to reading the text form.
 
