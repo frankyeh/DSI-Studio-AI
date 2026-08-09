@@ -1,6 +1,6 @@
 # DSI Studio AI Command Examples
 
-Use these commands through the launcher documented in `DSI_STUDIO_AI_LAUNCHER.md`:
+Use these commands through the launcher documented in `DSI_STUDIO_AI_SKILL_LAUNCHER.md`:
 
 ```bash
 bash ./dsi.sh <command> [values...]
@@ -17,7 +17,7 @@ centrally before ordinary MainWindow/window routing. Their authoritative behavio
 including post-close target recovery and the distinction from GitHub-channel close,
 is documented here:
 
-- [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
+- [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 
 `run_cli` and `run_shell` are also global MainWindow commands, but they have very
 different execution and completion rules. Their authoritative documentation is:
@@ -35,7 +35,7 @@ authoritative documentation location:
 - [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
 - [Regions and tract-to-region analysis](DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md)
 - [Tracts, tracking, AutoTrack, clustering, recognition, and TDI](DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md)
-- [T2R connectome workflow, rendering, and longitudinal analysis](DSI_STUDIO_AI_T2R_CONNECTOME_WORKFLOW.md)
+- [T2R connectome workflow, rendering, and longitudinal analysis](DSI_STUDIO_AI_SKILL_T2R_CONNECTOME.md)
 - [Devices and AC-PC locators](DSI_STUDIO_AI_COMMAND_EXAMPLES_DEVICE.md)
 - [Rendering, camera, surfaces, and display](DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md)
 - [Image-window and TIPL generic image operations](DSI_STUDIO_AI_COMMAND_EXAMPLES_IMAGE.md)
