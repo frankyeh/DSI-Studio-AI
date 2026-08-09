@@ -167,11 +167,34 @@ The resulting database has `is_longitudinal` set and cannot be re-differenced
   correlation with the metric is being tested.
 - `--variable_list` is the comma-separated set of feature indices to include
   as covariates in the partial correlation (confounders to control for, plus
-  the variable of interest itself).
+  the variable of interest itself). It is common practice to include age and
+  sex as covariates when either varies meaningfully across the cohort.
 
-Do not guess feature indices; they come from the demographics file's column
-order as loaded into the database. Confirm them before running rather than
-assuming a fixed layout across studies.
+Do not guess feature indices for the CLI's `--voi`/`--variable_list`; they
+come from the demographics file's column order as loaded into the database.
+Confirm them before running rather than assuming a fixed layout across
+studies.
+
+In a `connectometry<hex>` session, the equivalent of `--voi`/`--variable_list`
+is one command, `set_voi <voi> <variable_list>`, and it takes feature **names**
+instead of indices (an index still works, matched the same way `hub_open`/
+`hub_show` accept either a row index or an exact name):
+
+```bash
+bash ./dsi.sh list_voi
+bash ./dsi.sh set_voi "group" "group,age_exam_ses01,gender"
+```
+
+`list_voi` prints every available feature with its current selected state
+(`index\tname\tselected`) -- read this first rather than guessing names, the
+same caution as the CLI's indices. `set_voi`'s second argument is the full set
+of variables to include (covariates plus the variable of interest itself, same
+convention as `--variable_list`); the variable of interest is added
+automatically if omitted from it. `set_voi` clears any previously selected
+variables before applying the new set -- it is not additive. `get_demo` prints
+the raw per-subject demographics table (`subject<TAB><column>...`) actually
+loaded into the database, useful for confirming exact column names and values
+(including any subject-name rematching) before calling `set_voi`.
 
 ### 3. Select the cohort
 
@@ -272,6 +295,8 @@ HTML report alongside the tract files.
 | Database load fails | Subjects not all reconstructed in the same template space, or `.dz` built from mismatched index sets |
 | Region/tract statistics show only one database metric | Both `show_region_statistics` and `show_tract_statistics` should iterate every stored database metric; a single-metric result indicates a build that predates this fix |
 | Follow-up command to the connectometry window seems ignored or errors | Confirm the window ID via `list_window` (`connectometry<hex>`) and that its status is `idle`, not `busy`, before sending the next command |
+| `set_voi` fails with "invalid variable" | Run `list_voi` first and use one of the exact `name` values (or its `index`), not a guessed demographics-file column name |
+| Result seems to ignore a covariate | `set_voi`'s variable list is a full replacement, not additive to whatever was selected before -- include every variable (covariates plus the variable of interest) in the same call |
 
 ## Example Commands
 
@@ -306,6 +331,23 @@ dsi_studio --action=cnt --source=group.dz --demo=participants.tsv \
   --select="age>18" --t_threshold=2.5 --fdr_threshold=0.05 \
   --tip_iteration=16 --output=age_correlation
 ```
+
+The same cross-sectional correlation as an interactive `connectometry<hex>`
+session, adjusting for age and sex:
+
+```bash
+bash ./dsi.sh open_connectometry "group.dz"
+bash ./dsi.sh get_demo
+bash ./dsi.sh list_voi
+bash ./dsi.sh set_voi "group" "group,age,sex"
+bash ./dsi.sh set_param select_text "age>18"
+bash ./dsi.sh show_cohort
+bash ./dsi.sh set_params "t_threshold=2.5&fdr_control=1&fdr_threshold=0.05&tip=16"
+bash ./dsi.sh run
+```
+
+`run` starts the permutation asynchronously; poll `list_window` until the
+`connectometry<hex>` entry is `idle` again, then `show_result`.
 
 Longitudinal/intercept-style database study:
 
