@@ -181,9 +181,19 @@ dsi_studio --action=db --source=<group>.dz --match=consecutive \
   subject order as the database.
 - `--dif_type=0` computes `scan2 - scan1` (default); `--dif_type=1` computes
   `(scan2 - scan1) / scan1`.
-- `--filter_type=0` keeps all changes (default); `1` keeps only increases in
-  scan2 (negative values zeroed); `2` keeps only decreases (sign-flipped,
-  then negative values zeroed).
+- `--filter_type=0` (default) keeps the raw signed change at every voxel --
+  increases positive, decreases negative, nothing zeroed. Use this for
+  testing whether a change exists at all (see 1.3 phase 1 below).
+- `--filter_type=1` keeps only increases, as a positive magnitude: any
+  voxel that decreased is zeroed, increases are left as-is.
+- `--filter_type=2` keeps only decreases, **also as a positive magnitude,
+  not a negative one**: every value is first negated (so an original
+  decrease, negative, becomes positive), then anything below zero (i.e.
+  every original increase, now negative) is zeroed. Confirmed directly
+  against the implementation (`libs/mapping/connectometry_db.cpp`,
+  `connectometry_db::calculate_change`: `if(filter_type==2) tipl::neg(...)`
+  runs *before* the zero-clamp) -- do not assume `2` produces negative
+  "amount of decrease" values; it does not.
 - `--normalize_iso` (default `1`) divides `qa`/`rdi`/`nrdi*`-type metrics by
   the subject's isotropic diffusion map before differencing, matching the
   GUI's "Normalize QA/RDI/NRDI by ISO" checkbox default.
@@ -192,8 +202,38 @@ dsi_studio --action=db --source=<group>.dz --match=consecutive \
   GUI's "Save DB as" default naming.
 
 The resulting database has `is_longitudinal` set and cannot be re-differenced
-(`--match` again on it fails). Feed it to `--action=cnt` as `--source` with
-`--voi=longitudinal` for the actual regression, per section 2 below.
+(`--match` again on it fails). Feed it to `--action=cnt` as `--source`.
+`--voi=longitudinal` (equivalently `Intercept`) tests whether a change
+exists at all, pooling every subject in the (possibly cohort-filtered)
+database; `--voi=<a demographics column, e.g. group>` instead tests whether
+the *amount* of change differs between groups -- see 1.3.
+
+### 1.3 Two-phase strategy for a longitudinal group comparison
+
+To answer "did the patient group decline more than the control group"
+(or any longitudinal group-difference question), build and test in two
+separate steps rather than jumping straight to a group comparison:
+
+1. **Confirm a real change exists first, within just the affected group.**
+   Build the longitudinal database once with the default `--filter_type=0`
+   (signed change, both directions kept). Cohort-filter to the group
+   expected to change (`--select`/`select_text`, e.g. `group=0`) and test
+   `--voi=longitudinal` there -- this asks "does this group show a
+   significant nonzero change at all," ignoring the comparison group
+   entirely. If nothing is found, a downstream group-difference test on the
+   same data is unlikely to be meaningful; stop here rather than proceeding
+   to step 2.
+2. **Isolate the direction the hypothesis predicts, then compare groups.**
+   Rebuild the longitudinal database with the filter matching that
+   direction -- `--filter_type=2` for a metric expected to *decrease*
+   (e.g. a neuronal-injury hypothesis), `--filter_type=1` for one expected
+   to *increase*. Each subject's per-voxel value is now a positive
+   magnitude of change in that one direction (0 if they went the other
+   way or didn't change). Test `--voi=group` (not `longitudinal`) on this
+   filtered database, with the full (unfiltered-by-cohort) subject set --
+   a significant `hypothesis_inc`/`hypothesis_dec` finding now means one
+   group's magnitude of change in that direction exceeds the other's, not
+   merely that change occurred.
 
 ### 2. Define the analysis
 
