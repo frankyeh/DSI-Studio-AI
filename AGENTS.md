@@ -116,6 +116,10 @@ after the window closes. Use `list_window` to confirm an ID or discover another
 already-open supported window, not merely to rediscover a window whose ID was just
 returned.
 
+`set_window` accepts only `main` or an exact current window ID returned by
+`list_window` or an open command. It does not resolve a window by title, filename,
+file basename, or bare window type. `set_window` with no parameter returns to `main`.
+
 `list_window` reports `idle`, `busy`, or `waiting`. `waiting` means a modal local
 dialog is awaiting the user's decision.
 
