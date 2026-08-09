@@ -27,7 +27,7 @@ bash ./dsi.sh <command> [values...]
 ```
 
 Always include `bash` before `./dsi.sh`. Use one invocation per request. If this
-launcher does not work, read `DSI_STUDIO_AI_SKILL_LAUNCHER.md` for platform requirements,
+launcher does not work, read `DSI_STUDIO_AI_LAUNCHER.md` for platform requirements,
 troubleshooting, and the documented Windows fallback.
 
 The launcher maps requests as follows:
@@ -176,7 +176,7 @@ multi-command request.
 
 For ChatGPT (Web), a command named `close` closes the selected DSI Studio window,
 while an issue-session `request:"close"` disconnects the GitHub issue channel. See
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` and `DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md`.
+`DSI_STUDIO_AI_WINDOW_COMMANDS.md` and `DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md`.
 
 ### 3.4 Read the log when state changed outside the agent
 
@@ -439,45 +439,180 @@ bash ./dsi.sh hub_open "<exact repository>" "<exact tag>" <file-row-index>
 
 Use the row index or exact filename returned by `hub_files`. If the reply directly
 contains `tracking window created, id: tracking...`, use that exact ID. A
-network-backed open may finish after the immediate reply; if no tracking ID is
-returned, poll `list_window` and `log` rather than guessing one.
+network-backed open may finish after the immediate reply; if no ID is returned, use
+`list_window` to discover the newly opened window.
 
-Use `hub_download` for persistent downloads:
+To learn what a tag's dataset actually is, read its GitHub release note first:
 
 ```bash
-bash ./dsi.sh hub_download "<repo>" "<tag-regex>" "*.qsdr.fz" "C:/data"
+bash ./dsi.sh hub_show "<exact repository>" "<exact tag>"
 ```
 
-The tag is a case-insensitive regular expression. The filename uses wildcard syntax
-(`*`, `?`, `[...]`), not regular-expression syntax. One call downloads every file
-matching the wildcard across all matching tags.
+To read a `.tsv` release file's content directly instead, without opening it as the
+release-note table in the Hub window, add the file:
 
-Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md` for the complete Hub inventory.
+```bash
+bash ./dsi.sh hub_show "<exact repository>" "<exact tag>" "subjects.tsv"
+```
 
-## 8. CLI and shell commands
+Same row-index-or-exact-filename rule as `hub_open`. Either form's reply is the
+release note or the file's raw tab-separated text directly, not a status line;
+the file form fails if the resolved file does not end in `.tsv`.
 
-Use `run_cli` for DSI Studio command-line actions inside the current process:
+For downloads:
+
+```bash
+bash ./dsi.sh hub_download "<exact repository>" "<tag-regex>" "*.qsdr.fz" "C:/data"
+```
+
+`hub_download`'s file parameter is a wildcard pattern (`*`, `?`, `[...]`), not a
+regex, and matches every file in every matching tag -- one call can download many
+files across many tags/subjects. A plain exact filename still matches only that one
+file, since the wildcard is anchored to the full name. Verify the destination
+directory's contents after network-backed work.
+
+## 8. Internal CLI and confirmation-gated shell
+
+Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
+
+### 8.1 Use `run_cli` only for DSI Studio CLI actions
+
+Keep the complete command line in one string:
 
 ```bash
 bash ./dsi.sh run_cli "--action=vis --source=C:/data/subject.fz --cmd=list_tract"
 ```
 
-Use `run_shell` for operating-system commands after local user confirmation:
+`run_cli` executes the internal CLI action in the current DSI Studio process; it
+does not start another executable. Missing `--action` defaults to `vis`. CLI actions
+do not use the session's `set_window` selection. Relative paths use this AI
+session's own current directory (remembered per chat, not process-wide), and CLI
+actions may modify global application state.
+
+Never send an operating-system command through `run_cli`.
+
+### 8.2 `run_shell`: `cd` is free, everything else needs local user approval
 
 ```bash
-bash ./dsi.sh run_shell "dir C:\\data"
+bash ./dsi.sh run_shell "cd \"C:/data\""
+bash ./dsi.sh run_shell "cd"
+bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
 ```
 
-`cd` is the only special case and needs no confirmation. Read
-`DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
+`cd` changes this AI session's own current directory (remembered per chat, not
+process-wide) and therefore affects later relative `run_shell` and `run_cli` paths
+in the same chat; it runs with no confirmation dialog and no external process.
+Every other `run_shell` command shows the local user a
+confirmation dialog with the exact command text and only runs if they approve it —
+there is no whitelist or character restriction anymore, the dialog is the only gate.
+This means `run_shell` cannot complete unattended with nobody at the DSI Studio
+machine to respond, and a batched command array containing `run_shell` pauses at
+that dialog before continuing. `dir` (and any other approved, non-`curl` command)
+runs synchronously once approved.
 
-## 9. Related manuals
+`curl` runs asynchronously once approved:
 
-Use these names consistently:
+```bash
+bash ./dsi.sh log
+bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
+```
 
-- `DSI_STUDIO_AI_COMMAND_EXAMPLES.md` — command-inventory index.
-- `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` — shared window command reference.
-- `DSI_STUDIO_AI_SKILL_T2R_CONNECTOME.md` — T2R connectome workflow.
-- `DSI_STUDIO_AI_SKILL_LAUNCHER.md` — launcher/session workflow.
-- `DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md` — ChatGPT Web GitHub issue-channel workflow.
+The initial reply returns a synthetic `curlN` task ID and does not prove transfer
+completion. Initialize the log cursor before the first asynchronous curl. Poll
+`list_window` until the `curlN` entry disappears, then call `log` again to retrieve
+output or errors. Do not place a command that depends on the downloaded file after
+`curl` in the same command array.
 
+For ChatGPT (Web), initialize logging with a prior `log` request or
+`include_log:true` on the curl-start request.
+
+Never send credentials, tokens, or other sensitive text in a `run_shell` command —
+the local user sees the exact text in the confirmation dialog either way. Never send
+a DSI Studio `--action=...` line through `run_shell`.
+
+## 9. Windows speech and demo mode
+
+### 9.1 Desktop speech
+
+On Windows, use `voice` for one concise non-empty spoken message:
+
+```bash
+bash ./dsi.sh voice "Reconstruction is complete."
+```
+
+A successful reply means the PowerShell speech process started, not that speech has
+finished. Each call starts a separate process, so rapid calls may overlap. Keep
+spoken messages concise. Continue to provide durable user-facing information through
+`-Chat`, and do not speak sensitive content unless the user explicitly asks.
+
+### 9.2 Demo mode
+
+Use demo mode only when the user asks for a demonstration, presentation, guided
+walkthrough, or spoken narration.
+
+Before each major user-visible action, speak one concise sentence describing what
+will happen next and, when useful, why it matters. Major actions include opening or
+selecting data, choosing an image or model, starting registration, reconstruction,
+segmentation, or tracking, changing the displayed result, and completing the task.
+Do not narrate routine discovery commands or every minor UI change.
+
+Run `voice` immediately before the corresponding action as its own invocation:
+
+```bash
+bash ./dsi.sh voice "The T1 weighted image is ready. I will now run tumor segmentation."
+bash ./dsi.sh segment_brain human_tumor_T1w 8
+bash ./dsi.sh list_region
+```
+
+Before a potentially long operation, state what is starting and what result is
+expected. For asynchronous work, provide brief meaningful progress narration while
+checking status. After synchronous long work returns, announce the verified result
+before the next major action.
+
+Spoken narration must sound like the presentation itself. Do not expose internal
+orchestration details such as cooldowns, polling mechanics, issue updates, request
+IDs, command arrays, or transport behavior. Base every progress statement on
+verified state and never announce completion before results confirm it.
+
+## 10. Operational safeguards
+
+1. Use one `bash ./dsi.sh` invocation per request.
+2. Use `-Chat` for user-visible progress and results.
+3. Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
+   current command output, or another verified source.
+4. Confirm destructive operations, overwrites, saved-history clearing, wildcard CLI
+   actions, and tracking-window closes that may discard unsaved tracts.
+5. After closing a selected window, immediately use `set_window main` or another
+   valid current ID.
+6. A local modal dialog is supported user input; do not answer it remotely or treat
+   `waiting` as failure.
+7. A timeout does not prove failure; verify state before retrying.
+8. If a window disappears, call `list_window`; do not reopen it automatically.
+9. Use `open_image` only for supported medical image volumes, never to verify
+   screenshots.
+10. When the user demonstrates, changes, or retries something manually, inspect
+    `log` rather than relying on memory.
+11. Before `run_cli` or `run_shell`, read
+    `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` and follow its completion-verification
+    rules.
+12. Read only the topic-specific files needed for the current task.
+
+## 11. Related documents
+
+- [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
+- [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
+- [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
+- [Direct GitHub issue control](DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md)
+- [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
+- [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
+- [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
+- [Standalone image-window processing](DSI_STUDIO_AI_COMMAND_EXAMPLES_IMAGE.md)
+- [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
+- [Regions and tract-to-region analysis](DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md)
+- [Tracts, tracking, AutoTrack, clustering, recognition, and TDI](DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md)
+- [Devices and AC-PC locators](DSI_STUDIO_AI_COMMAND_EXAMPLES_DEVICE.md)
+- [Parameters, rendering, camera, surfaces, workspace, settings, and display](DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md)
+- [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
+
+Read only the files relevant to the current task, then continue using
+`bash ./dsi.sh`.
