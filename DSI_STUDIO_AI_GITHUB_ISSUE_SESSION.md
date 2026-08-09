@@ -355,20 +355,16 @@ without `set_window`, including later commands in the same ordered array.
 Use `set_window main`, or `set_window` with no parameter, to return the persistent
 target to `main`.
 
-Prefer an exact ID returned by `list_window` or an open command:
+`set_window` requires an exact ID returned by `list_window` or an open command — there
+is no bare-type-plus-filename form:
 
 ```json
 {"cmd":"set_window","param":"tracking7ff6ab123410"}
 ```
 
-The current interface also accepts a bare window type plus a distinctive filename:
-
-```json
-{"cmd":"set_window","param":["tracking","subject.fz"]}
-```
-
-Supported bare types are `tracking`, `recon`, and `image`. Exact IDs are safer when
-more than one similar window is open.
+A value that is not `main` and not a currently listed ID (including a bare type name
+like `tracking` with no hex address) fails with `set_window: window "<value>" not
+found, terminated by user?`.
 
 ### Shared window controls
 
