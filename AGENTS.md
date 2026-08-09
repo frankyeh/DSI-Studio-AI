@@ -186,6 +186,13 @@ The first-ever `log` call initializes the cursor at the current end of the conso
 and intentionally returns no older output. Call it before starting an asynchronous
 operation when its later output must be captured.
 
+Pass anything as `command[1]` (or `command[2]`) — the value itself is ignored — to instead
+pull everything still retained in the console buffer (e.g. `["log","all"]`), rather than only
+what's new since this session's cursor. Useful for catching up on another agent's or the
+user's earlier actions in the same running instance. This still advances this session's log
+cursor and is still capped (see below), so it cannot recover output older than what the
+console buffer still retains, and repeating it immediately afterward returns nothing new.
+
 ### 3.5 Interpret replies conservatively
 
 Every reply has top-level `status` and one result per executed command. Results
