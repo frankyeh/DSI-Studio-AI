@@ -22,7 +22,7 @@ an `&`-separated list as a string.
 | Command | Common example | Important behavior |
 |---|---|---|
 | `list_region` | `["list_region"]` | List region index, visibility, name, type, color, dimensions, and resolution. |
-| `list_atlas` | `["list_atlas"]` | List template index, atlas index, atlas name, and region count. It does not list label IDs or label names. |
+| `list_atlas` | `["list_atlas"]` or `["list_atlas","<atlas name or index>"]` | Without an argument: list every atlas for the *current* template only (atlas index, name, region count). With an atlas name or the index from that listing: list that one atlas's region index and name. |
 | `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]` | Add labels 5 and 6 from atlas 2 of template 0. Use label IDs only when supplied by the user or another verified source; the current command interface cannot discover them. |
 | `add_region_from_atlas` | `["add_region_from_atlas","0 2"]` | Add every label from atlas 2 of template 0. This form does not require individual label IDs. |
 | `set_region_name` | `["set_region_name",0,"Tumor Core"]` | Rename a region by index. |
@@ -96,10 +96,10 @@ an `&`-separated list as a string.
 ## Safety and discovery notes
 
 - Discover current region indices and roles with `list_region` before mutation.
-- `list_atlas` does not expose individual atlas label IDs or names. Do not guess
-  them or claim they were discovered through the command interface.
-- The two-element `add_region_from_atlas` form adds all labels and avoids the
-  missing label-discovery problem.
+- `list_atlas` with an atlas name or index lists that atlas's region names and
+  indices; do not guess them from any other source.
+- The two-element `add_region_from_atlas` form adds all labels in one call and
+  needs no prior label discovery.
 - Confirm deletion, merging, overwrite, and mask-replacement operations.
 - Modal `show_*` commands block for user interaction; prefer the corresponding
   `save_*` command for unattended work.
