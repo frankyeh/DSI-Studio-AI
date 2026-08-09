@@ -67,23 +67,23 @@ Keep the entire command in one string.
 
 ### Local user confirmation
 
-Every `run_shell` command other than `cd` shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no character restriction or command whitelist anymore — the confirmation dialog is the only gate. This means:
+Every `run_shell` command other than `cd` and the plain directory-listing command (`dir` on Windows, `ls` on macOS/Linux — matched on the first space-delimited token only, so `dir /s` or `ls -la` still count) shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. `curl` is not exempt: it always requires confirmation like any other command that isn't `cd`/`dir`/`ls`. There is no character restriction or command whitelist otherwise — the confirmation dialog is the gate for everything else. This means:
 
-- `run_shell` (other than `cd`) blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
+- A confirmation-requiring `run_shell` command blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
 - If the user declines, the command fails with `user declined to run this shell command`.
-- Never send credentials, tokens, or other sensitive text in a `run_shell` command, since the local user sees the exact text in the confirmation dialog and it is written to captured output/console history either way.
+- Never send credentials, tokens, or other sensitive text in a `run_shell` command, since the local user sees the exact text in the confirmation dialog (when one is shown) and it is written to captured output/console history either way.
 
 ### `cd`
 
 `cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, and does not show a confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is remembered per AI session (not process-wide) and reapplied automatically before every later `run_shell`, `run_cli`, and relative-path operation in the same chat; a different chat's `cd` never affects it. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
 
-### `dir` and other synchronous commands
+### `dir`/`ls` and other synchronous commands
 
-Any command other than `curl` (after `cd`) takes the synchronous path: DSI Studio waits without a timeout for it to finish. On Windows it runs through `cmd.exe /c`; on macOS/Linux it is started directly. Standard output is returned and standard error is written to the DSI Studio console. The implementation checks the external exit code and fails with `command exited with code <N>` on a non-zero exit.
+Any command other than `curl` (after `cd`) takes the synchronous path, run through a real shell on every OS (`cmd.exe /c` on Windows, `/bin/sh -c` on macOS/Linux), so pipes, redirection, `&&`, and glob expansion behave consistently everywhere. DSI Studio waits up to 10 minutes for it to finish; a command still running after that is killed and the request fails with `command timed out after 10 minutes` — split a longer operation into an asynchronous `curl` step (or several shorter `run_shell` calls) instead of relying on an unbounded wait. Standard output is returned and standard error is written to the DSI Studio console. The implementation checks the external exit code and fails with `command exited with code <N>` on a non-zero exit.
 
 ### `curl`
 
-`curl` is asynchronous (after the confirmation dialog is approved). DSI Studio always inserts ` -s -S` right after `curl` before showing the confirmation dialog and running it — curl's default progress meter redraws a single line via `\r`, which floods a captured, non-interactive log instead; `-s` silences it while `-S` still surfaces real errors. The confirmation dialog and the `started curlN: ...` reply both show the command with these flags already added, so no need to include them. The immediate reply contains a synthetic task ID such as:
+`curl` is asynchronous (after the confirmation dialog is approved — see above; `curl` always requires confirmation). DSI Studio always inserts ` -s -S` right after `curl` before showing the confirmation dialog and running it — curl's default progress meter redraws a single line via `\r`, which floods a captured, non-interactive log instead; `-s` silences it while `-S` still surfaces real errors. The confirmation dialog and the `started curlN: ...` reply both show the command with these flags already added, so no need to include them. The immediate reply contains a synthetic task ID such as:
 
 ```text
 started curl1: curl -s -S -L -o "atlas.zip" "https://example.org/atlas.zip"
@@ -106,7 +106,7 @@ ChatGPT (Web) route: set `include_log:true` on the curl-start request, or send a
 
 If the session had already called `log`, no extra initialization is needed.
 
-There is currently no AI command to cancel a `curlN` task. On Windows, curl runs through `cmd.exe /c`; on macOS or Linux it is started directly. There is no completion timeout, so a stalled transfer can remain busy indefinitely. Relative output paths use this AI session's own current directory.
+There is currently no AI command to cancel a `curlN` task. Like every other `run_shell` command, curl runs through a real shell on every OS (`cmd.exe /c` on Windows, `/bin/sh -c` on macOS/Linux). Unlike the synchronous commands above, there is intentionally no completion timeout for curl, so a stalled transfer can remain busy indefinitely (this does not block DSI Studio itself — curl runs as a self-contained asynchronous task, not on a thread that anything else waits on). Relative output paths use this AI session's own current directory.
 
 ### Downloading from OpenNeuro
 
@@ -133,9 +133,9 @@ Do not place credentials, tokens, protected data, or untrusted command text in `
 Both commands are handled by MainWindow before fallback to the selected data window.
 
 - `run_cli` is normally synchronous.
-- `run_shell` commands other than `curl` are synchronous (after the confirmation dialog, if any).
+- `run_shell` commands other than `curl` are synchronous (after the confirmation dialog, if any), bounded to 10 minutes.
 - `curl` returns immediately once approved.
-- Any `run_shell` command other than `cd` pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes `run_shell` will not proceed past it until the user responds.
+- Any `run_shell` command other than `cd`/`dir`/`ls` pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes such a `run_shell` will not proceed past it until the user responds.
 - Do not place a dependent open or processing command after `curl` in the same array.
 - Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 
