@@ -55,11 +55,16 @@ auto-detects a `participants.tsv` alongside the sources if omitted. The GUI
 equivalent is `create_db` from the main window, followed by loading subject
 FIBs and demographics into `CreateDBDialog`.
 
-### 1.1 Inspect per-subject regional measurements from the database
+### 1.1 Quick group comparison: region or tract statistics from the database
 
-A completed `.dz` database can also be opened directly with `open_fib`. This
-creates a normal tracking window in template space, allowing the usual atlas
-and ROI tools to be applied to the aggregated database:
+A completed `.dz` database can also be opened directly with `open_fib` for a
+simple, fast group comparison -- a per-subject, per-metric mean at one region
+or along one tract -- without running the full permutation-based workflow
+below. There is no cohort filtering, no permutation test, and no FDR control
+here; use it to eyeball a suspected group difference or sanity-check the
+database before committing to the full analysis, not as a substitute for it.
+
+**Region-based**, using the usual atlas/ROI tools on the opened database:
 
 ```bash
 bash ./dsi.sh open_fib "<group>.dz"
@@ -68,17 +73,33 @@ bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index> <label-index
 bash ./dsi.sh show_region_statistics
 ```
 
-When the opened FIB contains a connectometry database, `show_region_statistics`
-Iterates through all scalar metrics stored in the database and adds one row for every stored database metric for every subject, in the form:
+**Tract-based**, on a bundle that is loaded or tracked in the opened database
+(see `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` for `open_tract`/`run_tracking`/
+`run_auto_track`):
 
-```text
-<subject-name> mean_<database-metric>    <regional-mean>
+```bash
+bash ./dsi.sh open_fib "<group>.dz"
+bash ./dsi.sh open_tract "<bundle.tt.gz>"
+bash ./dsi.sh show_tract_statistics
 ```
 
-For example, a database containing `qa`, `vol`, `dti_fa`, `rd`, `iso`, and `rdi` should report the regional subject values for each of those metrics in one statistics operation (e.g. `<subject> mean_qa`, `<subject> mean_dti_fa`, etc.). Agents should not manually switch a "current metric" and repeat the command; there is no need to change the database's current metric and doing so has no effect on this output. For unattended output, use
-`save_region_statistics "<output.txt>"` instead of `show_region_statistics`.
+When the opened FIB contains a connectometry database, both `show_region_statistics`
+and `show_tract_statistics` iterate through every scalar metric stored in the
+database and add one row per subject per metric, in the form:
 
-The initial live SCA2 test used an 18-scan QSDR database and BrainSeg Cerebellum:
+```text
+<subject-name> mean_<database-metric>    <mean at that region/tract>
+```
+
+For example, a database containing `qa`, `vol`, `dti_fa`, `rd`, `iso`, and
+`rdi` reports the subject values for each of those metrics in one call (e.g.
+`<subject> mean_qa`, `<subject> mean_dti_fa`, etc.) -- there is no need to
+switch the database's "current metric" first, and doing so has no effect on
+this output. For unattended output, use `save_region_statistics`/
+`save_tract_statistics "<output.txt>"` instead of the `show_*` form.
+
+The region-based path was validated live on an 18-scan SCA2 QSDR database and
+BrainSeg Cerebellum:
 
 ```bash
 bash ./dsi.sh open_fib "SCA2_subjects.dz"
@@ -86,7 +107,11 @@ bash ./dsi.sh add_region_from_atlas "0 1 2"
 bash ./dsi.sh show_region_statistics
 ```
 
-That test confirmed that database subjects are enumerated automatically inside an atlas ROI and that the ROI-statistics implementation iterates every stored database metric rather than returning only the selected metric. The call returned the Cerebellum geometry and one `mean_<metric>` value for each of the 18 scans for every metric stored in the database (e.g. `qa` in a single-index database). This ROI-statistics workflow is useful for inspecting, exporting, or comparing regional measurements across all subjects without opening each subject FIB separately.
+That test confirmed database subjects are enumerated automatically inside an
+atlas ROI, returning the Cerebellum geometry and one `mean_<metric>` value for
+each of the 18 scans for every metric stored in the database. `show_tract_statistics`
+uses the identical per-subject, per-metric mechanism along a tract instead of
+a region.
 
 ### 2. Define the analysis
 
@@ -198,7 +223,7 @@ HTML report alongside the tract files.
 | Increase and decrease both empty | Cohort too small, effect too weak, or covariate list absorbing the true effect |
 | FDR looks arbitrary/unstable | `fdr_threshold=0` uses a fixed length instead of an FDR criterion — set an explicit `fdr_threshold` if a controlled FDR is required |
 | Database load fails | Subjects not all reconstructed in the same template space, or `.dz` built from mismatched index sets |
-| ROI statistics show only one database metric | The updated `show_region_statistics` behavior should iterate every stored database metric; a single-metric result indicates an older build or an incomplete update |
+| Region/tract statistics show only one database metric | Both `show_region_statistics` and `show_tract_statistics` should iterate every stored database metric; a single-metric result indicates a build that predates this fix |
 | Trying to send a follow-up session command to the connectometry window | Not yet wired to `bash ./dsi.sh`; use the CLI batch action instead |
 
 ## Example Commands
@@ -215,6 +240,14 @@ Inspect regional metrics across all subjects in the database:
 bash ./dsi.sh open_fib "group.dz"
 bash ./dsi.sh add_region_from_atlas "0 1 2"
 bash ./dsi.sh show_region_statistics
+```
+
+Inspect along-tract metrics across all subjects in the database instead:
+
+```bash
+bash ./dsi.sh open_fib "group.dz"
+bash ./dsi.sh open_tract "cst.tt.gz"
+bash ./dsi.sh show_tract_statistics
 ```
 
 Run a cross-sectional correlation with one variable of interest and two
