@@ -47,6 +47,7 @@ Use `SKILL` documents when the task is procedural rather than a command lookup:
 
 - [Launcher and session transport](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
 - [ChatGPT Web GitHub issue session](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
+- [Reconstruction](DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md)
 - [Fiber tracking](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Differential tractography](DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md)
 - [Correlational tractography](DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md)
