@@ -55,6 +55,47 @@ auto-detects a `participants.tsv` alongside the sources if omitted. The GUI
 equivalent is `create_db` from the main window, followed by loading subject
 FIBs and demographics into `CreateDBDialog`.
 
+### 1.1 Inspect per-subject regional measurements from the database
+
+A completed `.dz` database can also be opened directly with `open_fib`. This
+creates a normal tracking window in template space, allowing the usual atlas
+and ROI tools to be applied to the aggregated database:
+
+```bash
+bash ./dsi.sh open_fib "<group>.dz"
+bash ./dsi.sh list_atlas
+bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index> <label-index>"
+bash ./dsi.sh show_region_statistics
+```
+
+When the opened FIB contains a connectometry database, `show_region_statistics`
+adds one row for every database subject in the form:
+
+```text
+<subject-name> mean_<current-database-metric>    <regional-mean>
+```
+
+The reported subject value is the mean of the **current database metric** within
+the selected region. It does not report every stored metric at once. Confirm the
+current database metric before interpreting the values, especially when the `.dz`
+contains several indices such as `qa`, `vol`, `dti_fa`, `rd`, `iso`, and `rdi`.
+For unattended output, use `save_region_statistics "<output.txt>"` instead of
+`show_region_statistics`.
+
+This workflow was validated on an 18-scan SCA2 QSDR database. The tested atlas
+example was BrainSeg Cerebellum:
+
+```bash
+bash ./dsi.sh open_fib "SCA2_subjects.dz"
+bash ./dsi.sh add_region_from_atlas "0 1 2"
+bash ./dsi.sh show_region_statistics
+```
+
+The result returned the Cerebellum geometry and one `mean_qa` value for each of
+the 18 scans because `qa` was the database's current metric. This ROI-statistics
+workflow is useful for inspecting, exporting, or comparing regional measurements
+across all subjects without opening each subject FIB separately.
+
 ### 2. Define the analysis
 
 - `--index_name` selects the scalar metric to study (e.g. `qa`, `rdi`);
@@ -165,6 +206,7 @@ HTML report alongside the tract files.
 | Increase and decrease both empty | Cohort too small, effect too weak, or covariate list absorbing the true effect |
 | FDR looks arbitrary/unstable | `fdr_threshold=0` uses a fixed length instead of an FDR criterion — set an explicit `fdr_threshold` if a controlled FDR is required |
 | Database load fails | Subjects not all reconstructed in the same template space, or `.dz` built from mismatched index sets |
+| ROI statistics show only one database metric | `show_region_statistics` reports the current database metric for every subject; confirm or switch the current metric before interpreting the table |
 | Trying to send a follow-up session command to the connectometry window | Not yet wired to `bash ./dsi.sh`; use the CLI batch action instead |
 
 ## Example Commands
@@ -173,6 +215,14 @@ Build the database:
 
 ```bash
 dsi_studio --action=db --source=*.qsdr.fz --demo=participants.tsv --index_name=qa --output=group.dz
+```
+
+Inspect a regional metric across all subjects in the database:
+
+```bash
+bash ./dsi.sh open_fib "group.dz"
+bash ./dsi.sh add_region_from_atlas "0 1 2"
+bash ./dsi.sh show_region_statistics
 ```
 
 Run a cross-sectional correlation with one variable of interest and two
