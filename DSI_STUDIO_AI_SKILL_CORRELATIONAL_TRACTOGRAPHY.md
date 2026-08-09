@@ -119,6 +119,44 @@ each of the 18 scans for every metric stored in the database. `show_tract_statis
 uses the identical per-subject, per-metric mechanism along a tract instead of
 a region.
 
+### 1.2 Build a longitudinal-change database from an existing database
+
+A longitudinal/intercept study (`--voi=longitudinal` in step 2 below) does not
+run on the group database built in step 1 directly -- it runs on a derived
+database of per-subject **changes** between two scans, matched pairwise.
+Build that derived database from an already-built `.dz`/`.db.fz` database
+with the same `--action=db`, adding `--match`:
+
+```bash
+dsi_studio --action=db --source=<group>.dz --match=consecutive \
+  --dif_type=0 --filter_type=0 --normalize_iso=1 --output=<group>.dif.dz
+```
+
+- `--match=consecutive` pairs subjects by their stored order: (row 0, row 1),
+  (row 2, row 3), and so on -- each pair is one subject's scan1/scan2. Confirm
+  the database's subject order actually alternates scan1/scan2 (e.g. via
+  `open_fib`/`list_window` or by inspecting the source file list used to
+  build the database) before relying on this.
+- `--match=<pairs.txt>` uses explicit pairing instead: a text file of
+  whitespace-separated integer subject-row indices, two per pair
+  (`scan1_row scan2_row scan1_row scan2_row ...`), 0-based in the same
+  subject order as the database.
+- `--dif_type=0` computes `scan2 - scan1` (default); `--dif_type=1` computes
+  `(scan2 - scan1) / scan1`.
+- `--filter_type=0` keeps all changes (default); `1` keeps only increases in
+  scan2 (negative values zeroed); `2` keeps only decreases (sign-flipped,
+  then negative values zeroed).
+- `--normalize_iso` (default `1`) divides `qa`/`rdi`/`nrdi*`-type metrics by
+  the subject's isotropic diffusion map before differencing, matching the
+  GUI's "Normalize QA/RDI/NRDI by ISO" checkbox default.
+- `--output` defaults to `longitudinal` plus a suffix that encodes
+  `--filter_type` (`.dif.dz`, `.pos_dif.dz`, or `.neg_dif.dz`), mirroring the
+  GUI's "Save DB as" default naming.
+
+The resulting database has `is_longitudinal` set and cannot be re-differenced
+(`--match` again on it fails). Feed it to `--action=cnt` as `--source` with
+`--voi=longitudinal` for the actual regression, per section 2 below.
+
 ### 2. Define the analysis
 
 - `--index_name` selects the scalar metric to study (e.g. `qa`, `rdi`);
