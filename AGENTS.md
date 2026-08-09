@@ -27,7 +27,7 @@ bash ./dsi.sh <command> [values...]
 ```
 
 Always include `bash` before `./dsi.sh`. Use one invocation per request. If this
-launcher does not work, read `DSI_STUDIO_AI_LAUNCHER.md` for platform requirements,
+launcher does not work, read `DSI_STUDIO_AI_SKILL_LAUNCHER.md` for platform requirements,
 troubleshooting, and the documented Windows fallback.
 
 The launcher maps requests as follows:
@@ -176,7 +176,7 @@ multi-command request.
 
 For ChatGPT (Web), a command named `close` closes the selected DSI Studio window,
 while an issue-session `request:"close"` disconnects the GitHub issue channel. See
-`DSI_STUDIO_AI_WINDOW_COMMANDS.md` and `DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md`.
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` and `DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md`.
 
 ### 3.4 Read the log when state changed outside the agent
 
@@ -599,10 +599,10 @@ verified state and never announce completion before results confirm it.
 
 ## 11. Related documents
 
-- [Launcher selection and troubleshooting](DSI_STUDIO_AI_LAUNCHER.md)
-- [Shared window controls](DSI_STUDIO_AI_WINDOW_COMMANDS.md)
+- [Launcher selection and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
+- [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
-- [Direct GitHub issue control](DSI_STUDIO_AI_GITHUB_ISSUE_SESSION.md)
+- [Direct GitHub issue control](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
 - [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
