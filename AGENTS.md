@@ -473,7 +473,7 @@ directory's contents after network-backed work.
 
 ## 8. Internal CLI and confirmation-gated shell
 
-Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
+Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before using either command.
 
 ### 8.1 Use `run_cli` only for DSI Studio CLI actions
 
@@ -593,7 +593,7 @@ verified state and never announce completion before results confirm it.
 10. When the user demonstrates, changes, or retries something manually, inspect
     `log` rather than relying on memory.
 11. Before `run_cli` or `run_shell`, read
-    `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` and follow its completion-verification
+    `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` and follow its completion-verification
     rules.
 12. Read only the topic-specific files needed for the current task.
 
@@ -601,7 +601,7 @@ verified state and never announce completion before results confirm it.
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
-- [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md)
+- [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
 - [Direct GitHub issue control](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
 - [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)

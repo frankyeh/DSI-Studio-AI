@@ -473,7 +473,7 @@ is equivalent to using `include_log:true` on the start request.
 Do not put a command that depends on the downloaded file after `curl` in the same
 command array. Never send a DSI Studio `--action=...` line through `run_shell`, and
 never send an operating-system command through `run_cli`. Read
-`DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using either command.
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before using either command.
 
 ### First request: list windows
 

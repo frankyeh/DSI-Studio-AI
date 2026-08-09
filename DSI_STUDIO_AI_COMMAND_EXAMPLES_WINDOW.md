@@ -204,7 +204,7 @@ Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fi
 remain available even while a non-main window is selected. `run_cli` and `run_shell`
 do not act on the selected window: `run_cli` invokes its own internal CLI action
 logic, while `run_shell` runs any shell command after local-user confirmation
-(`cd` alone needs no confirmation). Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for
+(`cd` alone needs no confirmation). Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` for
 their exact behavior.
 
 The four shared window controls are different: they always act on the selected

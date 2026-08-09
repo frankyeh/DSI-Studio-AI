@@ -102,7 +102,7 @@ After `open_src`, the new `recon<hex-address>` is already selected; follow
 - A failed action returns `command line failed`; inspect captured output for the more
   specific action message.
 
-See `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` before using CLI actions, especially
+See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before using CLI actions, especially
 wildcards, global thread settings, overwrites, or actions that depend on open windows.
 
 ## Confirmation-gated `run_shell` commands
@@ -158,7 +158,7 @@ everything else is passed to the operating system shell after local user approva
   `run_shell` — the local user sees the exact text in the confirmation dialog either
   way.
 
-Read `DSI_STUDIO_AI_CLI_SHELL_COMMANDS.md` for platform behavior, wildcard rules,
+Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` for platform behavior, wildcard rules,
 working-directory effects, and completion verification.
 
 ## Fiber Data Hub workflow
