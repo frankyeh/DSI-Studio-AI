@@ -258,12 +258,19 @@ separate steps rather than jumping straight to a group comparison:
   baseline when either varies meaningfully across the cohort. For a
   multi-site dataset, also consider a `site` covariate (encoded as a 0/1, or
   more, categorical demographics column) to control for scanner/site
-  effects.
+  effects. For a **longitudinal** database specifically, also consider the
+  inter-scan interval (e.g. a `days_interval_between_ses1_and_ses2`-style
+  column, if present) as a covariate -- a longer gap between scans plausibly
+  produces more change on its own, independent of group membership.
 
 Do not guess feature indices for the CLI's `--voi`/`--variable_list`; they
 come from the demographics file's column order as loaded into the database.
 Confirm them before running rather than assuming a fixed layout across
-studies.
+studies. Before running, explicitly re-list every available demographics
+column (`get_demo`, or the CLI's own printed `selectable variables include`
+list) and deliberately decide for each one whether it belongs in the
+covariate set -- do not stop at the first plausible-looking subset (e.g.
+age+sex) without checking what else the demographics table actually offers.
 
 In a `connectometry<hex>` session, the equivalent of `--voi`/`--variable_list`
 is one command, `set_voi <voi> <variable_list>`, and it takes feature **names**
@@ -281,10 +288,16 @@ same caution as the CLI's indices. `set_voi`'s second argument is the full set
 of variables to include (covariates plus the variable of interest itself, same
 convention as `--variable_list`); the variable of interest is added
 automatically if omitted from it. `set_voi` clears any previously selected
-variables before applying the new set -- it is not additive. `get_demo` prints
-the raw per-subject demographics table (`subject<TAB><column>...`) actually
-loaded into the database, useful for confirming exact column names and values
-(including any subject-name rematching) before calling `set_voi`.
+variables before applying the new set -- it is not additive. `get_demo` first
+prints a `database type:` line -- `cross-sectional (not longitudinal)`,
+`longitudinal, unfiltered (signed scan2-scan1 change)`, `longitudinal,
+increase-only (positive magnitude, scan2>scan1 kept)`, or `longitudinal,
+decrease-only (positive magnitude, scan2<scan1 kept)` -- then the raw
+per-subject demographics table (`subject<TAB><column>...`) actually loaded
+into the database. Use it to confirm exact column names and values (including
+any subject-name rematching) before calling `set_voi`, and to confirm which
+of the four database kinds is currently loaded without re-deriving it from
+whichever `--match`/`--filter_type` built it.
 
 ### 3. Select the cohort
 
@@ -316,7 +329,15 @@ These are two independent controls, not one:
 - **Propagation threshold** (`--t_threshold` or `--effect_size`, mutually
   derived from each other via `rho = t / sqrt(t² + n - 2)`): the per-voxel
   correlation strength required to keep extending a streamline during
-  tracking. Default effect size `0.3`.
+  tracking. Default effect size `0.3` in both the CLI (`cmd/cnt.cpp`, used
+  whenever `--t_threshold` is not explicitly passed) and the GUI (set in
+  `group_connectometry`'s constructor) -- prefer setting `effect_size`
+  directly rather than a fixed `t_threshold`/`threshold`, since a t-value's
+  meaning shifts with sample size (see below). This is only the *default*,
+  though -- a prior command in the same session (yours or a local user's) may
+  have already changed it, so confirm the current value (`list_param
+  effect_size` in a `connectometry<hex>` session) rather than assuming it is
+  still `0.3` before running.
 - **`--fdr_threshold`**: the false-discovery-rate criterion used to select
   the reported track length **after** the permutation run finishes. If left
   at the default `0.0` (disabled), a fixed `--length_threshold` (voxels) is
@@ -351,6 +372,36 @@ search itself. `--exclude_cb` removes the cerebellum from consideration
 before seeding and is a narrower, usually-safer exclusion than a positive
 ROI constraint.
 
+### Pre-run checklist
+
+Before calling `run`/`--action=cnt`, explicitly re-confirm every item below
+rather than assuming a value is still what you last set or what the default
+should be -- a stale parameter left over from an earlier command (yours or a
+local user's) is easy to miss and will not raise an error:
+
+- **Database kind** (`get_demo`'s `database type:` line) matches what this
+  step of the analysis needs -- e.g. not accidentally running a
+  cross-sectional test on a longitudinal database or vice versa.
+- **`index_name`** is the intended metric (`list_param index_name`), not
+  whatever the database's first index happened to default to.
+- **`voi`** (`list_voi`) is the intended variable of interest, not left over
+  from a previous analysis on the same window.
+- **`variable_list`/covariates** were chosen deliberately by reviewing *every*
+  available demographics column (`get_demo`), not just the first
+  plausible-looking subset -- age/sex is a starting point, not the ceiling;
+  also check for site, scan-interval, or other columns relevant to this
+  specific dataset.
+- **Cohort filter** (`select_text`/`show_cohort`) and the resulting `n=` are
+  what this step intends -- cleared for a full-cohort comparison, or set for
+  a cohort-restricted step, per whichever phase of the analysis this is.
+- **`effect_size`/`threshold`** (`list_param effect_size`) is deliberately
+  set, not a stale value from a prior command -- prefer `effect_size=0.3` as
+  the default starting point rather than a fixed `t_threshold`.
+- **FDR criterion** (`fdr_control`/`fdr_threshold`) is configured as intended
+  for this run, not left at whatever a previous run used.
+- **ROI/seed constraints** are whole-brain unless there's a specific,
+  deliberate reason to narrow them (see above).
+
 ### 6. Run and interpret increase/decrease
 
 The permutation run produces two independent results, `hypothesis_inc` and
@@ -359,6 +410,37 @@ The permutation run produces two independent results, `hypothesis_inc` and
 interest (or increases over time, for a longitudinal/intercept study);
 "decrease" means the opposite. These are separate pathway sets with
 separate tract counts — report both, not just whichever is larger.
+
+The report's actual wording (`get_result`, or the HTML report/`show_result`)
+depends on what is being tested:
+
+- Testing `longitudinal`/`Intercept` (phase 1 of 1.3): "increased `<METRIC>`"
+  / "decreased `<METRIC>`", describing the raw signed change directly across
+  all subjects pooled together.
+- Testing a named categorical variable (e.g. `group`) against a
+  **cross-sectional** or **unfiltered-longitudinal** metric: each hypothesis
+  names one specific level of the variable, but both use the **same**
+  comparative word — e.g. "higher `<METRIC>` in CONTROL" / "higher `<METRIC>`
+  in SCA2" — because only the named group differs, not the direction of the
+  underlying comparison. Do not expect "increased"/"decreased" here; that
+  wording would misdescribe a between-group comparison.
+- Testing a named categorical variable on a **filtered-longitudinal**
+  database (`--filter_type=1`/`2`): the metric is already a positive
+  magnitude of change (see 1.2), so the report instead says "more `<METRIC>`
+  increase over time in `<group>`" / "more `<METRIC>` decline over time
+  in `<group>`" — again the **same** word ("more") for both hypotheses, each
+  naming a different group. A finding worded as "less `<METRIC>` decline in
+  X" would be a bug (it restates the other hypothesis's finding, "more
+  decline in the other group", as if it were its own separate result) —
+  confirmed against a real regression during development; if this wording
+  reappears, it indicates the fix regressed.
+
+Each finding's paragraph states "significantly" only when that side's FDR is
+strictly below `0.05`, independent of whatever `--fdr_threshold` was
+configured for the search itself — a finding can still be reported (tracts
+shown, FDR value stated) without the word "significantly" if its FDR sits
+above `0.05` but below whatever more lenient threshold was in effect for the
+search.
 
 `--tip_iteration` (default 16) applies topology-informed pruning to both
 result sets and their null distributions before FDR is computed;
