@@ -67,11 +67,11 @@ Keep the entire command in one string.
 
 ### Local user confirmation
 
-Every `run_shell` command other than `cd` and the plain directory-listing command (`dir` on Windows, `ls` on macOS/Linux — matched on the first space-delimited token only, so `dir /s` or `ls -la` still count) shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. `curl` is not exempt: it always requires confirmation like any other command that isn't `cd`/`dir`/`ls`. There is no character restriction or command whitelist otherwise — the confirmation dialog is the gate for everything else. This means:
+Every `run_shell` command other than `cd` shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no exemption for a plain `dir`/`ls`: the command runs through a real shell (see below), so a compound string like `ls && rm file` would execute everything after `ls` too if only the first token were checked — the confirmation dialog is the only gate for anything other than `cd`. This means:
 
-- A confirmation-requiring `run_shell` command blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
+- `run_shell` (other than `cd`) blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
 - If the user declines, the command fails with `user declined to run this shell command`.
-- Never send credentials, tokens, or other sensitive text in a `run_shell` command, since the local user sees the exact text in the confirmation dialog (when one is shown) and it is written to captured output/console history either way.
+- Never send credentials, tokens, or other sensitive text in a `run_shell` command, since the local user sees the exact text in the confirmation dialog and it is written to captured output/console history either way.
 
 ### `cd`
 
@@ -83,7 +83,7 @@ Any command other than `curl` (after `cd`) takes the synchronous path, run throu
 
 ### `curl`
 
-`curl` is asynchronous (after the confirmation dialog is approved — see above; `curl` always requires confirmation). DSI Studio always inserts ` -s -S` right after `curl` before showing the confirmation dialog and running it — curl's default progress meter redraws a single line via `\r`, which floods a captured, non-interactive log instead; `-s` silences it while `-S` still surfaces real errors. The confirmation dialog and the `started curlN: ...` reply both show the command with these flags already added, so no need to include them. The immediate reply contains a synthetic task ID such as:
+`curl` is asynchronous (after the confirmation dialog is approved). DSI Studio always inserts ` -s -S` right after `curl` before showing the confirmation dialog and running it — curl's default progress meter redraws a single line via `\r`, which floods a captured, non-interactive log instead; `-s` silences it while `-S` still surfaces real errors. The confirmation dialog and the `started curlN: ...` reply both show the command with these flags already added, so no need to include them. The immediate reply contains a synthetic task ID such as:
 
 ```text
 started curl1: curl -s -S -L -o "atlas.zip" "https://example.org/atlas.zip"
@@ -135,7 +135,7 @@ Both commands are handled by MainWindow before fallback to the selected data win
 - `run_cli` is normally synchronous.
 - `run_shell` commands other than `curl` are synchronous (after the confirmation dialog, if any), bounded to 10 minutes.
 - `curl` returns immediately once approved.
-- Any `run_shell` command other than `cd`/`dir`/`ls` pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes such a `run_shell` will not proceed past it until the user responds.
+- Any `run_shell` command other than `cd` pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes such a `run_shell` will not proceed past it until the user responds.
 - Do not place a dependent open or processing command after `curl` in the same array.
 - Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 
