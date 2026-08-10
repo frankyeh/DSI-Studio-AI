@@ -316,6 +316,13 @@ examining an unpruned result or when the bundle is too sparse for pruning to be
 appropriate. TIP cleans the tractography after tracking, so the final count is
 data-dependent and lower than `max_tract_count`.
 
+AutoTrack already uses built-in anatomical region constraints for each named bundle.
+For standard AutoTrack, do not add ROI, ROA, END, NotEND, Limiting, Terminating, or
+other user region constraints by default; extra regions can unnecessarily restrict
+or distort the intended bundle. Add an additional region constraint only for a
+specific anatomical purpose, such as isolating a minor branch or selectively
+restricting a known component of the bundle.
+
 For a simple anatomical 3D view, hide slices and add the built-in white-matter
 surface:
 
@@ -579,7 +586,11 @@ source data or running reconstruction.
     bundle is sufficiently populated (roughly 5,000–10,000 or more tracts). Use
     3–4 TIP iterations rather than defaulting to `tip_iteration=0` just to maximize
     tract count.
-13. Read only the topic-specific files needed for the current task.
+13. Standard named-bundle AutoTrack already has built-in anatomical region
+    constraints. Do not add ROI/ROA/END/NotEND/Limiting/Terminating or other region
+    constraints unless a specific anatomical question requires them, such as
+    isolating a minor branch.
+14. Read only the topic-specific files needed for the current task.
 
 ## 11. Related documents
 
