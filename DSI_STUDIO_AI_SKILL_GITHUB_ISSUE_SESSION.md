@@ -18,6 +18,60 @@ filenames, window titles, command parameters, processing output, and incremental
 logs. Do not place credentials, protected health information, patient identifiers,
 or unpublished confidential data in the issue.
 
+## Bootstrap from an empty Issue URL
+
+An empty **Issue URL** is the normal first-run state for a user who has just selected
+**ChatGPT (Web)**. The user is not expected to know how to create the GitHub issue or
+understand the issue-channel protocol before starting.
+
+DSI Studio should direct the user to ChatGPT for bootstrap setup. A helper action such
+as **Set up with ChatGPT** should open ChatGPT in the default browser and copy a short
+bootstrap prompt to the clipboard. The user pastes that prompt into a new ChatGPT
+conversation. The public `frankyeh/DSI-Studio-AI` repository can be read before the
+private issue-channel repository has been selected.
+
+A suitable bootstrap prompt is:
+
+```text
+I want to connect ChatGPT (Web) to DSI Studio.
+
+Read the public GitHub file:
+frankyeh/DSI-Studio-AI/DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md
+
+Follow its bootstrap instructions. Use the GitHub tools available in ChatGPT. If
+GitHub issue access is not available, guide me through enabling the ChatGPT GitHub
+app first. Find an eligible private personal repository for the DSI Studio issue
+channel, preferably DSI-Studio-Connect, create a new DSI Studio session issue, and
+give me the complete Issue URL to paste into DSI Studio.
+
+Do not send DSI Studio commands until I tell you that DSI Studio has connected.
+```
+
+When a ChatGPT conversation arrives through this bootstrap path, the agent should
+handle setup directly instead of asking the user to understand the protocol:
+
+1. Read this file completely before creating the session issue.
+2. Check whether GitHub issue actions are available to ChatGPT.
+3. If GitHub is not connected or issue actions are unavailable, guide the user to
+   enable the ChatGPT GitHub app and grant it access to the intended private
+   repository.
+4. Find an eligible private repository owned by the user's personal GitHub account.
+   Prefer a dedicated repository such as `owner/DSI-Studio-Connect`. If no eligible
+   repository exists, ask the user to create a private personal repository with
+   Issues enabled, then continue after it is visible to ChatGPT.
+5. Create the required `DSI Studio session ...` issue using the procedure below.
+6. Read the issue back to verify access, then clearly give the complete issue URL to
+   the user and tell them to paste it into DSI Studio's **Issue URL** field and click
+   **Start**.
+7. Wait until the user says DSI Studio is connected, then verify that the
+   `"dsi_session_result":true` result comment exists before sending the first
+   request.
+
+The bootstrap handles ChatGPT's GitHub access and issue creation. DSI Studio's local
+GitHub token is separate. If DSI Studio has no issue-channel token configured, the
+user must configure that token in **AI Settings** before starting the connection;
+the token must never be pasted into ChatGPT.
+
 ## Repository requirements
 
 Use a private repository owned by a personal GitHub account. The issue creator
@@ -159,7 +213,8 @@ The agent must never request, receive, repeat, display, or test the DSI Studio t
 
 The ChatGPT agent should:
 
-1. Resolve and verify the exact private personal repository.
+1. Resolve and verify the exact private personal repository. If the user entered
+   through the empty-Issue-URL bootstrap, perform the bootstrap steps above first.
 2. Create one new issue in that repository.
 3. Give it a concise descriptive title beginning exactly with:
 
@@ -182,10 +237,11 @@ The ChatGPT agent should:
    {"state":"waiting for DSI Studio connection"}
    ```
 
-5. Read the new issue to confirm access and give its URL to the user.
-6. Tell the user to connect DSI Studio using the procedure below.
-7. After connection, read the issue comments and find the token-owned comment whose
-   JSON contains:
+5. Read the new issue to confirm access and give its complete URL to the user.
+6. Tell the user to paste that URL into DSI Studio's **Issue URL** field and click
+   **Start**. Do not send a command yet.
+7. After the user reports that DSI Studio is connected, read the issue comments and
+   find the token-owned comment whose JSON contains:
 
    ```json
    {"dsi_session_result":true}
@@ -209,15 +265,26 @@ Do not create request/result files, workflow dispatches, commits, or GitHub Acti
 
 ### DSI Studio user procedure
 
-There is no separate **Connect Issue** or **Reconnect Issue** button.
+There is no separate **Connect Issue** or **Reconnect Issue** button. An empty
+**Issue URL** after selecting **ChatGPT (Web)** is expected for a new user; the issue
+is created by ChatGPT during bootstrap.
 
-To start the channel:
+First-time setup:
 
-1. Open DSI Studio's **AI Agent** window.
-2. Click **New Chat**.
-3. In **Agent**, select **ChatGPT (Web)**.
-4. Paste the complete issue URL into **Issue URL**.
-5. Click **Start**.
+1. Open DSI Studio's **AI Agent** window and click **New Chat**.
+2. In **Agent**, select **ChatGPT (Web)**.
+3. If **Issue URL** is empty, use DSI Studio's ChatGPT setup helper. It should open
+   ChatGPT and copy the bootstrap prompt shown above. Paste the prompt into ChatGPT.
+4. Follow ChatGPT's setup guidance. ChatGPT will verify GitHub issue access, select
+   an eligible private personal repository, and create the new session issue.
+5. Copy the complete issue URL returned by ChatGPT, return to DSI Studio, and paste
+   it into **Issue URL**.
+6. Click **Start**.
+7. Return to the same ChatGPT conversation and tell ChatGPT that DSI Studio is
+   connected. ChatGPT then verifies the result comment before sending commands.
+
+For an existing issue, skip the bootstrap and paste the complete issue URL directly
+before clicking **Start**.
 
 The URL must have this exact form:
 
@@ -626,6 +693,13 @@ protocol acknowledgement.
 
 ## Troubleshooting
 
+### Issue URL is empty
+
+For a new ChatGPT (Web) session this is expected. Use DSI Studio's ChatGPT setup
+helper, paste its bootstrap prompt into ChatGPT, and let ChatGPT create the session
+issue. Paste the returned complete issue URL into DSI Studio and click **Start**.
+Do not manually invent an issue URL.
+
 ### No result comment appears
 
 Confirm that the user selected **New Chat** -> **ChatGPT (Web)**, pasted the correct
@@ -677,7 +751,9 @@ command.
 ### ChatGPT cannot list or create the issue
 
 Add the private repository to the ChatGPT GitHub app configuration. Code-search
-visibility alone is not enough; the integration must support issue actions.
+visibility alone is not enough; the integration must support issue actions. If the
+user has no eligible private personal repository yet, have them create one with
+Issues enabled and then grant the ChatGPT GitHub app access to it.
 
 ### Authorization fails after the channel started
 
