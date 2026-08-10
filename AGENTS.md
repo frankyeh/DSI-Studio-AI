@@ -311,6 +311,12 @@ white-matter bundle. Inspect the available tract names first:
 bash ./dsi.sh list_auto_tract
 ```
 
+AutoTrack names are hierarchical. When the user asks for the whole tract family,
+select its parent entry rather than a branch-specific descendant. For example, use
+`Association_CingulumL` for the entire left cingulum and the corresponding parent
+entry for the corpus callosum; select a child entry only when a specific subdivision
+or branch is requested.
+
 Set a practical tracking size and topology-informed pruning (TIP):
 
 ```bash
