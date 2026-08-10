@@ -269,6 +269,39 @@ While the dialog is open, `list_window` may report `waiting`. Continue only afte
 the user selects a value or cancels. When the exact value is already known, pass it
 directly.
 
+### 4.3 Verify connectometry demographics before analysis
+
+After `open_connectometry`, never assume the database contains demographics merely
+because it opens successfully or lists subjects. Before selecting a variable of
+interest, selecting a cohort, or starting correlational tractography, inspect both:
+
+```bash
+bash ./dsi.sh get_demo
+bash ./dsi.sh list_voi
+```
+
+`get_demo` should show the demographic columns needed by the planned model in
+addition to the subject identifier, and `list_voi` should list the required study
+variable and covariates. If `get_demo` shows only subjects with no usable demographic
+columns, or `list_voi` is empty or missing required variables, load the external
+demographics table before continuing:
+
+```bash
+bash ./dsi.sh open_mr_files "C:/data/participants.tsv"
+bash ./dsi.sh get_demo
+bash ./dsi.sh list_voi
+```
+
+Use an exact demographics path supplied by the user or discovered from verified
+local/dataset information; do not invent one. If the required demographics file is
+not available, stop before `set_voi`, cohort selection, or `run` and report the
+missing input.
+
+Repeat this check after creating or opening a derived database, including a
+longitudinal difference database. Do not infer that demographics from the source
+database or a neighboring `participants.tsv`/CSV file were embedded or carried into
+the derived database.
+
 ## 5. Quick fiber tracking: map the arcuate fasciculi
 
 After opening a FIB/FZ file, AutoTrack provides a quick way to map a standard
@@ -597,7 +630,10 @@ source data or running reconstruction.
     constraints. Do not add ROI/ROA/END/NotEND/Limiting/Terminating or other region
     constraints unless a specific anatomical question requires them, such as
     isolating a minor branch.
-14. Read only the topic-specific files needed for the current task.
+14. Before any connectometry analysis, complete the demographics preflight in
+    Section 4.3. Recheck derived and longitudinal databases instead of assuming
+    demographics were embedded or carried forward.
+15. Read only the topic-specific files needed for the current task.
 
 ## 11. Related documents
 
