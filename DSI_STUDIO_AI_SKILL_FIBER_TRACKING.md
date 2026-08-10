@@ -353,7 +353,13 @@ discover the exact internal atlas identifier:
 bash ./dsi.sh list_auto_tract
 ```
 
-Then use an exact returned name:
+AutoTrack identifiers are hierarchical. When the user asks for the whole tract
+family, choose the parent entry rather than one of its branch-specific descendants.
+For example, map the entire left cingulum with `Association_CingulumL`, not an
+`Association_CingulumL_...` child; use the corresponding parent entry for the corpus
+callosum. Select a child only when a specific subdivision or branch is requested.
+
+Then use the exact returned name:
 
 ```bash
 bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
@@ -363,80 +369,56 @@ Atlas names use underscore-separated hierarchical prefixes such as
 `Association_*`, `ProjectionBrainstem_*`, and `Commissure_*`. Never guess or use
 human-readable shorthand such as `Corticospinal Tract`.
 
-Recommended dense AutoTrack sampling:
+For a standard named bundle, a practical starting point is:
 
 ```text
-tract limit: 50,000
+tract limit: 10,000
 seed limit: 50,000,000
+TIP iterations: 3–4
 ```
 
-Set these limits and optionally disable automatic TIP before a cleanup workflow:
-
 ```bash
-bash ./dsi.sh set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
+bash ./dsi.sh set_params "max_tract_count=10000&max_seed_count=50000000&tip_iteration=4"
 ```
 
 The seed limit prevents difficult, low-yield pathways from running indefinitely.
-If it is reached first, fewer than 50,000 tracts may be produced. Adjust AutoTrack
-tolerance cautiously: larger values accept more variation and false positives;
-smaller values may reject distorted or variable anatomy.
+AutoTrack already carries built-in anatomical region constraints for the named
+bundle, so do not add ROI/ROA/END/NotEND/Limiting/Terminative constraints unless a
+specific anatomical question requires additional restriction, such as isolating a
+minor branch. Adjust AutoTrack tolerance cautiously: larger values accept more
+variation and false positives; smaller values may reject distorted or variable
+anatomy.
 
-## Dense-bundle cleanup
+## Bundle cleanup
 
-Topology-informed pruning and repeated-trajectory deletion are recommended only for
-a dense, anatomically coherent named pathway bundle with more than 10,000 tracts;
-approximately 50,000 tracts before cleanup is preferred.
+TIP is bundle-level cleanup. Apply it to a visually coherent tract bundle, including
+an AutoTrack bundle or a previously loaded or recognized bundle result. If the bundle
+is sufficiently populated (roughly 5,000–10,000 or more tracts before pruning),
+3–4 TIP iterations are normally desired. Do not disable TIP merely to maximize tract
+count. Use no TIP only when intentionally examining an unpruned bundle or when the
+bundle is too sparse for pruning.
 
-Do not routinely apply either operation to whole-brain tractography. A whole-brain
-tract set contains many pathways rather than one coherent bundle and generally does
-not need bundle-specific trimming or repeated-tract deletion. Leave a bundle with
-10,000 or fewer tracts intact unless the user specifically requests cleanup.
+Do not routinely apply TIP or repeated-trajectory deletion to whole-brain
+tractography. A whole-brain tract set contains many pathways rather than one coherent
+visual bundle and generally does not need bundle-specific pruning.
 
-- AutoTrack applies its configured `tip_iteration` automatically.
-- Apply one additional TIP iteration to every checked bundle:
-
-```bash
-bash ./dsi.sh trim_tract
-```
-
-- Target one explicit bundle index:
+AutoTrack applies its configured `tip_iteration` automatically. For a previously
+loaded or already generated bundle that still needs cleanup, apply one additional TIP
+iteration at a time and inspect the result:
 
 ```bash
 bash ./dsi.sh trim_tract <bundle-index>
 ```
 
-- Remove near-duplicate trajectories from every checked bundle using a 1-voxel
-  distance threshold:
+To remove near-duplicate trajectories from checked coherent bundles when specifically
+needed:
 
 ```bash
 bash ./dsi.sh delete_repeated_tract 1
 ```
 
-Uncheck all non-target bundles before either operation. This is mandatory for
-`delete_repeated_tract`, whose first parameter is the distance threshold, not a
-bundle index.
-
-Recommended cleanup for a dense named bundle:
-
-1. Set dense limits and disable automatic TIP:
-
-   ```bash
-   bash ./dsi.sh set_params "max_tract_count=50000&max_seed_count=50000000&tip_iteration=0"
-   ```
-
-2. Run AutoTrack with an exact name returned by `list_auto_tract`.
-3. Poll until tracking is complete:
-
-   ```bash
-   bash ./dsi.sh list_tract status
-   ```
-
-4. Confirm the target has more than 10,000 tracts, preferably close to 50,000.
-5. Uncheck every non-target bundle, including any whole-brain tract set.
-6. Apply `trim_tract` four or five times, inspecting after each round.
-7. Run `delete_repeated_tract 1` once.
-8. Apply secondary `trim_tract` rounds one at a time until approximately 10,000
-   clean trajectories remain. Stop earlier if the valid tract core deteriorates.
+Uncheck all non-target bundles before checked-bundle cleanup operations. Preserve the
+original or obtain user approval when cleanup must remain recoverable.
 
 ## Result cleanup and visualization
 
@@ -454,7 +436,7 @@ After tracking finishes:
    bash ./dsi.sh list_tract
    ```
 
-3. Apply dense-bundle cleanup only when appropriate.
+3. Apply bundle cleanup only when appropriate.
 4. Assign distinct bundle colors:
 
    ```bash
