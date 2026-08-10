@@ -269,140 +269,61 @@ While the dialog is open, `list_window` may report `waiting`. Continue only afte
 the user selects a value or cancels. When the exact value is already known, pass it
 directly.
 
-## 5. SRC/SZ reconstruction workflow
+## 5. Quick fiber tracking: map the arcuate fasciculi
 
-If reconstruction does not apply to the task, study this section without running
-materially altering commands.
-
-### 5.1 Reconstruction window targeting
-
-A successful `open_src` automatically selects the newly created
-`recon<hex-address>` window. Use `set_window` only when switching to another already
-open window.
-
-### 5.2 Inspect and set parameters
+After opening a FIB/FZ file, AutoTrack provides a quick way to map a standard
+white-matter bundle. Inspect the available tract names first:
 
 ```bash
-bash ./dsi.sh list_param
-bash ./dsi.sh list_param method
-bash ./dsi.sh set_param "method=4"
-bash ./dsi.sh set_params "method=4&param=1.25&thread_count=8"
+bash ./dsi.sh list_auto_tract
 ```
 
-`set_param` and `set_params` both accept one
-`name=value[&name=value...]` composite parameter.
-
-### 5.3 Use concise reconstruction operation names
+Set a practical tracking size and topology-informed pruning (TIP):
 
 ```bash
-bash ./dsi.sh mask_unet
-bash ./dsi.sh bias_field_correction
-bash ./dsi.sh resample 2
-bash ./dsi.sh recon 4
+bash ./dsi.sh set_params "max_tract_count=10000&max_seed_count=50000000&tip_iteration=4"
 ```
 
-Use `recon`, not `reconstruction`, `src_recon`, or `src_reconstruction`. Optional
-method values are `1` for DTI, `4` for GQI, and `7` for QSDR. Omitting the method
-uses the current `method` parameter.
-
-A successful reconstruction prints each generated path as:
-
-```text
-reconstruction output: <path>
-```
-
-Generated FIB/FZ paths are added to the recent-FIB list. For a multi-file
-reconstruction window, inspect all returned output paths.
-
-For AI-originated `topup` or `topup_eddy` without a parameter, DSI Studio uses its
-automatic reverse-phase-encoding search. Pass an explicit `.rz`, `.sz`, `src.gz`, or
-NIfTI path when the correct reverse-PE source is known.
-
-Corrections, b-table changes, source geometry changes, mask operations, resampling,
-and reconstruction can materially alter results. Do not run them merely to learn the
-interface. Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md` before changing
-source data or running reconstruction.
-
-## 6. FIB/FZ tracking workflow
-
-If tracking does not apply to the task, study this section without running materially
-altering commands.
-
-### 6.1 Tracking window targeting
-
-A successful `open_fib` automatically selects the newly created
-`tracking<hex-address>` window. Use `set_window` only when switching to another
-already open window.
-
-### 6.2 Inspect and load slices
+Use exact tract names returned by `list_auto_tract`. For example, map the left
+arcuate fasciculus:
 
 ```bash
-bash ./dsi.sh list_slice
-bash ./dsi.sh set_slice <slice-index>
-bash ./dsi.sh list_slice
-```
-
-Use an index returned by `list_slice`. A URL-backed Hub slice may initially report
-`available` or `registering`. Poll until the selected row reports `ready` before
-using it.
-
-### 6.3 Segment a brain
-
-```bash
-bash ./dsi.sh list_unet
-bash ./dsi.sh segment_brain "<model-ID>" <slice-index>
-bash ./dsi.sh list_region
-```
-
-Use the internal `model` value from a `list_unet` row with `available=1`, not its
-display name. For the common SynthSeg exercise, use `human_synthseg` only when that
-exact model ID is available.
-
-### 6.4 Add atlas regions
-
-```bash
-bash ./dsi.sh list_atlas
-bash ./dsi.sh list_atlas "<atlas name or index>"
-bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index> <label-index>"
-bash ./dsi.sh list_region
-```
-
-`list_atlas` with no argument lists atlases for the current template only, giving
-each atlas's index. Follow up with that name or index to list the atlas's exact
-region names and indices -- use those returned indices for `<label-index>`, not a
-guess or a value from an unrelated source. Join multiple label indices with `&`.
-In the current BrainSeg teaching example, `template=0`, `atlas=1`, and labels
-`3&4` correspond to left and right thalamus, confirmed via `list_atlas 1`.
-
-### 6.5 Inspect tracking parameters and run tracking
-
-```bash
-bash ./dsi.sh list_param tracking
-bash ./dsi.sh run_tracking "Whole Brain"
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
 bash ./dsi.sh list_tract status
 ```
 
-Repeat `list_tract status` until it reports `status=done`, then inspect the result:
+`run_auto_track` is asynchronous. Repeat `list_tract status` until it reports
+`done`, then inspect the result:
 
 ```bash
 bash ./dsi.sh list_tract
 ```
 
-Use `list_param` before changing tracking or rendering values:
+Map the right arcuate the same way:
 
 ```bash
-bash ./dsi.sh list_param
-bash ./dsi.sh set_param fa_threshold 0.08
-bash ./dsi.sh set_params "fa_threshold=0.08&min_length=20"
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusR"
+bash ./dsi.sh list_tract status
+bash ./dsi.sh list_tract
 ```
 
-### 6.6 Device-index limitation
+About 10,000 tracts with 3–4 TIP iterations is a practical starting point for
+standard bundle mapping. TIP cleans the tractography after tracking, so the final
+count is data-dependent and lower than `max_tract_count`.
 
-The device interface currently has no `list_device`. Numeric device indices follow
-current table order. Prefer current-row operations when the correct row is already
-selected; otherwise ask the user to identify the target before an indexed mutation.
+For a simple anatomical 3D view, hide slices and add the built-in white-matter
+surface:
 
-## 7. Fiber Data Hub
+```bash
+bash ./dsi.sh set_params "show_slice=0&show_tract=1&show_surface=1"
+bash ./dsi.sh add_surface 0 25
+```
+
+For manual ROI tracking, segmentation, atlas regions, parameter tuning, tract
+editing, quality control, or advanced analysis, read
+`DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` and the relevant command-example document.
+
+## 6. Fiber Data Hub
 
 All Hub commands target `main`. Switch back first when necessary:
 
@@ -411,7 +332,7 @@ bash ./dsi.sh set_window main
 bash ./dsi.sh hub_repo
 ```
 
-### 7.1 Discover repositories and tags
+### 6.1 Discover repositories and tags
 
 ```bash
 bash ./dsi.sh hub_repo
@@ -420,7 +341,7 @@ bash ./dsi.sh hub_tags "<exact repository returned by hub_repo>"
 
 Use the exact repository string returned by `hub_repo`.
 
-### 7.2 List matching files
+### 6.2 List matching files
 
 ```bash
 bash ./dsi.sh hub_files "<exact repository>" "<exact tag>" ".fz" 0 20
@@ -431,7 +352,7 @@ empty pattern matches all. It searches across matching tags and returns `index`,
 `tag`, `file`, `size`, and `downloaded`. Offset and limit apply to the combined
 matches.
 
-### 7.3 Open or download Hub data
+### 6.3 Open or download Hub data
 
 ```bash
 bash ./dsi.sh hub_open "<exact repository>" "<exact tag>" <file-row-index>
@@ -471,11 +392,11 @@ files across many tags/subjects. A plain exact filename still matches only that 
 file, since the wildcard is anchored to the full name. Verify the destination
 directory's contents after network-backed work.
 
-## 8. Internal CLI and confirmation-gated shell
+## 7. Internal CLI and confirmation-gated shell
 
 Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before using either command.
 
-### 8.1 Use `run_cli` only for DSI Studio CLI actions
+### 7.1 Use `run_cli` only for DSI Studio CLI actions
 
 Keep the complete command line in one string:
 
@@ -491,7 +412,7 @@ actions may modify global application state.
 
 Never send an operating-system command through `run_cli`.
 
-### 8.2 `run_shell`: `cd` is free, everything else needs local user approval
+### 7.2 `run_shell`: `cd` is free, everything else needs local user approval
 
 ```bash
 bash ./dsi.sh run_shell "cd \"C:/data\""
@@ -530,9 +451,9 @@ Never send credentials, tokens, or other sensitive text in a `run_shell` command
 the local user sees the exact text in the confirmation dialog either way. Never send
 a DSI Studio `--action=...` line through `run_shell`.
 
-## 9. Windows speech and demo mode
+## 8. Windows speech and demo mode
 
-### 9.1 Desktop speech
+### 8.1 Desktop speech
 
 On Windows, use `voice` for one concise non-empty spoken message:
 
@@ -545,7 +466,7 @@ finished. Each call starts a separate process, so rapid calls may overlap. Keep
 spoken messages concise. Continue to provide durable user-facing information through
 `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
-### 9.2 Demo mode
+### 8.2 Demo mode
 
 Use demo mode only when the user asks for a demonstration, presentation, guided
 walkthrough, or spoken narration.
@@ -573,6 +494,60 @@ Spoken narration must sound like the presentation itself. Do not expose internal
 orchestration details such as cooldowns, polling mechanics, issue updates, request
 IDs, command arrays, or transport behavior. Base every progress statement on
 verified state and never announce completion before results confirm it.
+
+## 9. SRC/SZ reconstruction workflow
+
+If reconstruction does not apply to the task, study this section without running
+materially altering commands.
+
+### 9.1 Reconstruction window targeting
+
+A successful `open_src` automatically selects the newly created
+`recon<hex-address>` window. Use `set_window` only when switching to another already
+open window.
+
+### 9.2 Inspect and set parameters
+
+```bash
+bash ./dsi.sh list_param
+bash ./dsi.sh list_param method
+bash ./dsi.sh set_param "method=4"
+bash ./dsi.sh set_params "method=4&param=1.25&thread_count=8"
+```
+
+`set_param` and `set_params` both accept one
+`name=value[&name=value...]` composite parameter.
+
+### 9.3 Use concise reconstruction operation names
+
+```bash
+bash ./dsi.sh mask_unet
+bash ./dsi.sh bias_field_correction
+bash ./dsi.sh resample 2
+bash ./dsi.sh recon 4
+```
+
+Use `recon`, not `reconstruction`, `src_recon`, or `src_reconstruction`. Optional
+method values are `1` for DTI, `4` for GQI, and `7` for QSDR. Omitting the method
+uses the current `method` parameter.
+
+A successful reconstruction prints each generated path as:
+
+```text
+reconstruction output: <path>
+```
+
+Generated FIB/FZ paths are added to the recent-FIB list. For a multi-file
+reconstruction window, inspect all returned output paths.
+
+For AI-originated `topup` or `topup_eddy` without a parameter, DSI Studio uses its
+automatic reverse-phase-encoding search. Pass an explicit `.rz`, `.sz`, `src.gz`, or
+NIfTI path when the correct reverse-PE source is known.
+
+Corrections, b-table changes, source geometry changes, mask operations, resampling,
+and reconstruction can materially alter results. Do not run them merely to learn the
+interface. Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md` before changing
+source data or running reconstruction.
 
 ## 10. Operational safeguards
 
