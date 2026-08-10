@@ -19,9 +19,9 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `list_tract status` | `["list_tract","status"]` | Return compact `status` and total bundle count. `status=done` means no tracking thread remains active. |
 | `run_tracking` | `["run_tracking","Whole Brain"]` | Start asynchronous tracking with the current tracking parameters and checked region settings; `command[1]` is the mandatory new bundle name. |
 | `run_tracking` | `["run_tracking","CST","0:3&1:0"]` | Start tracking with explicit region settings: region 0 as Seed and region 1 as ROI. The third element uses `index:type` entries separated by `&`. See **ROI settings syntax** and footnote 2. |
-| `list_auto_tract` | `["list_auto_tract"]` | List valid automatic tract names. |
-| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract`; never guess atlas labels. For a dense coherent named bundle, generate more than 10,000 tracts and preferably about 50,000 before optional cleanup. Do not routinely trim or delete repeated trajectories in whole-brain tractography. |
-| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL","0:0&1:1"]` | Run automatic tracking while also applying explicit region 0 as ROI and region 1 as ROA. Use an exact name from `list_auto_tract`; see **ROI settings syntax** and footnote 2. |
+| `list_auto_tract` | `["list_auto_tract"]` | List valid hierarchical automatic tract names. Use a parent entry for the whole tract family and a child only for a requested subdivision; e.g. `Association_CingulumL` maps the full left cingulum rather than one `Association_CingulumL_...` branch. |
+| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract`; never guess atlas labels. For a whole hierarchical tract family, use its parent entry (similarly for cingulum and corpus callosum). Standard coherent bundles generally use about 10,000 tracts with TIP 3–4 when sufficiently populated. |
+| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL","0:0&1:1"]` | Explicit extra ROI/ROA constraints are supported but are not the standard AutoTrack workflow because named AutoTrack entries already carry built-in anatomical constraints. Add them only for a specific need, such as isolating a minor branch. |
 | `show_only_tracts` | `["show_only_tracts","0&2&5"]` | Show only listed `&`-separated tract indices and hide all others. |
 | `enable_auto_tract` | `["enable_auto_tract"]` | Load the symmetric tract atlas and enable automatic-tract controls. |
 | `open_tract` | `["open_tract","C:/output/cst.tt.gz"]` | Open one native-space tract file and show each loaded bundle. Open multiple files by sending one command per path. |
@@ -54,7 +54,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `delete_branch` | `["delete_branch","0&2"]` | Delete branch-like portions from tract bundles 0 and 2. Omit the index list to edit every checked bundle. |
 | `undo_tract` | `["undo_tract","0&2"]` | Undo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
 | `redo_tract` | `["redo_tract","0&2"]` | Redo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
-| `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0. Omit the index to use every checked bundle. Recommend only for a dense coherent named bundle with more than 10,000 tracts, preferably about 50,000 before cleanup. Skip routine use for whole-brain tractography and bundles with 10,000 or fewer tracts. |
+| `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0. Omit the index to use every checked bundle. Use for a sufficiently populated visually coherent bundle, including a loaded bundle; do not use as generic whole-brain cleanup. |
 | `cut_tract_end_portion` | `["cut_tract_end_portion",0]` | Apply `cut_end_portion(0.25,0.75)` to tract bundle 0. |
 | `cut_tract_lps_end` | `["cut_tract_lps_end",0]` | Apply `cut_end_portion(0.25,1.0)` to tract bundle 0. |
 | `cut_tract_rai_end` | `["cut_tract_rai_end",0]` | Apply `cut_end_portion(0.0,0.75)` to tract bundle 0. |
@@ -88,7 +88,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `cluster_tract_by_km` | `["cluster_tract_by_km",0,"10 0"]` | Replace one bundle with k-means clusters. |
 | `cluster_tract_by_em` | `["cluster_tract_by_em",0,"10 0"]` | Replace one bundle with expectation-maximization clusters. |
 | `cluster_tract_by_hy` | `["cluster_tract_by_hy",0,"50 1.0"]` | Replace one bundle with hierarchical clusters and create an `others` bundle. |
-| `delete_repeated_tract` | `["delete_repeated_tract",1]` | Delete repeated trajectories in every checked bundle using a 1-voxel distance threshold. Recommend only for a dense coherent named bundle; skip routine use for whole-brain tractography and sparse bundles. |
+| `delete_repeated_tract` | `["delete_repeated_tract",1]` | Delete repeated trajectories in every checked bundle using a 1-voxel distance threshold. Recommend only for a coherent named/loaded bundle; skip routine use for whole-brain tractography and sparse bundles. |
 | `resample_tract` | `["resample_tract",0.5]` | Resample checked bundles using a step size in voxels. |
 | `delete_tract_by_length` | `["delete_tract_by_length",20]` | Delete trajectories shorter than the supplied millimeter threshold from checked bundles. |
 | `separate_deleted_tract` | `["separate_deleted_tract",0]` | Move deleted trajectories into a new bundle. |
@@ -141,23 +141,21 @@ Roles are `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, and
 Explicit settings use the supplied rows directly and do not require them to be
 checked.
 
-## Dense-bundle cleanup
+For named AutoTrack bundles, these explicit region settings are usually unnecessary
+because AutoTrack already has built-in anatomical constraints. Add extra regions only
+for a specific anatomical purpose, such as isolating a minor branch.
 
-Use cleanup only for a dense, anatomically coherent named bundle with more than
-10,000 tracts; about 50,000 before cleanup is preferred. Do not routinely use
-`trim_tract` or `delete_repeated_tract` for whole-brain tractography, which
-contains many pathways rather than one coherent bundle. Leave bundles with
-10,000 or fewer tracts intact unless the user explicitly requests cleanup.
+## Bundle cleanup
 
-Recommended sequence:
+TIP pruning is for a visually coherent tract bundle, including AutoTrack and
+previously loaded or recognized bundle results. If such a bundle is sufficiently
+populated (roughly 5,000–10,000 or more tracts), 3–4 TIP iterations are normally
+desired. AutoTrack can apply them automatically through `tip_iteration`; for an
+already loaded/generated bundle, use `trim_tract` one iteration at a time as needed.
 
-1. Set `max_tract_count=50000`, a sufficient seed limit, and `tip_iteration=0`.
-2. Run AutoTrack and verify the target has more than 10,000 tracts.
-3. Uncheck all non-target bundles, especially whole-brain tract sets.
-4. Run `["trim_tract"]` four or five times, inspecting after each round.
-5. Run `["delete_repeated_tract",1]` once.
-6. Continue one trim at a time until about 10,000 clean trajectories remain;
-   stop earlier if the valid bundle core deteriorates.
+Do not routinely use `trim_tract` or `delete_repeated_tract` for whole-brain
+tractography, which contains many pathways rather than one coherent visual bundle.
+Do not use TIP as generic tract-count cleanup.
 
 `delete_repeated_tract` always operates on checked bundles; its first parameter
 is a distance threshold, not a tract index.
@@ -168,6 +166,7 @@ is a distance threshold, not a tract index.
 - The two-element form uses current parameters and checked regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
 - Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
+- AutoTrack names are hierarchical: use a parent entry for the whole tract family and a child only for a requested subdivision or branch.
 - Clustering commands delete the original bundle and replace it with clusters.
 - Confirm deleting, trimming, cutting, clustering, reconnecting, and merging.
 - Removed generic names with no handler must not be used; copy exact commands from this file.
