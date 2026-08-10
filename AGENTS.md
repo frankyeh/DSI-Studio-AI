@@ -307,9 +307,14 @@ bash ./dsi.sh list_tract status
 bash ./dsi.sh list_tract
 ```
 
-About 10,000 tracts with 3–4 TIP iterations is a practical starting point for
-standard bundle mapping. TIP cleans the tractography after tracking, so the final
-count is data-dependent and lower than `max_tract_count`.
+For standard named-bundle AutoTrack, cleanup is desired whenever tracking produces
+a sufficiently populated bundle. If the bundle can reach roughly 5,000–10,000 or
+more tracts before pruning, keep `tip_iteration` at 3–4 (4 is a good default).
+Do not set `tip_iteration=0` merely to preserve tract count or because the user did
+not explicitly request cleanup. Use `tip_iteration=0` only when intentionally
+examining an unpruned result or when the bundle is too sparse for pruning to be
+appropriate. TIP cleans the tractography after tracking, so the final count is
+data-dependent and lower than `max_tract_count`.
 
 For a simple anatomical 3D view, hide slices and add the built-in white-matter
 surface:
@@ -570,7 +575,11 @@ source data or running reconstruction.
 11. Before `run_cli` or `run_shell`, read
     `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` and follow its completion-verification
     rules.
-12. Read only the topic-specific files needed for the current task.
+12. For standard named-bundle AutoTrack, cleanup is the default when the unpruned
+    bundle is sufficiently populated (roughly 5,000–10,000 or more tracts). Use
+    3–4 TIP iterations rather than defaulting to `tip_iteration=0` just to maximize
+    tract count.
+13. Read only the topic-specific files needed for the current task.
 
 ## 11. Related documents
 
