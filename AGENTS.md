@@ -528,38 +528,35 @@ spoken messages concise. Continue to provide durable user-facing information thr
 ### 8.2 Voice tutorials and demo mode
 
 Users may ask for a **voice tutorial**, spoken tutorial, demonstration, presentation,
-or guided walkthrough. Treat these requests as demo mode. A voice tutorial should
-demonstrate the actual DSI Studio process rather than only describe it in chat: send
-a concise `voice` message immediately before each major user-visible step, then run
-the corresponding command.
+or guided walkthrough. Treat these requests as demo mode. A voice tutorial is a live
+narrated DSI Studio workflow, not a verbal summary of commands.
 
-For example, a voice-guided AutoTrack demonstration may begin:
+**Do not run any DSI Studio command silently in voice tutorial mode.** Every command,
+including discovery, setup, processing, inspection, and status checks, must be
+preceded by a separate concise `voice` command explaining what is about to happen and,
+when useful, why. Speak first, run the command, inspect its result, then narrate the
+next command.
+
+Example:
 
 ```bash
 bash ./dsi.sh voice "I will first list the available automatic tract names."
 bash ./dsi.sh list_auto_tract
 bash ./dsi.sh voice "I will now map the left arcuate fasciculus."
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
+bash ./dsi.sh voice "I will check whether the tractography has finished."
+bash ./dsi.sh list_tract status
+bash ./dsi.sh voice "I will inspect the resulting tract bundle and its tract count."
+bash ./dsi.sh list_tract
 ```
 
-Before each major user-visible action, speak one concise sentence describing what
-will happen next and, when useful, why it matters. Major actions include opening or
-selecting data, choosing an image or model, starting registration, reconstruction,
-segmentation, or tracking, changing the displayed result, and completing the task.
-Do not narrate routine discovery commands, polling, or every minor UI change.
-
-Run `voice` immediately before the corresponding action as its own invocation:
-
-```bash
-bash ./dsi.sh voice "The T1 weighted image is ready. I will now run tumor segmentation."
-bash ./dsi.sh segment_brain human_tumor_T1w 8
-bash ./dsi.sh list_region
-```
+This narration rule applies step-by-step for the entire tutorial. There must be no
+unexplained DSI Studio command between narrated steps. Keep each spoken message short
+and natural; explain the purpose of the action rather than reading command syntax.
 
 Before a potentially long operation, state what is starting and what result is
-expected. For asynchronous work, provide brief meaningful progress narration while
-checking status, but do not speak routine status polling. After synchronous long work
-returns, announce the verified result before the next major action.
+expected. For asynchronous work, narrate every subsequent status check before sending
+it. Announce completion only after the returned result confirms it.
 
 Spoken narration must sound like the tutorial or presentation itself. Do not expose
 internal orchestration details such as cooldowns, polling mechanics, issue updates,
