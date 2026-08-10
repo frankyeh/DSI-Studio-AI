@@ -512,10 +512,12 @@ a DSI Studio `--action=...` line through `run_shell`.
 
 ### 8.1 Desktop speech
 
-On Windows, use `voice` for one concise non-empty spoken message:
+On Windows, use `voice` for one concise non-empty spoken message. It can announce a
+result or explain the next visible action:
 
 ```bash
 bash ./dsi.sh voice "Reconstruction is complete."
+bash ./dsi.sh voice "I will now map the left arcuate fasciculus."
 ```
 
 A successful reply means the PowerShell speech process started, not that speech has
@@ -523,16 +525,28 @@ finished. Each call starts a separate process, so rapid calls may overlap. Keep
 spoken messages concise. Continue to provide durable user-facing information through
 `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
-### 8.2 Demo mode
+### 8.2 Voice tutorials and demo mode
 
-Use demo mode only when the user asks for a demonstration, presentation, guided
-walkthrough, or spoken narration.
+Users may ask for a **voice tutorial**, spoken tutorial, demonstration, presentation,
+or guided walkthrough. Treat these requests as demo mode. A voice tutorial should
+demonstrate the actual DSI Studio process rather than only describe it in chat: send
+a concise `voice` message immediately before each major user-visible step, then run
+the corresponding command.
+
+For example, a voice-guided AutoTrack demonstration may begin:
+
+```bash
+bash ./dsi.sh voice "I will first list the available automatic tract names."
+bash ./dsi.sh list_auto_tract
+bash ./dsi.sh voice "I will now map the left arcuate fasciculus."
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
+```
 
 Before each major user-visible action, speak one concise sentence describing what
 will happen next and, when useful, why it matters. Major actions include opening or
 selecting data, choosing an image or model, starting registration, reconstruction,
 segmentation, or tracking, changing the displayed result, and completing the task.
-Do not narrate routine discovery commands or every minor UI change.
+Do not narrate routine discovery commands, polling, or every minor UI change.
 
 Run `voice` immediately before the corresponding action as its own invocation:
 
@@ -544,12 +558,12 @@ bash ./dsi.sh list_region
 
 Before a potentially long operation, state what is starting and what result is
 expected. For asynchronous work, provide brief meaningful progress narration while
-checking status. After synchronous long work returns, announce the verified result
-before the next major action.
+checking status, but do not speak routine status polling. After synchronous long work
+returns, announce the verified result before the next major action.
 
-Spoken narration must sound like the presentation itself. Do not expose internal
-orchestration details such as cooldowns, polling mechanics, issue updates, request
-IDs, command arrays, or transport behavior. Base every progress statement on
+Spoken narration must sound like the tutorial or presentation itself. Do not expose
+internal orchestration details such as cooldowns, polling mechanics, issue updates,
+request IDs, command arrays, or transport behavior. Base every progress statement on
 verified state and never announce completion before results confirm it.
 
 ## 9. SRC/SZ reconstruction workflow
