@@ -67,7 +67,8 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `cut_tract_by_y2` | `["cut_tract_by_y2",100]` | Cut every checked bundle at Y slice 100 and retain the opposite side. |
 | `cut_tract_by_z` | `["cut_tract_by_z",80]` | Cut every checked bundle at Z slice 80 and retain the default side. |
 | `cut_tract_by_z2` | `["cut_tract_by_z2",80]` | Cut every checked bundle at Z slice 80 and retain the opposite side. |
-| `set_dt_index` | `["set_dt_index","qa&iso",0]` | Set differential metrics `m1&m2` and calculation type; creates the `dT_metrics` slice the first time. |
+| `set_dt_index` | `["set_dt_index","qa&iso",0]` | Set differential metrics `m1&m2` and calculation type; creates the `dT_metrics` slice the first time. Also syncs `dt_index1`/`dt_index2` to the resolved metrics. |
+| `run_dif_tracking` | `["run_dif_tracking","CST_dT"]` | Differential-tracking counterpart to `run_tracking`. Resolves the current `dt_index1`/`dt_index2` into `set_dt_index`, then tracks; fails if both are still `0`. Always use this (not `run_tracking`) to launch a differential-tracking run, whichever route configured `m1`/`m2`. `command[2]` accepts the same explicit ROI settings as `run_tracking`. |
 | `filter_tract` | `["filter_tract","0:3&1:0"]` | Filter every checked tract using region 0 as Seed and region 1 as ROI. The argument uses the same `index:type` encoding as tracking. |
 | `check_tract` | `["check_tract",0,1]` | Set one tract's checked state. |
 | `check_uncheck_all_tract` | `["check_uncheck_all_tract",1]` | Check/uncheck all tracts; explicit `1` or `0` is preferred. |
@@ -165,6 +166,7 @@ is a distance threshold, not a tract index.
 - `run_tracking` requires a nonempty bundle name.
 - The two-element form uses current parameters and checked regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
+- `run_tracking` clears any leftover differential-tracking state whenever `dt_index1` and `dt_index2` are both `0`, so a plain tracking run never silently reuses metrics from an earlier `run_dif_tracking`. Use `run_dif_tracking` for a differential run instead of `run_tracking`.
 - Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
 - AutoTrack names are hierarchical: use a parent entry for the whole tract family and a child only for a requested subdivision or branch.
 - Clustering commands delete the original bundle and replace it with clusters.
