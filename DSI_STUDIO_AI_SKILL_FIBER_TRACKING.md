@@ -161,7 +161,12 @@ bash ./dsi.sh set_param dt_threshold 0.2
 Always use the indices returned by the current tracking window rather than assuming
 `4` or `8` will apply to another subject or another set of loaded slices.
 
-The exact-name alternative is `set_dt_index`:
+`set_param` alone does not apply the metrics to tracking; `run_dif_tracking` (see
+"Run and verify Type 1" below) resolves `dt_index1`/`dt_index2` into the engine's
+differential-tracking state before tracking.
+
+The exact-name alternative is `set_dt_index`, which also syncs `dt_index1`/
+`dt_index2` to the resolved metrics:
 
 ```bash
 bash ./dsi.sh set_dt_index "dti_fa&<exact-followup-slice-name>" 0
@@ -222,10 +227,15 @@ bash ./dsi.sh list_param dt_index2
 Then run tracking and wait for completion:
 
 ```bash
-bash ./dsi.sh run_tracking "<descriptive differential bundle name>"
+bash ./dsi.sh run_dif_tracking "<descriptive differential bundle name>"
 bash ./dsi.sh list_tract status
 bash ./dsi.sh list_tract
 ```
+
+Use `run_dif_tracking`, not `run_tracking`, to launch a differential run: it resolves
+`dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
+`run_tracking` call does not apply differential metrics and clears any leftover
+differential-tracking state from an earlier run.
 
 For a 20% baseline-normalized decrease, confirm
 `(baseline-followup)/baseline` and `dt_threshold=0.2` in the operation output.
@@ -277,6 +287,7 @@ labeled Type 1.
 | Using `list_slice` row numbers as `dt_index` values | Query `list_param dt_index1` and `list_param dt_index2`; the index spaces differ |
 | Reversing baseline and follow-up for a decrease analysis | Use `m1=baseline`, `m2=follow-up` for `(m1-m2)/m1` |
 | Guessing names with `set_dt_index` | Use exact names returned by DSI Studio |
+| Calling `run_tracking` to launch a differential run | Use `run_dif_tracking`; `run_tracking` does not apply `m1`/`m2` and clears leftover differential state |
 | Starting Type 1 tracking while the follow-up slice is registering | Poll `list_slice` until the slice status is `ready` |
 | Trusting Type 2 differences without checking normalization | Inspect both maps in template space; misregistration can mimic biological change |
 
