@@ -32,7 +32,7 @@ for($i = 0; $i -lt $argv.Count; $i++)
         $Value += $argv[$i]
     }
 }
-if(!$Value.Count -and !$Chat) { throw 'Usage: bash ./dsi.sh [command] [values...] [-Chat "message"]' }
+if(!$Value.Count -and !$Chat) { throw 'Usage: bash ./dsi.sh [command] [values...] [-- command values...] [-Chat "message"]' }
 
 $Session = $env:CLAUDE_CODE_SESSION_ID
 if($Session)
@@ -61,11 +61,34 @@ function Convert-DsiValue([string]$Text)
 $request = [ordered]@{agent=$Agent;session=$Session}
 if($Value.Count)
 {
-    $cmd = [ordered]@{cmd=$Value[0]}
-    $param = @($Value | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
-    if($param.Count -eq 1) { $cmd.param = $param[0] }
-    elseif($param.Count -gt 1) { $cmd.param = $param }
-    $request.command = $cmd
+    $Segments = @()
+    [string[]]$Current = @()
+    foreach($item in $Value)
+    {
+        if($item -eq '--')
+        {
+            if(!$Current.Count) { throw 'Empty command in batch.' }
+            $Segments += ,@($Current)
+            [string[]]$Current = @()
+        }
+        else
+        {
+            $Current += $item
+        }
+    }
+    if(!$Current.Count) { throw 'Batch cannot end with --.' }
+    $Segments += ,@($Current)
+
+    $Commands = @()
+    foreach($segment in $Segments)
+    {
+        $cmd = [ordered]@{cmd=$segment[0]}
+        $param = @($segment | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
+        if($param.Count -eq 1) { $cmd.param = $param[0] }
+        elseif($param.Count -gt 1) { $cmd.param = $param }
+        $Commands += ,$cmd
+    }
+    $request.command = if($Commands.Count -eq 1) { $Commands[0] } else { $Commands }
 }
 if($Chat) { $request.chat = $Chat }
 
@@ -143,7 +166,7 @@ while i < len(args):
         i += 1
 
 if not values and chat is None:
-    fail('Usage: bash ./dsi.sh [command] [values...] [-Chat "message"]')
+    fail('Usage: bash ./dsi.sh [command] [values...] [-- command values...] [-Chat "message"]')
 
 integer = re.compile(r"^[+-]?\d+$")
 number = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
@@ -163,13 +186,30 @@ def convert(text):
 
 request = {"agent": agent, "session": session}
 if values:
-    command = {"cmd": values[0]}
-    params = [convert(value) for value in values[1:]]
-    if len(params) == 1:
-        command["param"] = params[0]
-    elif params:
-        command["param"] = params
-    request["command"] = command
+    segments = []
+    current = []
+    for value in values:
+        if value == "--":
+            if not current:
+                fail("Empty command in batch.")
+            segments.append(current)
+            current = []
+        else:
+            current.append(value)
+    if not current:
+        fail("Batch cannot end with --.")
+    segments.append(current)
+
+    commands = []
+    for segment in segments:
+        command = {"cmd": segment[0]}
+        params = [convert(value) for value in segment[1:]]
+        if len(params) == 1:
+            command["param"] = params[0]
+        elif params:
+            command["param"] = params
+        commands.append(command)
+    request["command"] = commands[0] if len(commands) == 1 else commands
 if chat is not None:
     request["chat"] = chat
 
