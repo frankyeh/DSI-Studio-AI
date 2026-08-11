@@ -35,11 +35,34 @@ if(!$Value.Count -and !$Chat) { throw 'Missing command name.' }
 $request = [ordered]@{agent=$Agent;session=$Session}
 if($Value.Count)
 {
-    $cmd = [ordered]@{cmd=$Value[0]}
-    $param = @($Value | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
-    if($param.Count -eq 1) { $cmd.param = $param[0] }
-    elseif($param.Count -gt 1) { $cmd.param = $param }
-    $request.command = $cmd
+    $Segments = @()
+    [string[]]$Current = @()
+    foreach($item in $Value)
+    {
+        if($item -eq '--')
+        {
+            if(!$Current.Count) { throw 'Empty command in batch.' }
+            $Segments += ,@($Current)
+            [string[]]$Current = @()
+        }
+        else
+        {
+            $Current += $item
+        }
+    }
+    if(!$Current.Count) { throw 'Batch cannot end with --.' }
+    $Segments += ,@($Current)
+
+    $Commands = @()
+    foreach($segment in $Segments)
+    {
+        $cmd = [ordered]@{cmd=$segment[0]}
+        $param = @($segment | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
+        if($param.Count -eq 1) { $cmd.param = $param[0] }
+        elseif($param.Count -gt 1) { $cmd.param = $param }
+        $Commands += ,$cmd
+    }
+    $request.command = if($Commands.Count -eq 1) { $Commands[0] } else { $Commands }
 }
 if($Chat) { $request.chat = $Chat }
 
