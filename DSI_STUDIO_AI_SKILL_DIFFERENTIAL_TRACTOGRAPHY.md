@@ -52,6 +52,10 @@ For a baseline-normalized decrease, use baseline/control as `m1`, the comparison
 scan/subject as `m2`, formula index `0`, and the desired fractional threshold. For
 example, `dt_threshold=0.2` selects a >20% decrease criterion for `(m1-m2)/m1`.
 
+Setting `m1`/`m2` alone does not run differential tracking. Only `run_dif_tracking`
+(not `run_tracking`) actually resolves the current selection into the engine's
+differential-tracking state and tracks with it; see section 7.
+
 There are two supported ways to set the differential metrics.
 
 ### 2.1 Preferred agent route: `list_param` + `set_param`
@@ -88,7 +92,9 @@ bash ./dsi.sh set_dt_index "<m1-name>&<m2-name>" <formula-index>
 
 Names must match exactly. Discover them with `list_slice` and/or `list_param`; do not
 guess abbreviations. A successful setup prints the resulting differential expression,
-which should be inspected before tracking.
+which should be inspected before tracking. `set_dt_index` also syncs `dt_index1`/
+`dt_index2` to the resolved metrics, so either route can be followed by
+`run_dif_tracking` in section 7.
 
 ## 3. Type 1: longitudinal comparison in native space
 
@@ -236,10 +242,15 @@ bash ./dsi.sh list_param dt_index2
 Then run and poll:
 
 ```bash
-bash ./dsi.sh run_tracking "<descriptive differential bundle name>"
+bash ./dsi.sh run_dif_tracking "<descriptive differential bundle name>"
 bash ./dsi.sh list_tract status
 bash ./dsi.sh list_tract
 ```
+
+`run_dif_tracking` (not `run_tracking`) is required here: it resolves the current
+`dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
+`run_tracking` call does not apply differential metrics and clears any leftover
+differential-tracking state instead.
 
 Pay special attention to TIP pruning in differential tractography. A large
 `tip_iteration` can remove too many differential trajectories. A practical approach
@@ -302,6 +313,7 @@ Record at minimum:
 | Assuming equal dimensions mean no Type 1 registration | `add_slice` can still run rigid-body registration; wait for `ready` |
 | Using `list_slice` row numbers as `dt_index` values | Query `list_param dt_index1` and `dt_index2`; the index spaces differ |
 | Guessing names with `set_dt_index` | Use exact names returned by DSI Studio |
+| Calling `run_tracking` to launch a differential run | Use `run_dif_tracking`; `run_tracking` does not apply `m1`/`m2` and clears leftover differential state |
 | Reversing metric direction | Explicitly define which image is `m1` and which is `m2` for the chosen formula |
 | Trusting Type 2 differences without checking normalization | Inspect both maps in template space; misregistration can mimic change |
 | Averaging native-space control NIfTI files voxelwise | Average only QSDR/MNI-aligned maps |
