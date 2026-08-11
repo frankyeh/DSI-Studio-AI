@@ -380,7 +380,46 @@ For manual ROI tracking, segmentation, atlas regions, parameter tuning, tract
 editing, quality control, or advanced analysis, read
 `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` and the relevant command-example document.
 
-## 6. Fiber Data Hub
+## 6. Batch processing multiple subjects: tutorial example
+
+Build a pipeline once against one subject with ordinary commands, then replay it
+with `run_command_history` instead of repeating every command per subject.
+
+```bash
+bash ./dsi.sh open_fib "C:/data/sub-01.qsdr.fz"
+bash ./dsi.sh run_tracking "WholeBrain"
+bash ./dsi.sh list_tract status
+bash ./dsi.sh save_lr_screen "C:/data/sub-01_wholebrain.png" "1600 900"
+```
+
+Check exactly what was recorded before replaying it -- an earlier polling loop or
+other side command can leave noise in the history:
+
+```bash
+bash ./dsi.sh list_history
+```
+
+Replay it across the remaining subjects, either a folder (searched using the
+recorded load step's file extension) or an explicit `&`-joined file list:
+
+```bash
+bash ./dsi.sh run_command_history "C:/data/sub-02.qsdr.fz&C:/data/sub-03.qsdr.fz"
+```
+
+`run_command_history` substitutes each new file into the recorded load step and
+remaps related load/save filenames (e.g. `sub-01_wholebrain.png` becomes
+`sub-02_wholebrain.png`). It replays every recorded command by default; restrict it
+to specific `list_history` indices when the recording contains noise, using a single
+`from:to` range or several `&`-joined ranges/indices:
+
+```bash
+bash ./dsi.sh run_command_history "C:/data/sub-02.qsdr.fz&C:/data/sub-03.qsdr.fz" "0:1&12:15&16"
+```
+
+It never pops a dialog for a missing or failed file when called by an agent; it logs
+and skips that file instead of blocking.
+
+## 7. Fiber Data Hub
 
 All Hub commands target `main`. Switch back first when necessary:
 
@@ -389,7 +428,7 @@ bash ./dsi.sh set_window main
 bash ./dsi.sh hub_repo
 ```
 
-### 6.1 Discover repositories and tags
+### 7.1 Discover repositories and tags
 
 ```bash
 bash ./dsi.sh hub_repo
@@ -398,7 +437,7 @@ bash ./dsi.sh hub_tags "<exact repository returned by hub_repo>"
 
 Use the exact repository string returned by `hub_repo`.
 
-### 6.2 List matching files
+### 7.2 List matching files
 
 ```bash
 bash ./dsi.sh hub_files "<exact repository>" "<exact tag>" ".fz" 0 20
@@ -409,7 +448,7 @@ empty pattern matches all. It searches across matching tags and returns `index`,
 `tag`, `file`, `size`, and `downloaded`. Offset and limit apply to the combined
 matches.
 
-### 6.3 Open or download Hub data
+### 7.3 Open or download Hub data
 
 ```bash
 bash ./dsi.sh hub_open "<exact repository>" "<exact tag>" <file-row-index>
@@ -449,11 +488,11 @@ files across many tags/subjects. A plain exact filename still matches only that 
 file, since the wildcard is anchored to the full name. Verify the destination
 directory's contents after network-backed work.
 
-## 7. Internal CLI and confirmation-gated shell
+## 8. Internal CLI and confirmation-gated shell
 
 Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before using either command.
 
-### 7.1 Use `run_cli` only for DSI Studio CLI actions
+### 8.1 Use `run_cli` only for DSI Studio CLI actions
 
 Keep the complete command line in one string:
 
@@ -469,7 +508,7 @@ actions may modify global application state.
 
 Never send an operating-system command through `run_cli`.
 
-### 7.2 `run_shell`: `cd` is free, everything else needs local user approval
+### 8.2 `run_shell`: `cd` is free, everything else needs local user approval
 
 ```bash
 bash ./dsi.sh run_shell "cd \"C:/data\""
@@ -508,9 +547,9 @@ Never send credentials, tokens, or other sensitive text in a `run_shell` command
 the local user sees the exact text in the confirmation dialog either way. Never send
 a DSI Studio `--action=...` line through `run_shell`.
 
-## 8. Windows speech and demo mode
+## 9. Windows speech and demo mode
 
-### 8.1 Desktop speech
+### 9.1 Desktop speech
 
 On Windows, use `voice` for one concise non-empty spoken message. It can announce a
 result or explain the next visible action:
@@ -525,7 +564,7 @@ finished. Each call starts a separate process, so rapid calls may overlap. Keep
 spoken messages concise. Continue to provide durable user-facing information through
 `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
-### 8.2 Voice tutorials and demo mode
+### 9.2 Voice tutorials and demo mode
 
 Users may ask for a **voice tutorial**, spoken tutorial, demonstration, presentation,
 or guided walkthrough. Treat these requests as demo mode. A voice tutorial is a live
@@ -563,18 +602,18 @@ internal orchestration details such as cooldowns, polling mechanics, issue updat
 request IDs, command arrays, or transport behavior. Base every progress statement on
 verified state and never announce completion before results confirm it.
 
-## 9. SRC/SZ reconstruction workflow
+## 10. SRC/SZ reconstruction workflow
 
 If reconstruction does not apply to the task, study this section without running
 materially altering commands.
 
-### 9.1 Reconstruction window targeting
+### 10.1 Reconstruction window targeting
 
 A successful `open_src` automatically selects the newly created
 `recon<hex-address>` window. Use `set_window` only when switching to another already
 open window.
 
-### 9.2 Inspect and set parameters
+### 10.2 Inspect and set parameters
 
 ```bash
 bash ./dsi.sh list_param
@@ -586,7 +625,7 @@ bash ./dsi.sh set_params "method=4&param=1.25&thread_count=8"
 `set_param` and `set_params` both accept one
 `name=value[&name=value...]` composite parameter.
 
-### 9.3 Use concise reconstruction operation names
+### 10.3 Use concise reconstruction operation names
 
 ```bash
 bash ./dsi.sh mask_unet
@@ -617,7 +656,7 @@ and reconstruction can materially alter results. Do not run them merely to learn
 interface. Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md` before changing
 source data or running reconstruction.
 
-## 10. Operational safeguards
+## 11. Operational safeguards
 
 1. Use one `bash ./dsi.sh` invocation per request.
 2. Use `-Chat` for user-visible progress and results.
@@ -652,7 +691,7 @@ source data or running reconstruction.
     demographics were embedded or carried forward.
 15. Read only the topic-specific files needed for the current task.
 
-## 11. Related documents
+## 12. Related documents
 
 - [Launcher selection and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
