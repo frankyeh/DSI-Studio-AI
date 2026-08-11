@@ -249,8 +249,9 @@ bash ./dsi.sh list_tract
 
 `run_dif_tracking` (not `run_tracking`) is required here: it resolves the current
 `dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
-`run_tracking` call does not apply differential metrics and clears any leftover
-differential-tracking state instead.
+`run_tracking` call fails outright if `dt_index1`/`dt_index2` are nonzero but were
+never applied, and otherwise clears any leftover differential-tracking state instead
+of using it.
 
 Pay special attention to TIP pruning in differential tractography. A large
 `tip_iteration` can remove too many differential trajectories. A practical approach

@@ -167,6 +167,7 @@ is a distance threshold, not a tract index.
 - The two-element form uses current parameters and checked regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
 - `run_tracking` clears any leftover differential-tracking state whenever `dt_index1` and `dt_index2` are both `0`, so a plain tracking run never silently reuses metrics from an earlier `run_dif_tracking`. Use `run_dif_tracking` for a differential run instead of `run_tracking`.
+- If `dt_index1`/`dt_index2` are nonzero but were never applied (e.g. `set_param` was used without a following `run_dif_tracking`/`set_dt_index`), `run_tracking` fails with an error suggesting `run_dif_tracking`, instead of silently tracking without the differential metrics.
 - Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
 - AutoTrack names are hierarchical: use a parent entry for the whole tract family and a child only for a requested subdivision or branch.
 - Clustering commands delete the original bundle and replace it with clusters.

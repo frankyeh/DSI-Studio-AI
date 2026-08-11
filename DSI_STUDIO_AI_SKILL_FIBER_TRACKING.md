@@ -234,8 +234,9 @@ bash ./dsi.sh list_tract
 
 Use `run_dif_tracking`, not `run_tracking`, to launch a differential run: it resolves
 `dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
-`run_tracking` call does not apply differential metrics and clears any leftover
-differential-tracking state from an earlier run.
+`run_tracking` call fails outright if `dt_index1`/`dt_index2` are nonzero but were
+never applied, and otherwise clears any leftover differential-tracking state from an
+earlier run instead of using it.
 
 For a 20% baseline-normalized decrease, confirm
 `(baseline-followup)/baseline` and `dt_threshold=0.2` in the operation output.
