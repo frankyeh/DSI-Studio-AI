@@ -3,7 +3,7 @@
 Use the Bash launcher whenever Bash is available:
 
 ```bash
-bash ./dsi.sh <command> [values...]
+bash ./dsi.sh <command> [values...] [-- <command> [values...] ...] [-Chat "message"]
 ```
 
 Always include `bash` before `./dsi.sh`. Do not invoke `./dsi.sh` directly.
@@ -24,6 +24,8 @@ pass an agent name or session ID on the command line.
 
 ## Common syntax
 
+Single commands remain unchanged:
+
 ```bash
 bash ./dsi.sh set_title "Fiber tracking"
 bash ./dsi.sh -Chat "Reading the DSI Studio instructions."
@@ -33,7 +35,25 @@ bash ./dsi.sh set_window tracking<hex-address>
 bash ./dsi.sh set_slice 7
 ```
 
-The Windows wrapper accepts the same arguments:
+Use `--` to separate multiple DSI Studio commands in one request. Commands are sent
+as one ordered batch and DSI Studio executes them sequentially, stopping the batch if
+a command fails:
+
+```bash
+bash ./dsi.sh set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
+```
+
+`-Chat` is a request-level option, not a command. It may accompany either a single
+command or a batch and applies once to the whole request:
+
+```bash
+bash ./dsi.sh voice "I will inspect the available tracts." -- list_auto_tract \
+  -Chat "Starting a narrated tractography step."
+```
+
+Do not place an empty command before, after, or between `--` separators.
+
+The Windows wrapper accepts the same command arguments:
 
 ```powershell
 ./dsi set_title "Fiber tracking"
@@ -42,6 +62,7 @@ The Windows wrapper accepts the same arguments:
 ./dsi list_recent_fib
 ./dsi set_window tracking<hex-address>
 ./dsi set_slice 7
+./dsi set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
 ```
 
 Claude may call the PowerShell implementation directly when Bash is unavailable:
@@ -50,6 +71,7 @@ Claude may call the PowerShell implementation directly when Bash is unavailable:
 ./dsi.ps1 set_title "Fiber tracking"
 ./dsi.ps1 list_window
 ./dsi.ps1 list_recent_fib
+./dsi.ps1 set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
 ```
 
 ## Launcher selection
@@ -80,6 +102,33 @@ not require Python or temporary files.
 On macOS and Linux, `dsi.sh` uses Python 3 to build the request and communicate with
 the local Unix-domain socket.
 
+## Command batching
+
+A single launcher invocation normally sends one command object. When `--` is present,
+the launcher instead sends an ordered command array using the same request protocol
+already supported by DSI Studio:
+
+```text
+bash ./dsi.sh command1 args... -- command2 args... -- command3 args...
+```
+
+This is useful when later commands do not require the returned output of earlier
+commands. If a later action depends on discovering an ID, filename, tract name,
+window ID, status, or other value from an earlier reply, send a separate launcher
+request, inspect the result, and then continue.
+
+For voice tutorials, batching may alternate narration and actions when the next action
+is already known:
+
+```bash
+bash ./dsi.sh voice "I will hide the image slices." -- set_param show_slice 0 \
+  -- voice "I will now show the tract and white matter surface." \
+  -- set_param show_tract 1 -- add_surface 0 25
+```
+
+Each `voice` remains a separate DSI Studio command within the batch. `-Chat`, when
+present, remains one request-level message for the whole batch.
+
 ## Command-inventory notation
 
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` uses compact arrays such as:
@@ -98,7 +147,8 @@ bash ./dsi.sh set_slice 7
 ```
 
 The selection persists for the session until changed by another `set_window` call;
-it does not need to be repeated before every command.
+it does not need to be repeated before every command. Commands that can be determined
+in advance may instead be grouped with `--` as described above.
 
 ## Agent configuration
 
