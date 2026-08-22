@@ -17,7 +17,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 |---|---|---|
 | `list_tract` | `["list_tract"]` | List every tract bundle with `index`, readable `status`, shown state, name, tract count, deleted count, and seeds. |
 | `list_tract status` | `["list_tract","status"]` | Return compact `status` and total bundle count. `status=done` means no tracking thread remains active. |
-| `run_tracking` | `["run_tracking","Whole Brain"]` | Start asynchronous tracking with the current tracking parameters and checked region settings; `command[1]` is the mandatory new bundle name. |
+| `run_tracking` | `["run_tracking","Whole Brain"]` | Start asynchronous tracking with the current tracking parameters and no region constraints; `command[1]` is the mandatory new bundle name. |
 | `run_tracking` | `["run_tracking","CST","0:3&1:0"]` | Start tracking with explicit region settings: region 0 as Seed and region 1 as ROI. The third element uses `index:type` entries separated by `&`. See **ROI settings syntax**. |
 | `list_auto_tract` | `["list_auto_tract"]` | List valid hierarchical automatic tract names. Use a parent entry for the whole tract family and a child only for a requested subdivision; e.g. `Association_CingulumL` maps the full left cingulum rather than one `Association_CingulumL_...` branch. |
 | `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract`; never guess atlas labels. For a whole hierarchical tract family, use its parent entry (similarly for cingulum and corpus callosum). Standard coherent bundles generally use about 10,000 tracts with TIP 3–4 when sufficiently populated. |
@@ -179,7 +179,7 @@ list; omit it to operate on checked bundles.
 ## Tracking workflow notes
 
 - `run_tracking` requires a nonempty bundle name.
-- The two-element form uses current parameters and checked regions.
+- The two-element form uses current parameters without region constraints; supply explicit ROI settings to use regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
 - Explicit ROI settings are validated before the new tract bundle/thread is created.
 - `run_tracking` clears any leftover differential-tracking state whenever `dt_index1` and `dt_index2` are both `0`, so a plain tracking run never silently reuses metrics from an earlier `run_dif_tracking`. Use `run_dif_tracking` for a differential run instead of `run_tracking`.

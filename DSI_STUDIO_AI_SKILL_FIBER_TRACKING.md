@@ -338,7 +338,7 @@ Before `run_tracking`:
 ```bash
 bash ./dsi.sh list_param tracking
 bash ./dsi.sh list_region
-bash ./dsi.sh run_tracking "<bundle-name>"
+bash ./dsi.sh run_tracking "<bundle-name>" "<region-index:role&...>"
 ```
 
 Call `list_region` only after regions were created, loaded, segmented, or restored.
