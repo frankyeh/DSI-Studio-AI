@@ -18,7 +18,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `list_tract` | `["list_tract"]` | List every tract bundle with `index`, readable `status`, shown state, name, tract count, deleted count, and seeds. |
 | `list_tract status` | `["list_tract","status"]` | Return compact `status` and total bundle count. `status=done` means no tracking thread remains active. |
 | `run_tracking` | `["run_tracking","Whole Brain"]` | Start asynchronous tracking with the current tracking parameters and checked region settings; `command[1]` is the mandatory new bundle name. |
-| `run_tracking` | `["run_tracking","CST","0:3&1:0"]` | Start tracking with explicit region settings: region 0 as Seed and region 1 as ROI. The third element uses `index:type` entries separated by `&`. See **ROI settings syntax** and footnote 2. |
+| `run_tracking` | `["run_tracking","CST","0:3&1:0"]` | Start tracking with explicit region settings: region 0 as Seed and region 1 as ROI. The third element uses `index:type` entries separated by `&`. See **ROI settings syntax**. |
 | `list_auto_tract` | `["list_auto_tract"]` | List valid hierarchical automatic tract names. Use a parent entry for the whole tract family and a child only for a requested subdivision; e.g. `Association_CingulumL` maps the full left cingulum rather than one `Association_CingulumL_...` branch. |
 | `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract`; never guess atlas labels. For a whole hierarchical tract family, use its parent entry (similarly for cingulum and corpus callosum). Standard coherent bundles generally use about 10,000 tracts with TIP 3–4 when sufficiently populated. |
 | `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL","0:0&1:1"]` | Explicit extra ROI/ROA constraints are supported but are not the standard AutoTrack workflow because named AutoTrack entries already carry built-in anatomical constraints. Add them only for a specific need, such as isolating a minor branch. |
@@ -40,8 +40,8 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `save_template_tract` | `["save_template_tract","C:/output/cst_template.tt.gz",0]` | Save one tract in loaded template space. |
 | `save_slice_tract` | `["save_slice_tract","C:/output/cst_T1w.tt.gz",0]` | Save one tract in current slice space. |
 | `save_tract_endpoint` | `["save_tract_endpoint","C:/output/cst_endpoints.txt",0]` | Save native-space endpoints for one tract bundle index. |
-| `save_mni_tract_endpoint` | `["save_mni_tract_endpoint","C:/output/cst_mni_endpoints.txt",0]` | Intended to save endpoints in MNI coordinates, but the current implementation is unreliable. See footnote 1. |
-| `save_slice_tract_endpoint` | `["save_slice_tract_endpoint","C:/output/cst_T1w_endpoints.txt",0]` | Intended to save endpoints in current slice space, but the current implementation is unreliable. See footnote 1. |
+| `save_mni_tract_endpoint` | `["save_mni_tract_endpoint","C:/output/cst_mni_endpoints.txt",0]` | Save endpoints in MNI coordinates for one tract bundle index. |
+| `save_slice_tract_endpoint` | `["save_slice_tract_endpoint","C:/output/cst_T1w_endpoints.txt",0]` | Save endpoints in current slice space for one tract bundle index. |
 | `save_all_tracts` | `["save_all_tracts","C:/output/checked_tracts.tt.gz"]` | Save all checked tracts together. |
 | `save_all_tracts_to_folder` | `["save_all_tracts_to_folder","C:/output/tracts"]` | Save checked tracts as separate files in a folder. |
 | `save_tdi` | `["save_tdi","C:/output/cst_tdi.nii.gz",0]` | Save tract-density imaging output in current slice space. |
@@ -179,6 +179,7 @@ is a distance threshold, not a tract index.
 - `run_tracking` requires a nonempty bundle name.
 - The two-element form uses current parameters and checked regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
+- Explicit ROI settings are validated before the new tract bundle/thread is created.
 - `run_tracking` clears any leftover differential-tracking state whenever `dt_index1` and `dt_index2` are both `0`, so a plain tracking run never silently reuses metrics from an earlier `run_dif_tracking`. Use `run_dif_tracking` for a differential run instead of `run_tracking`.
 - If `dt_index1`/`dt_index2` are nonzero but were never applied (e.g. `set_param` was used without a following `run_dif_tracking`/`set_dt_index`), `run_tracking` fails with an error suggesting `run_dif_tracking`, instead of silently tracking without the differential metrics.
 - Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
@@ -207,11 +208,3 @@ Common parameter IDs include `tracking_index`, `fa_threshold`, `turning_angle`,
 `track_voxel_ratio`, `tip_iteration`, `tolerance`, `dt_index1`, `dt_index2`,
 `dt_threshold_type`, `dt_threshold`, `tracking_method`, `smoothing`,
 `check_ending`, `otsu_threshold`, and `track_format`.
-
-## Footnotes
-
-1. The current transformed-endpoint implementations should not be relied on.
-   `save_slice_tract_endpoint` falls through to native endpoint saving, and
-   `save_mni_tract_endpoint` appends native coordinates before the same fallthrough.
-2. `run_tracking` appends the new bundle/thread before validating explicit ROI
-   settings. Validate every region index and role with `list_region` first.
