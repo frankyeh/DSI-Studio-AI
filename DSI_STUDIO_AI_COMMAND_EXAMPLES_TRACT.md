@@ -140,7 +140,8 @@ one numeric index or one `&`-separated index list:
 With no index, `delete_tract` uses the current row; the other commands operate on
 checked bundles. `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`,
 `resample_tract`, and `delete_tract_by_length` use their second element for
-another parameter and always operate on checked bundles.
+another parameter and accept an optional third element containing one tract index or
+an `&`-separated tract-index list; omit it to operate on checked bundles.
 
 ## ROI settings syntax
 
@@ -171,8 +172,9 @@ Do not routinely use `trim_tract` or `delete_repeated_tract` for whole-brain
 tractography, which contains many pathways rather than one coherent visual bundle.
 Do not use TIP as generic tract-count cleanup.
 
-`delete_repeated_tract` always operates on checked bundles; its first parameter
-is a distance threshold, not a tract index.
+`delete_repeated_tract` uses its first parameter as the distance threshold. An
+optional second parameter selects one tract index or an `&`-separated tract-index
+list; omit it to operate on checked bundles.
 
 ## Tracking workflow notes
 
