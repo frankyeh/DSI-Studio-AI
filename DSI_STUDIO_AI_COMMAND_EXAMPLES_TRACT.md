@@ -60,12 +60,12 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `undo_tract` | `["undo_tract","0&2"]` | Undo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
 | `redo_tract` | `["redo_tract","0&2"]` | Redo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
 | `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0. Omit the index to use every checked bundle. Use for a sufficiently populated visually coherent bundle, including a loaded bundle; do not use as generic whole-brain cleanup. |
-| `cut_tract_end_portion` | `["cut_tract_end_portion",0]` | Apply `cut_end_portion(0.25,0.75)` to tract bundle 0. |
-| `cut_tract_lps_end` | `["cut_tract_lps_end",0]` | Apply `cut_end_portion(0.25,1.0)` to tract bundle 0. |
-| `cut_tract_rai_end` | `["cut_tract_rai_end",0]` | Apply `cut_end_portion(0.0,0.75)` to tract bundle 0. |
-| `flip_tract_x` | `["flip_tract_x",0]` | Flip tract bundle 0 along X. |
-| `flip_tract_y` | `["flip_tract_y",0]` | Flip tract bundle 0 along Y. |
-| `flip_tract_z` | `["flip_tract_z",0]` | Flip tract bundle 0 along Z. |
+| `cut_tract_end_portion` | `["cut_tract_end_portion",0]` | Apply `cut_end_portion(0.25,0.75)` to tract bundle 0; the target bundle must be checked. |
+| `cut_tract_lps_end` | `["cut_tract_lps_end",0]` | Apply `cut_end_portion(0.25,1.0)` to tract bundle 0; the target bundle must be checked. |
+| `cut_tract_rai_end` | `["cut_tract_rai_end",0]` | Apply `cut_end_portion(0.0,0.75)` to tract bundle 0; the target bundle must be checked. |
+| `flip_tract_x` | `["flip_tract_x",0]` | Flip checked tract bundle 0 along X. |
+| `flip_tract_y` | `["flip_tract_y",0]` | Flip checked tract bundle 0 along Y. |
+| `flip_tract_z` | `["flip_tract_z",0]` | Flip checked tract bundle 0 along Z. |
 | `cut_tract_by_x` | `["cut_tract_by_x",80]` | Cut every checked bundle at X slice 80 and retain the default side. |
 | `cut_tract_by_x2` | `["cut_tract_by_x2",80]` | Cut every checked bundle at X slice 80 and retain the opposite side. |
 | `cut_tract_by_y` | `["cut_tract_by_y",100]` | Cut every checked bundle at Y slice 100 and retain the default side. |
@@ -100,6 +100,14 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `separate_deleted_tract` | `["separate_deleted_tract",0]` | Move deleted trajectories into a new bundle. |
 | `reconnect_tract` | `["reconnect_tract",0,"4 30"]` | Reconnect trajectories using a maximum distance and angle. |
 | `recognize_and_rename_tract` | `["recognize_and_rename_tract"]` | Recognize each checked bundle and rename it to the top atlas match. |
+
+For `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`, `resample_tract`, and `delete_tract_by_length`, `command[2]` is an optional `&`-separated tract-index list. Omit it to operate on every checked bundle. For example:
+
+```bash
+bash ./dsi.sh cut_tract_by_x 80 "0&2"
+bash ./dsi.sh filter_tract "0:3&1:0" "0&2"
+bash ./dsi.sh resample_tract 0.5 "0&2"
+```
 
 ## `list_tract` output
 
