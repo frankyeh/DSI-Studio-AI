@@ -25,59 +25,86 @@ function Assert-True($Condition,[string]$Message)
 function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
 {
     $Response = '{"status":"success","text":"Unicode 測試 ✓"}'
-    $PipeJob = Start-Job -ArgumentList $Response -ScriptBlock {
-        param($Response)
-        $Utf8 = [Text.UTF8Encoding]::new($false)
-        $Pipe = [IO.Pipes.NamedPipeServerStream]::new(
-            'dsi-studio',[IO.Pipes.PipeDirection]::InOut,1,
-            [IO.Pipes.PipeTransmissionMode]::Byte,[IO.Pipes.PipeOptions]::None)
-        try
-        {
-            $Pipe.WaitForConnection()
-            $Buffer = New-Object byte[] 65536
-            $Read = $Pipe.Read($Buffer,0,$Buffer.Length)
-            $Request = $Utf8.GetString($Buffer,0,$Read)
-            $Bytes = $Utf8.GetBytes($Response)
-            $Pipe.Write($Bytes,0,$Bytes.Length)
-            $Pipe.Flush()
-            $Request
-        }
-        finally
-        {
-            $Pipe.Dispose()
-        }
-    }
+    $Utf8 = [Text.UTF8Encoding]::new($false)
+    $Pipe = [IO.Pipes.NamedPipeServerStream]::new(
+        'dsi-studio',[IO.Pipes.PipeDirection]::InOut,1,
+        [IO.Pipes.PipeTransmissionMode]::Byte,[IO.Pipes.PipeOptions]::Asynchronous)
+    $Connect = $Pipe.WaitForConnectionAsync()
 
-    $LauncherJob = Start-Job -ArgumentList $Executable,$Arguments,$Ai,$Temp,$Session -ScriptBlock {
-        param($Executable,$Arguments,$Ai,$Temp,$Session)
-        $env:CODEX_THREAD_ID = $Session
-        Remove-Item Env:CLAUDE_CODE_SESSION_ID -ErrorAction SilentlyContinue
-        $env:TEMP = $Temp
-        $env:TMP = $Temp
-        $env:TMPDIR = $Temp
-        Set-Location $Ai
-        $Output = (& $Executable @Arguments 2>&1 | Out-String).Trim()
-        [pscustomobject]@{Output=$Output;ExitCode=$LASTEXITCODE}
-    }
+    $Start = [Diagnostics.ProcessStartInfo]::new()
+    $Start.UseShellExecute = $false
+    $Start.CreateNoWindow = $true
+    $Start.RedirectStandardOutput = $true
+    $Start.RedirectStandardError = $true
+    $Start.WorkingDirectory = $Ai
+    $Start.Environment['CODEX_THREAD_ID'] = $Session
+    $Start.Environment.Remove('CLAUDE_CODE_SESSION_ID') | Out-Null
+    $Start.Environment['TEMP'] = $Temp
+    $Start.Environment['TMP'] = $Temp
+    $Start.Environment['TMPDIR'] = $Temp
 
-    if(!(Wait-Job $LauncherJob -Timeout 20))
+    if($Executable.EndsWith('.cmd',[StringComparison]::OrdinalIgnoreCase))
     {
-        Stop-Job $LauncherJob,$PipeJob -ErrorAction SilentlyContinue
-        Remove-Job $LauncherJob,$PipeJob -Force -ErrorAction SilentlyContinue
-        throw "Launcher timed out: $Executable $($Arguments -join ' ')"
+        $Start.FileName = $env:ComSpec
+        $Start.ArgumentList.Add('/d')
+        $Start.ArgumentList.Add('/s')
+        $Start.ArgumentList.Add('/c')
+        $Parts = @($Executable)+$Arguments | ForEach-Object { '"'+($_ -replace '"','""')+'"' }
+        $Start.ArgumentList.Add($Parts -join ' ')
     }
-    $Launch = Receive-Job $LauncherJob -Wait -AutoRemoveJob
-
-    if(!(Wait-Job $PipeJob -Timeout 5))
+    else
     {
-        Stop-Job $PipeJob -ErrorAction SilentlyContinue
-        Remove-Job $PipeJob -Force -ErrorAction SilentlyContinue
-        throw "Launcher did not connect to the named pipe: $Executable $($Arguments -join ' ')`n$($Launch.Output)"
+        $Start.FileName = $Executable
+        foreach($Argument in $Arguments) { $Start.ArgumentList.Add($Argument) }
     }
-    $Request = (Receive-Job $PipeJob -Wait -AutoRemoveJob | Select-Object -Last 1)
-    Assert-True ($Launch.ExitCode -eq 0) "Launcher exited with $($Launch.ExitCode): $($Launch.Output)"
-    Assert-True ($Launch.Output -like '*Unicode 測試 ✓*') "UTF-8 response was corrupted: $($Launch.Output)"
-    [pscustomobject]@{Request=($Request | ConvertFrom-Json);Output=$Launch.Output}
+
+    $Process = [Diagnostics.Process]::new()
+    $Process.StartInfo = $Start
+    try
+    {
+        if(!$Process.Start()) { throw "Could not start $Executable" }
+        $Stdout = $Process.StandardOutput.ReadToEndAsync()
+        $Stderr = $Process.StandardError.ReadToEndAsync()
+
+        if(!$Connect.Wait(5000))
+        {
+            $Process.Kill($true)
+            throw "Launcher did not connect to the named pipe: $Executable $($Arguments -join ' ')"
+        }
+
+        $Buffer = New-Object byte[] 65536
+        $Read = $Pipe.ReadAsync($Buffer,0,$Buffer.Length)
+        if(!$Read.Wait(5000))
+        {
+            $Process.Kill($true)
+            throw "Launcher connected but sent no request: $Executable $($Arguments -join ' ')"
+        }
+        $Request = $Utf8.GetString($Buffer,0,$Read.Result)
+        $Bytes = $Utf8.GetBytes($Response)
+        $Pipe.Write($Bytes,0,$Bytes.Length)
+        $Pipe.Flush()
+        $Pipe.Dispose()
+
+        if(!$Process.WaitForExit(20000))
+        {
+            $Process.Kill($true)
+            throw "Launcher timed out: $Executable $($Arguments -join ' ')"
+        }
+        $Output = $Stdout.GetAwaiter().GetResult().Trim()
+        $ErrorOutput = $Stderr.GetAwaiter().GetResult().Trim()
+        Assert-True ($Process.ExitCode -eq 0) "Launcher exited with $($Process.ExitCode): $Output $ErrorOutput"
+        Assert-True ($Output -like '*Unicode 測試 ✓*') "UTF-8 response was corrupted: $Output"
+        [pscustomobject]@{Request=($Request | ConvertFrom-Json);Output=$Output}
+    }
+    finally
+    {
+        if($Process -and !$Process.HasExited)
+        {
+            try { $Process.Kill($true) } catch {}
+        }
+        $Process.Dispose()
+        $Pipe.Dispose()
+    }
 }
 
 $OriginalAcl = Get-Acl $Root
@@ -86,7 +113,7 @@ try
     $Identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
     $Acl = Get-Acl $Root
     $Rule = [Security.AccessControl.FileSystemAccessRule]::new(
-        $Identity,'Write,Modify','ContainerInherit,ObjectInherit','None','Deny')
+        $Identity,'Write','ContainerInherit,ObjectInherit','None','Deny')
     $Acl.AddAccessRule($Rule) | Out-Null
     Set-Acl $Root $Acl
 
