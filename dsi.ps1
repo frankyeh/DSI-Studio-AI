@@ -6,6 +6,32 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$utf8 = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = $utf8
+
+if($env:DSI_ARGC)
+{
+    $argv = @(for($i = 0; $i -lt [int]$env:DSI_ARGC; $i++)
+    {
+        [Environment]::GetEnvironmentVariable("DSI_ARG_$i")
+    })
+    [string[]]$Value = @()
+    $Chat = $null
+    for($i = 0; $i -lt $argv.Count; $i++)
+    {
+        if($argv[$i] -ieq '-Chat')
+        {
+            $i++
+            if($i -ge $argv.Count) { throw '-Chat requires a message.' }
+            $Chat = $argv[$i]
+        }
+        else
+        {
+            $Value += $argv[$i]
+        }
+    }
+}
+
 $Session = $env:CLAUDE_CODE_SESSION_ID
 if($Session)
 {
@@ -71,7 +97,6 @@ try
 {
     $pipe = [IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio')
     $pipe.Connect(5000)
-    $utf8 = [Text.UTF8Encoding]::new($false)
     $writer = [IO.StreamWriter]::new($pipe,$utf8,1024,$true)
     $reader = [IO.StreamReader]::new($pipe,$utf8,$false,1024,$true)
     $writer.Write(($request | ConvertTo-Json -Compress -Depth 8))
