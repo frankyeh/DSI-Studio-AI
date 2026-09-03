@@ -1,0 +1,29 @@
+name: Launcher smoke
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - dsi.sh
+      - dsi.cmd
+      - dsi.ps1
+      - DSI_STUDIO_AI_SKILL_LAUNCHER.md
+      - .github/scripts/test_launcher_windows.ps1
+      - .github/workflows/launcher-smoke.yml
+  pull_request:
+    paths:
+      - dsi.sh
+      - dsi.cmd
+      - dsi.ps1
+      - DSI_STUDIO_AI_SKILL_LAUNCHER.md
+      - .github/scripts/test_launcher_windows.ps1
+      - .github/workflows/launcher-smoke.yml
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Windows launcher smoke tests
+        shell: pwsh
+        run: .\.github\scripts\test_launcher_windows.ps1
