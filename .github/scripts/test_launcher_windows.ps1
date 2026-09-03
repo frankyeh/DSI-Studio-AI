@@ -32,20 +32,13 @@ function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
         $Utf8 = [Text.UTF8Encoding]::new($false)
         $Pipe = [IO.Pipes.NamedPipeServerStream]::new(
             'dsi-studio',[IO.Pipes.PipeDirection]::InOut,1,
-            [IO.Pipes.PipeTransmissionMode]::Message,[IO.Pipes.PipeOptions]::None)
-        $Memory = [IO.MemoryStream]::new()
+            [IO.Pipes.PipeTransmissionMode]::Byte,[IO.Pipes.PipeOptions]::None)
         try
         {
             $Pipe.WaitForConnection()
             $Buffer = New-Object byte[] 65536
-            do
-            {
-                $Read = $Pipe.Read($Buffer,0,$Buffer.Length)
-                if($Read) { $Memory.Write($Buffer,0,$Read) }
-            }
-            while(!$Pipe.IsMessageComplete)
-
-            $Request = $Utf8.GetString($Memory.ToArray())
+            $Read = $Pipe.Read($Buffer,0,$Buffer.Length)
+            $Request = $Utf8.GetString($Buffer,0,$Read)
             $Bytes = $Utf8.GetBytes($Response)
             $Pipe.Write($Bytes,0,$Bytes.Length)
             $Pipe.Flush()
@@ -53,7 +46,6 @@ function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
         }
         finally
         {
-            $Memory.Dispose()
             $Pipe.Dispose()
         }
     }
