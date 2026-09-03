@@ -68,16 +68,20 @@ function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
 
         if(!$Connect.Wait(5000))
         {
-            $Process.Kill($true)
-            throw "Launcher did not connect to the named pipe: $Executable $($Arguments -join ' ')"
+            if(!$Process.HasExited) { $Process.Kill($true); $Process.WaitForExit(2000) | Out-Null }
+            $Output = $Stdout.GetAwaiter().GetResult().Trim()
+            $ErrorOutput = $Stderr.GetAwaiter().GetResult().Trim()
+            throw "Launcher did not connect to the named pipe: $Executable $($Arguments -join ' ')`nstdout: $Output`nstderr: $ErrorOutput"
         }
 
         $Buffer = New-Object byte[] 65536
         $Read = $Pipe.ReadAsync($Buffer,0,$Buffer.Length)
         if(!$Read.Wait(5000))
         {
-            $Process.Kill($true)
-            throw "Launcher connected but sent no request: $Executable $($Arguments -join ' ')"
+            if(!$Process.HasExited) { $Process.Kill($true); $Process.WaitForExit(2000) | Out-Null }
+            $Output = $Stdout.GetAwaiter().GetResult().Trim()
+            $ErrorOutput = $Stderr.GetAwaiter().GetResult().Trim()
+            throw "Launcher connected but sent no request: $Executable $($Arguments -join ' ')`nstdout: $Output`nstderr: $ErrorOutput"
         }
         $Request = $Utf8.GetString($Buffer,0,$Read.Result)
         $Bytes = $Utf8.GetBytes($Response)
