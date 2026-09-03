@@ -65,13 +65,20 @@ The Windows wrapper accepts the same command arguments:
 ./dsi set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
 ```
 
-Claude may call the PowerShell implementation directly when Bash is unavailable:
+The PowerShell implementation may also be called directly from PowerShell:
 
 ```powershell
-./dsi.ps1 set_title "Fiber tracking"
-./dsi.ps1 list_window
-./dsi.ps1 list_recent_fib
-./dsi.ps1 set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
+& ./dsi.ps1 set_title "Fiber tracking"
+& ./dsi.ps1 list_window
+& ./dsi.ps1 list_recent_fib
+& ./dsi.ps1 set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
+```
+
+When starting Windows PowerShell explicitly, use the call operator rather than
+`-File`:
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& './dsi.ps1' list_window"
 ```
 
 ## Launcher selection
@@ -80,8 +87,8 @@ Claude may call the PowerShell implementation directly when Bash is unavailable:
 |---|---|---:|---|---|---|
 | Codex | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
 | Claude | Windows | Yes | `bash ./dsi.sh ...` | Git Bash, Windows PowerShell, and Bash permission | Shared recommended route; Python is not required |
-| Codex | Windows | No | `./dsi ...` | `dsi.cmd`, `dsi.ps1`, and Windows PowerShell | Native Windows wrapper |
-| Claude | Windows | No | `./dsi.ps1 ...` | `dsi.ps1`, Windows PowerShell, and PowerShell permission | Native PowerShell route |
+| Codex | Windows | No | `./dsi ...` | `dsi.cmd`, `dsi.ps1`, and Windows PowerShell | Native wrapper uses the PowerShell call-operator route |
+| Claude | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1`, Windows PowerShell, and PowerShell permission | Native PowerShell route |
 | Codex | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | macOS | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
 | Codex | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
@@ -92,12 +99,25 @@ Claude may call the PowerShell implementation directly when Bash is unavailable:
 | File | Platform | Role |
 |---|---|---|
 | `dsi.sh` | Windows, macOS, Linux | Recommended shared launcher |
-| `dsi.cmd` | Windows | Short native command that forwards to `dsi.ps1` |
-| `dsi.ps1` | Windows | Native PowerShell implementation and fallback |
+| `dsi.cmd` | Windows | Native wrapper that forwards arguments through `DSI_ARG_*` environment variables and invokes `dsi.ps1` with PowerShell's call operator |
+| `dsi.ps1` | Windows | Native PowerShell implementation and fallback; accepts normal PowerShell arguments or the safe `DSI_ARG_*` forwarding used by the wrappers |
 
-On Windows, `dsi.sh` uses Git Bash only as the entry shell. It then calls Windows
-PowerShell noninteractively and communicates with `\\.\pipe\dsi-studio`. It does
-not require Python or temporary files.
+On Windows, `dsi.sh` uses Git Bash only as the entry shell. It forwards the original
+arguments through `DSI_ARGC` and `DSI_ARG_<n>`, resolves the packaged `dsi.ps1`, then
+starts Windows PowerShell noninteractively with the call operator. The Windows Bash
+branch contains no PowerShell heredoc and performs no Bash filesystem writes, so it
+does not depend on a writable working directory or temporary directory. It
+communicates with `\\.\pipe\dsi-studio` through `dsi.ps1` and does not require
+Python.
+
+`dsi.cmd` uses the same forwarding format and deliberately does not interpolate user
+arguments into PowerShell source. This preserves spaces, parentheses, quoted or
+composite values, `-Chat`, and batched `--` commands without relying on
+`powershell.exe -File` argument binding.
+
+`dsi.ps1` reads and writes the named-pipe protocol as UTF-8 and sets PowerShell's
+console output encoding to UTF-8 so non-ASCII DSI Studio responses survive the
+Windows wrapper path.
 
 On macOS and Linux, `dsi.sh` uses Python 3 to build the request and communicate with
 the local Unix-domain socket.
@@ -166,10 +186,11 @@ Use the Bash route when Bash is available:
 bash ./dsi.sh ...
 ```
 
-When Bash is unavailable, enable Claude's PowerShell tool and use:
+When Bash is unavailable, enable Claude's PowerShell tool and invoke the script with
+PowerShell's call operator:
 
 ```powershell
-./dsi.ps1 ...
+& ./dsi.ps1 ...
 ```
 
 A bare `./dsi.sh ...` command does not match the Bash permission rule. The
@@ -191,6 +212,28 @@ When Bash is unavailable or blocked, use the native wrapper:
 ./dsi ...
 ```
 
+## Windows launcher smoke test
+
+`.github/scripts/test_launcher_windows.ps1` and the `Launcher smoke` workflow guard
+the Windows launcher contract. The test uses a local named-pipe server and checks:
+
+- launcher files located under a path containing spaces and parentheses;
+- a read-only launcher working directory and read-only `TEMP`/`TMP`/`TMPDIR`;
+- the Git Bash `dsi.sh` route without a Windows PowerShell heredoc;
+- the native `dsi.cmd` route without `powershell.exe -File`;
+- the tested PowerShell call-operator fallback;
+- quoted/composite parameters, numeric conversion, `-Chat`, and batched `--` commands;
+- UTF-8 request and response text, including non-ASCII characters.
+
+The test also contains a regression guard for the reported constrained-language
+launcher problem: `dsi.cmd` must continue using `-Command` plus the call operator and
+must not return to `-File`. It does not claim that an unsigned script can bypass an
+enterprise WDAC/AppLocker policy. Under a real system-enforced `ConstrainedLanguage`
+policy, PowerShell restricts arbitrary .NET type construction and method calls; if
+the policy blocks `NamedPipeClientStream`, DSI Studio cannot bypass that security
+policy from the launcher. The script must instead be allowed/trusted by the system
+policy or run through an approved environment.
+
 ## Troubleshooting
 
 ### `bash` is not found
@@ -205,7 +248,7 @@ On Windows, install Git for Windows or add its `bin` directory to the agent proc
 Claude can use:
 
 ```powershell
-./dsi.ps1 ...
+& ./dsi.ps1 ...
 ```
 
 ### The PowerShell tool is unavailable to Claude
@@ -221,13 +264,37 @@ by the Windows branch.
 
 ### Bash reports permission errors for `/tmp` or the working directory
 
-Use the current `dsi.sh`. Its Windows branch creates no temporary files and performs
-no Bash filesystem writes. Confirm that the packaged file is the latest version.
+Older packaged versions of `dsi.sh` embedded the Windows PowerShell implementation
+inside a Bash heredoc. Git Bash may materialize a heredoc through a temporary file,
+which can fail in a read-only sandbox.
+
+Use the current `dsi.sh`. Its Windows branch forwards arguments through environment
+variables and invokes the packaged `dsi.ps1`; it contains no PowerShell heredoc and
+performs no Bash filesystem writes.
+
+### `powershell.exe -File dsi.ps1` reports a language-mode or argument-binding error
+
+Do not use the `-File` route. The packaged `dsi.cmd` already uses the tested
+call-operator form with environment-variable argument forwarding:
+
+```powershell
+./dsi list_window
+```
+
+If invoking Windows PowerShell yourself, use:
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& './dsi.ps1' list_window"
+```
+
+If a system-enforced WDAC/AppLocker policy still rejects operations inside
+`dsi.ps1`, that is a real PowerShell policy restriction rather than a launcher
+quoting problem; the launcher cannot override it.
 
 ### PowerShell displays interactive `>>` prompts
 
-Use the current `dsi.sh`. Its Windows branch uses one noninteractive `-Command`
-invocation rather than `-File -`.
+Use the current `dsi.sh` or `dsi.cmd`. Both invoke one noninteractive `-Command`
+call-operator request and do not use `-File -` or inline heredoc PowerShell.
 
 ### The Bash route still fails on Windows
 
@@ -240,14 +307,21 @@ Use the native fallback:
 This runs:
 
 ```text
-dsi.cmd -> dsi.ps1 -> \\.\pipe\dsi-studio
+dsi.cmd -> PowerShell -Command -> dsi.ps1 -> \\.\pipe\dsi-studio
 ```
 
 For Claude's PowerShell tool, call the implementation directly:
 
 ```powershell
-./dsi.ps1 list_window
+& ./dsi.ps1 list_window
 ```
+
+### Unicode output is garbled on Windows
+
+Use the current `dsi.ps1`, `dsi.cmd`, or Windows branch of `dsi.sh`. The PowerShell
+implementation explicitly decodes the named-pipe response as UTF-8 and sets console
+output to UTF-8. If an outer terminal still displays mojibake, verify that the host
+captures UTF-8 rather than re-decoding the child process output with an OEM code page.
 
 ### Missing session environment
 
