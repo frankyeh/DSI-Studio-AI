@@ -16,8 +16,6 @@ New-Item $Ai,$Temp -ItemType Directory | Out-Null
 Copy-Item (Join-Path $Repo 'dsi.sh'),(Join-Path $Repo 'dsi.cmd'),(Join-Path $Repo 'dsi.ps1') $Ai
 
 $Session = '11111111-1111-4111-8111-111111111111'
-$env:CODEX_THREAD_ID = $Session
-Remove-Item Env:CLAUDE_CODE_SESSION_ID -ErrorAction SilentlyContinue
 
 function Assert-True($Condition,[string]$Message)
 {
@@ -27,7 +25,7 @@ function Assert-True($Condition,[string]$Message)
 function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
 {
     $Response = '{"status":"success","text":"Unicode 測試 ✓"}'
-    $Job = Start-Job -ArgumentList $Response -ScriptBlock {
+    $PipeJob = Start-Job -ArgumentList $Response -ScriptBlock {
         param($Response)
         $Utf8 = [Text.UTF8Encoding]::new($false)
         $Pipe = [IO.Pipes.NamedPipeServerStream]::new(
@@ -50,37 +48,36 @@ function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
         }
     }
 
-    $OldTemp = $env:TEMP
-    $OldTmp = $env:TMP
-    $OldTmpDir = $env:TMPDIR
-    $env:TEMP = $Temp
-    $env:TMP = $Temp
-    $env:TMPDIR = $Temp
-    Push-Location $Ai
-    try
-    {
+    $LauncherJob = Start-Job -ArgumentList $Executable,$Arguments,$Ai,$Temp,$Session -ScriptBlock {
+        param($Executable,$Arguments,$Ai,$Temp,$Session)
+        $env:CODEX_THREAD_ID = $Session
+        Remove-Item Env:CLAUDE_CODE_SESSION_ID -ErrorAction SilentlyContinue
+        $env:TEMP = $Temp
+        $env:TMP = $Temp
+        $env:TMPDIR = $Temp
+        Set-Location $Ai
         $Output = (& $Executable @Arguments 2>&1 | Out-String).Trim()
-        $ExitCode = $LASTEXITCODE
-    }
-    finally
-    {
-        Pop-Location
-        $env:TEMP = $OldTemp
-        $env:TMP = $OldTmp
-        if($null -eq $OldTmpDir) { Remove-Item Env:TMPDIR -ErrorAction SilentlyContinue }
-        else { $env:TMPDIR = $OldTmpDir }
+        [pscustomobject]@{Output=$Output;ExitCode=$LASTEXITCODE}
     }
 
-    if(!(Wait-Job $Job -Timeout 10))
+    if(!(Wait-Job $LauncherJob -Timeout 20))
     {
-        Stop-Job $Job
-        Remove-Job $Job -Force
-        throw "Launcher did not connect to the named pipe: $Executable $($Arguments -join ' ')`n$Output"
+        Stop-Job $LauncherJob,$PipeJob -ErrorAction SilentlyContinue
+        Remove-Job $LauncherJob,$PipeJob -Force -ErrorAction SilentlyContinue
+        throw "Launcher timed out: $Executable $($Arguments -join ' ')"
     }
-    $Request = (Receive-Job $Job -Wait -AutoRemoveJob | Select-Object -Last 1)
-    Assert-True ($ExitCode -eq 0) "Launcher exited with $ExitCode`: $Output"
-    Assert-True ($Output -like '*Unicode 測試 ✓*') "UTF-8 response was corrupted: $Output"
-    [pscustomobject]@{Request=($Request | ConvertFrom-Json);Output=$Output}
+    $Launch = Receive-Job $LauncherJob -Wait -AutoRemoveJob
+
+    if(!(Wait-Job $PipeJob -Timeout 5))
+    {
+        Stop-Job $PipeJob -ErrorAction SilentlyContinue
+        Remove-Job $PipeJob -Force -ErrorAction SilentlyContinue
+        throw "Launcher did not connect to the named pipe: $Executable $($Arguments -join ' ')`n$($Launch.Output)"
+    }
+    $Request = (Receive-Job $PipeJob -Wait -AutoRemoveJob | Select-Object -Last 1)
+    Assert-True ($Launch.ExitCode -eq 0) "Launcher exited with $($Launch.ExitCode): $($Launch.Output)"
+    Assert-True ($Launch.Output -like '*Unicode 測試 ✓*') "UTF-8 response was corrupted: $($Launch.Output)"
+    [pscustomobject]@{Request=($Request | ConvertFrom-Json);Output=$Launch.Output}
 }
 
 $OriginalAcl = Get-Acl $Root
