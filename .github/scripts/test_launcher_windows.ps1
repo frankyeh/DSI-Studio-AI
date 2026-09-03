@@ -130,7 +130,7 @@ try
 
     $ShText = Get-Content (Join-Path $Ai 'dsi.sh') -Raw
     $WindowsBranch = $ShText.Substring(0,$ShText.IndexOf("esac")+4)
-    Assert-True ($WindowsBranch -notmatch "<<['\"]?PS1") 'Windows dsi.sh regressed to a PowerShell heredoc.'
+    Assert-True ($WindowsBranch -notmatch '<<.*PS1') 'Windows dsi.sh regressed to a PowerShell heredoc.'
 
     Write-Host 'Windows launcher smoke tests passed.'
 }
