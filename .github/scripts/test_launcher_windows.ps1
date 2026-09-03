@@ -47,10 +47,9 @@ function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
     {
         $Start.FileName = $env:ComSpec
         $Start.ArgumentList.Add('/d')
-        $Start.ArgumentList.Add('/s')
         $Start.ArgumentList.Add('/c')
-        $Parts = @($Executable)+$Arguments | ForEach-Object { '"'+($_ -replace '"','""')+'"' }
-        $Start.ArgumentList.Add($Parts -join ' ')
+        $QuotedArguments = $Arguments | ForEach-Object { '"'+($_ -replace '"','""')+'"' }
+        $Start.ArgumentList.Add('call "'+$Executable+'" '+($QuotedArguments -join ' '))
     }
     else
     {
