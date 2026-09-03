@@ -46,10 +46,8 @@ function Invoke-Launcher([string]$Executable,[string[]]$Arguments)
     if($Executable.EndsWith('.cmd',[StringComparison]::OrdinalIgnoreCase))
     {
         $Start.FileName = $env:ComSpec
-        $Start.ArgumentList.Add('/d')
-        $Start.ArgumentList.Add('/c')
         $QuotedArguments = $Arguments | ForEach-Object { '"'+($_ -replace '"','""')+'"' }
-        $Start.ArgumentList.Add('call "'+$Executable+'" '+($QuotedArguments -join ' '))
+        $Start.Arguments = '/d /c call "'+$Executable+'" '+($QuotedArguments -join ' ')
     }
     else
     {
