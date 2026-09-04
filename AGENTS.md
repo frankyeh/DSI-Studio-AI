@@ -421,7 +421,22 @@ and skips that file instead of blocking.
 
 ## 7. Fiber Data Hub
 
-All Hub commands target `main`. Switch back first when necessary:
+Fiber Data Hub supports two access routes: direct web/GitHub access and DSI Studio
+`hub_*` commands. Both are valid. Choose the route that best fits the task and
+available tools.
+
+For dataset discovery, release metadata, QC lookup, file listing, and downloading
+public assets, an agent may work directly from https://brain.labsolver.org and the
+corresponding GitHub releases without routing through DSI Studio. The direct-access
+guide is maintained in `frankyeh/Brain-Data`:
+https://github.com/frankyeh/Brain-Data/blob/gh-pages/AGENTS.md
+
+Use the DSI Studio route below when it is convenient or when the task needs DSI
+Studio to open, visualize, track, or analyze Hub data. If one route is unavailable,
+use the other when it can satisfy the same request. Do not force either route when
+the other is simpler.
+
+All DSI Studio Hub commands target `main`. Switch back first when necessary:
 
 ```bash
 bash ./dsi.sh set_window main
