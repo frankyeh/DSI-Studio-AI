@@ -42,7 +42,7 @@ an `&`-separated list as a string.
 | `save_all_regions` | `["save_all_regions","C:/output/regions.nii.gz"]` | Save checked regions as one 3D label NIfTI. |
 | `save_all_regions_to_folder` | `["save_all_regions_to_folder","C:/output/regions"]` | Save each checked region as a separate file using the current ROI output format. |
 | `save_region_info` | `["save_region_info","C:/output/seed_info.txt",0]` | Save coordinates, fiber directions, and quantitative values for one region index. |
-| `load_region_color` | `["load_region_color","C:/data/region_colors.txt"]` | Load RGB or RGBA values in region-table order. |
+| `load_region_color` | `["load_region_color","C:/data/region_colors.txt"]` | Load either positional RGB/RGBA colors or name-keyed TSV. Positional input requires exactly 3 (RGB) or 4 (RGBA) values per current region in table order. TSV input uses `region name<TAB>R<TAB>G<TAB>B<TAB>A` and must name every current region exactly once. All channels must be 0-255; malformed counts/values and unknown, duplicate, or missing names fail before any region color is changed. |
 | `save_region_color` | `["save_region_color","C:/output/region_colors.txt"]` | Save one RGBA line for every region in table order. |
 | `delete_region` | `["delete_region","0&2&5"]` | Delete one or more regions. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_regions` | `["delete_all_regions"]` | Delete all regions. |
