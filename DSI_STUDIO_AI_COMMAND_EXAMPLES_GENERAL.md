@@ -18,8 +18,8 @@ only as parameters of the documented commands below.
 
 | Command | Common example | Exact behavior |
 |---|---|---|
-| `list_recent_fib` | `["list_recent_fib"]` | List saved recent FIB/FZ paths using forward slashes. Takes no arguments. |
-| `list_recent_src` | `["list_recent_src"]` | List saved recent SRC/SZ paths using forward slashes. Takes no arguments. |
+| `list_recent_fib` | `["list_recent_fib"]` | List valid saved recent FIB/FZ paths using forward slashes. If none of the saved paths currently exists, print `no recent files`. Takes no arguments. |
+| `list_recent_src` | `["list_recent_src"]` | List valid saved recent SRC/SZ paths using forward slashes. If none of the saved paths currently exists, print `no recent files`. Takes no arguments. |
 | `reset_settings` | `["reset_settings"]` | Clear all application settings and synchronize them. Takes no arguments. |
 | `set_work_dir` | `["set_work_dir","C:/work"]` | Add the supplied directory to the work-directory list. Without a parameter, open a directory picker. |
 | `rename_dicom` | `["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Rename one or more DICOM files in their current parent directories. Each file is a separate command element. Without file parameters, open a file picker. |
