@@ -17,7 +17,7 @@ This file contains rendering, camera, surface, and display commands confirmed in
 |---|---|---|
 | `rotate` | `["rotate","15 1 0 0"]` | Rotate the 3D view by degrees around axis `x y z`. |
 | `rotate_view` | `["rotate_view","left",15]` | Rotate the 3D view by a `command[2]` angle in degrees toward `command[1]`: `"left"`/`"right"` yaw around the vertical axis, `"up"`/`"down"` pitch around the horizontal axis. A friendlier alternative to `rotate` when the exact axis vector doesn't matter. |
-| `set_view` | `["set_view",0]` | Reset to numeric view `0`, `1`, or `2`; repeated calls toggle the corresponding 180-degree flipped view. |
+| `set_view` | `["set_view",0,1]` | Reset to numeric view `0`, `1`, or `2`. Optional `flipped` is `0` for unflipped or `1` for flipped; when omitted, the current flip state toggles after each call. |
 | `set_zoom` | `["set_zoom",1.5]` | Set the absolute camera zoom derived from the transformation-matrix determinant; zero is rejected. |
 | `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera transformation with the first 16 supplied floats. |
 | `get_camera` | `["get_camera"]` | Print `view_direction`, `view_position (voxel)`, `image_left`, and `image_up`. `image_left` and `image_up` report the subject-anatomical LPS directions at the left and top of the current screen, derived from the inverse camera matrix, so rolled and oblique views can be verified without reading pixels. Use `save_camera` for the raw, round-trippable 16-float matrix. |
