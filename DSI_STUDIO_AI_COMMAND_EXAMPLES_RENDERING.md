@@ -17,7 +17,7 @@ This file contains rendering, camera, surface, and display commands confirmed in
 |---|---|---|
 | `rotate` | `["rotate","15 1 0 0"]` | Rotate the 3D view by degrees around axis `x y z`. |
 | `rotate_view` | `["rotate_view","left",15]` | Rotate the 3D view by a `command[2]` angle in degrees toward `command[1]`: `"left"`/`"right"` yaw around the vertical axis, `"up"`/`"down"` pitch around the horizontal axis. A friendlier alternative to `rotate` when the exact axis vector doesn't matter. |
-| `set_view` | `["set_view",0,1]` | Reset to numeric view `0`, `1`, or `2`. Optional `flipped` is `0` for unflipped or `1` for flipped; when omitted, the current flip state toggles after each call. |
+| `set_view` | `["set_view",0,1]` | Reset to numeric view `0`, `1`, or `2`; other view numbers are rejected. Optional `flipped` is `0` for unflipped or `1` for flipped; when omitted, the current flip state toggles after each call. |
 | `set_zoom` | `["set_zoom",1.5]` | Set the absolute camera zoom derived from the transformation-matrix determinant; zero is rejected. |
 | `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera transformation with the first 16 supplied floats. |
 | `get_camera` | `["get_camera"]` | Print `view_direction`, `view_position (voxel)`, `image_left`, and `image_up`. `image_left` and `image_up` report the subject-anatomical LPS directions at the left and top of the current screen, derived from the inverse camera matrix, so rolled and oblique views can be verified without reading pixels. Use `save_camera` for the raw, round-trippable 16-float matrix. |
@@ -37,7 +37,7 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `save_3view_screen` | `["save_3view_screen","C:/output/tracts_3view.png","1920 1080"]` | Save a 2×2 composite containing three 3D views and the current slice scene. Optional third element resizes like `save_screen`. |
 | `save_h3view_screen` | `["save_h3view_screen","C:/output/tracts_h3view.png","1920 1080"]` | Save four cropped directional views in a horizontal image. Optional third element resizes like `save_screen`. |
 | `save_v3view_screen` | `["save_v3view_screen","C:/output/tracts_v3view.png","1920 1080"]` | Save four directional views in a vertical image. Optional third element resizes like `save_screen`. |
-| `save_rotation_video` | `["save_rotation_video","C:/output/rotation.avi"]` | Save a rotating MJPG AVI by rotating the 3D view around the Y axis in 0.2-degree steps through 360 degrees at 30 fps. If the path is omitted, open a save dialog. On non-macOS builds, the current writer temporarily renders at 1980×1080 and restores the widget size afterward. |
+| `save_rotation_video` | `["save_rotation_video","C:/output/rotation.avi"]` | Save a rotating MJPG AVI by rotating the 3D view around the Y axis in 0.2-degree steps through 360 degrees at 30 fps. If the path is omitted, open a save dialog. On non-macOS builds, the current writer temporarily renders at 1980×1080. On all platforms, the camera and widget size are restored on success, failure, or cancellation. JPEG-encoding and AVI-open failures return errors; cancellation is reported separately. A canceled or failed export may leave a partial file. |
 | `add_surface` | `["add_surface",7,0.6]` | Create a surface from slice index 7 using threshold `0.6`; omission of the threshold opens a dialog. |
 | `add_surface` | `["add_surface",0,25]` | For a built-in slice, map the built-in ICBM152 white-matter image to subject space and create a whole-brain white-matter isosurface at threshold `25`. |
 | `add_surface_left` | `["add_surface_left",7,0.6]` | Create a surface after retaining the source portion on the left side of the current X slice position. |
@@ -54,6 +54,9 @@ This file contains rendering, camera, surface, and display commands confirmed in
 `"x0 y0 x1 y1"`, normalized `0..1` of the previously captured image for that channel; when given,
 it crops the cached capture instead of re-rendering the scene, so call once with `command[2]`
 empty first to establish the cache for the channel you want to zoom into.
+Cached crops are explicitly labeled and omit current camera/slice orientation, which may differ
+from the original capture. Use the original capture metadata, or request a fresh capture to
+verify the current scene.
 
 There is no channel argument — channels are picked automatically from what is currently visible:
 
@@ -97,7 +100,7 @@ an actual image is preferable to reading the text form.
 
 - `set_camera` and camera files require at least 16 floats; additional values are ignored.
 - `store_camera`, `store_camera1`, and `store_camera2` display modal messages and return the command-history canceled state even though the setting is stored.
-- `save_rotation_video` now reaches the existing MJPG AVI-writing path; it does not validate the filename extension or expose codec/fps/step controls.
+- `save_rotation_video` does not validate the filename extension or expose codec/fps/step controls. JPEG-encoding and AVI-open failures are checked, but the underlying AVI API does not report later frame-write or finalization errors. A success reply therefore cannot rule out a later disk-write failure.
 - `clear_surface` removes the current single surface. Surface appearance and visibility remain controlled through `set_param` using `surface_*` and `show_surface`; there are no surface IDs/lists or `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`, `set_surface_alpha`, or `set_surface_visible` command handlers.
 - `set_device_color` has no command handler; use the device table UI for device color.
 - Default to `save_lr_screen` when saving a 3D rendering to illustrate anatomy, tract shape, or a tract/region overlay. Use plain `save_screen` only when the user explicitly asks for a single screenshot.
