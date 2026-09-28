@@ -727,6 +727,7 @@ source data or running reconstruction.
 - [Tracts, tracking, AutoTrack, clustering, recognition, and TDI](DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md)
 - [Devices and AC-PC locators](DSI_STUDIO_AI_COMMAND_EXAMPLES_DEVICE.md)
 - [Parameters, rendering, camera, surfaces, workspace, settings, and display](DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md)
+- [Brain-tumor presurgical and postsurgical evaluation](DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md) (read only for brain-tumor tasks)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 
 Read only the files relevant to the current task, then continue using
