@@ -358,12 +358,16 @@ Roles are `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, and
 
 ## AutoTrack
 
-Use AutoTrack for standard named pathways and reproducible cohort workflows. First
-discover the exact internal atlas identifier:
+Use AutoTrack for standard named pathways and reproducible cohort workflows.
+Normally discover the exact internal atlas identifier first:
 
 ```bash
 bash ./dsi.sh list_auto_tract
 ```
+
+A task-specific DSI Studio AI skill may provide verified exact AutoTrack identifiers
+and explicitly state that discovery is unnecessary for those entries. In that case,
+use the identifiers from that skill directly.
 
 AutoTrack identifiers are hierarchical. When the user asks for the whole tract
 family, choose the parent entry rather than one of its branch-specific descendants.
@@ -371,11 +375,15 @@ For example, map the entire left cingulum with `Association_CingulumL`, not an
 `Association_CingulumL_...` child; use the corresponding parent entry for the corpus
 callosum. Select a child only when a specific subdivision or branch is requested.
 
-Then use the exact returned name:
+Then use the exact returned or task-skill-provided name:
 
 ```bash
 bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
 ```
+
+`run_auto_track` is asynchronous. Poll `list_tract status` until it reports
+`done` before a dependent operation or another state-changing tracking-window
+operation such as loading/registering a structural slice for the next analysis step.
 
 Atlas names use underscore-separated hierarchical prefixes such as
 `Association_*`, `ProjectionBrainstem_*`, and `Commissure_*`. Never guess or use

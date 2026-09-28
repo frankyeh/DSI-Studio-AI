@@ -58,6 +58,7 @@ The `current` column only identifies the selected slice (`1` or `0`); it does no
 ## Source-confirmed cautions
 
 - `set_slice` may return before loading or registration finishes; use the `status` column rather than interpreting several boolean columns.
+- `ready` means loading/registration has completed; it does not establish that the registration is anatomically correct. Inspect alignment before segmentation or other anatomy-dependent analysis.
 - `segment_brain` is synchronous; a client timeout does not prove inference stopped.
 - Use `list_slice` to discover the exact data-map name before export.
 - `save_slice_image` and `save_slice_mni_image` use `command[1]` as the output filename and `command[2]` as the metric/data-map name, not a slice-row index.

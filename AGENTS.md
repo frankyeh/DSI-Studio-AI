@@ -311,11 +311,14 @@ the derived database.
 ## 5. Quick fiber tracking: map the arcuate fasciculi
 
 After opening a FIB/FZ file, AutoTrack provides a quick way to map a standard
-white-matter bundle. Inspect the available tract names first:
+white-matter bundle. Normally inspect the available tract names first:
 
 ```bash
 bash ./dsi.sh list_auto_tract
 ```
+
+If a task-specific DSI Studio AI skill provides verified exact AutoTrack identifiers
+and explicitly states that discovery is unnecessary, use those identifiers directly.
 
 AutoTrack names are hierarchical. When the user asks for the whole tract family,
 select its parent entry rather than a branch-specific descendant. For example, use
@@ -329,8 +332,8 @@ Set a practical tracking size and topology-informed pruning (TIP):
 bash ./dsi.sh set_params "max_tract_count=10000&max_seed_count=50000000&tip_iteration=4"
 ```
 
-Use exact tract names returned by `list_auto_tract`. For example, map the left
-arcuate fasciculus:
+Use exact tract names returned by `list_auto_tract` or explicitly supplied by a
+task-specific skill. For example, map the left arcuate fasciculus:
 
 ```bash
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
@@ -690,7 +693,9 @@ source data or running reconstruction.
 6. A local modal dialog is supported user input; do not answer it remotely or treat
    `waiting` as failure.
 7. A timeout does not prove failure; verify state before retrying.
-8. If a window disappears, call `list_window`; do not reopen it automatically.
+8. If a window disappears or an operation appears to crash, inspect `list_window`
+   and `log` before retrying. Do not reopen or repeat work automatically; after an
+   application restart, old window IDs and unsaved in-memory state are invalid.
 9. Use `open_image` only for supported medical image volumes, never to verify
    screenshots.
 10. When the user demonstrates, changes, or retries something manually, inspect
@@ -710,7 +715,10 @@ source data or running reconstruction.
 14. Before any connectometry analysis, complete the demographics preflight in
     Section 4.3. Recheck derived and longitudinal databases instead of assuming
     demographics were embedded or carried forward.
-15. Read only the topic-specific files needed for the current task.
+15. Do not overlap state-changing tracking-window operations while tracking or slice
+    registration is still active. Wait for the relevant `list_tract status` or
+    `list_slice` completion state before continuing.
+16. Read only the topic-specific files needed for the current task.
 
 ## 12. Related documents
 

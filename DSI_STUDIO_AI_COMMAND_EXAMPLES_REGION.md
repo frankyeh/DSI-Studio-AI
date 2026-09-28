@@ -28,7 +28,7 @@ an `&`-separated list as a string.
 | `set_region_name` | `["set_region_name",0,"Tumor Core"]` | Rename a region by index. |
 | `set_region_type` | `["set_region_type",0,3]` | Set region role: `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, `6=Limiting`. |
 | `set_region_color` | `["set_region_color",0,4294901760]` | Set packed Qt ARGB color for a region. |
-| `show_only_regions` | `["show_only_regions","0&3&5"]` | Show only the listed `&`-separated region indices and hide all others. |
+| `show_only_regions` | `["show_only_regions","0&3&5"]` | Check/show only the listed `&`-separated region indices and uncheck/hide all others. This also selects exactly those rows for checked-region operations such as `show_region_statistics`. |
 | `new_region` | `["new_region"]` | Create an empty region in current slice space. |
 | `new_region_whole_brain_seed` | `["new_region_whole_brain_seed"]` | Create a whole-brain seed using the current `otsu_threshold` parameter multiplied by the FIB FA Otsu threshold. |
 | `new_region_whole_brain_seed` | `["new_region_whole_brain_seed",0.6]` | Create the whole-brain seed using an explicit Otsu ratio of `0.6`, independent of the current setting. |
@@ -46,7 +46,7 @@ an `&`-separated list as a string.
 | `save_region_color` | `["save_region_color","C:/output/region_colors.txt"]` | Save one RGBA line for every region in table order. |
 | `delete_region` | `["delete_region","0&2&5"]` | Delete one or more regions. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_regions` | `["delete_all_regions"]` | Delete all regions. |
-| `copy_region` | `["copy_region",0]` | Duplicate one region and insert the copy immediately after it. |
+| `copy_region` | `["copy_region",0]` | Duplicate one region and insert the copy immediately after it. All later row indices shift by one; call `list_region` again before using subsequent indices. |
 | `merge_regions` | `["merge_regions","0&1&2"]` | Merge regions 0, 1, and 2 into region 0 and remove the later rows. |
 | `merge_regions` | `["merge_regions"]` | Merge all currently checked regions into the first checked region; at least two must be checked. |
 | `check_region` | `["check_region","0&2&5",1]` | Set one or more regions' checked/shown state. Use one index or an `&`-separated index list; `1` checks/shows and `0` unchecks/hides. An empty index uses the current row. |
@@ -89,13 +89,16 @@ an `&`-separated list as a string.
 | `region_action_sort_size` | `["region_action_sort_size","0&1&2"]` | Sort the supplied rows by region volume. |
 | `region_action_1st_ex_all` | `["region_action_1st_ex_all","0&1&2"]` | Subtract regions 1 and 2 from region 0. |
 | `region_action_all_ex_1st` | `["region_action_all_ex_1st","0&1&2"]` | Subtract region 0 from regions 1 and 2. |
-| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Intersect regions 1 and 2 with region 0. |
+| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Preserve region 0 and intersect regions 1 and 2 with it. Region 0 defines the output dimensions and transform; later regions are mapped into region 0 space before intersection. |
 | `region_action_all_to_1st` | `["region_action_all_to_1st","0&1&2"]` | Assign and smooth later labels within the first region. |
 | `region_action_refine_all` | `["region_action_refine_all","0&1&2"]` | Refine all supplied labels using the current slice intensity image. |
 
 ## Safety and discovery notes
 
 - Discover current region indices and roles with `list_region` before mutation.
+- Re-run `list_region` after `copy_region`; insertion shifts every later row index.
+- For `region_action_all_inter_1st`, put the region whose grid/transform should define
+  the result first.
 - `list_atlas` with an atlas name or index lists that atlas's region names and
   indices; do not guess them from any other source.
 - The two-element `add_region_from_atlas` form adds all labels in one call and
