@@ -1,14 +1,15 @@
 # DSI Studio
 
-These instructions are shared by Codex, Claude, and Muse agents. `AGENTS.md` is the
+These instructions are shared by Codex, Claude, Muse, and Antigravity agents. `AGENTS.md` is the
 authoritative operating manual for DSI Studio AI. Topic-specific command inventories
 remain in the related `DSI_STUDIO_AI_*.md` files and should be read only when needed.
 
 ## 1. Launcher and session
 
-DSI Studio starts the agent in this DSI Studio AI directory and separately grants
-access to the user-selected project directory. Do not copy the AI support files into
-the project directory.
+DSI Studio starts Codex, Claude, and Muse in this DSI Studio AI directory and
+separately grants access to the user-selected project directory. Antigravity starts
+in the selected project directory; its startup prompt gives the absolute path to this
+AI directory and launcher. Do not copy the AI support files into the project directory.
 
 The launchers derive the current agent and session from:
 
@@ -16,20 +17,24 @@ The launchers derive the current agent and session from:
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
 MUSE_SESSION_ID
+ANTIGRAVITY_CONVERSATION_ID
 ```
 
-If more than one variable is set, precedence is Claude, then Codex, then Muse. Do
-not search for, invent, replace, or pass any session value on the command line.
+If more than one variable is set, precedence is Claude, then Codex, then Muse, then
+Antigravity. Do not search for, invent, replace, or pass any session value on the
+command line.
 
-Use the same launcher for Codex, Claude, and Muse:
+Use the same launcher for Codex, Claude, Muse, and Antigravity:
 
 ```bash
 bash ./dsi.sh <command> [values...]
 ```
 
-Always include `bash` before `./dsi.sh`. Use one invocation per request. If this
-launcher does not work, read `DSI_STUDIO_AI_SKILL_LAUNCHER.md` for platform requirements,
-troubleshooting, and the documented Windows fallback.
+Always include `bash` before the launcher path. Antigravity must use the absolute
+`dsi.sh` path given in its startup prompt because its working directory is the selected
+project; the other agents normally use `./dsi.sh`. Use one invocation per request. If
+the launcher does not work, read `DSI_STUDIO_AI_SKILL_LAUNCHER.md` for platform
+requirements, troubleshooting, and the documented Windows fallback.
 
 The launcher maps requests as follows:
 

@@ -47,8 +47,16 @@ else
     else
     {
         $Session = $env:MUSE_SESSION_ID
-        if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or MUSE_SESSION_ID.' }
-        $Agent = 'Muse'
+        if($Session)
+        {
+            $Agent = 'Muse'
+        }
+        else
+        {
+            $Session = $env:ANTIGRAVITY_CONVERSATION_ID
+            if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, MUSE_SESSION_ID, or ANTIGRAVITY_CONVERSATION_ID.' }
+            $Agent = 'Antigravity'
+        }
     }
 }
 

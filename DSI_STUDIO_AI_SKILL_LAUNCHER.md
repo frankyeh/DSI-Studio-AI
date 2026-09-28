@@ -15,13 +15,15 @@ variables:
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
 MUSE_SESSION_ID
+ANTIGRAVITY_CONVERSATION_ID
 ```
 
 When `CLAUDE_CODE_SESSION_ID` is set, the launcher uses `Claude` as the agent name
 and that value as the session ID. Otherwise it uses `CODEX_THREAD_ID` for `Codex`,
-then `MUSE_SESSION_ID` for `Muse`. This is also their precedence if more than one
-is set. The launchers no longer read `DSI_STUDIO_AGENT`. Do not pass an agent name
-or session ID on the command line.
+then `MUSE_SESSION_ID` for `Muse`, then `ANTIGRAVITY_CONVERSATION_ID` for
+`Antigravity`. This is also their precedence if more than one is set. The launchers
+no longer read `DSI_STUDIO_AGENT`. Do not pass an agent name or session ID on the
+command line.
 
 ## Common syntax
 
@@ -89,15 +91,19 @@ powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& '.
 | Codex | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
 | Claude | Windows | Yes | `bash ./dsi.sh ...` | Git Bash, Windows PowerShell, and Bash permission | Shared recommended route; Python is not required |
 | Muse | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
+| Antigravity | Windows | Yes | `bash <AI-dir>/dsi.sh ...` | Git Bash and Windows PowerShell | Antigravity runs from the selected project directory |
 | Codex | Windows | No | `./dsi ...` | `dsi.cmd`, `dsi.ps1`, and Windows PowerShell | Native wrapper uses the PowerShell call-operator route |
 | Claude | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1`, Windows PowerShell, and PowerShell permission | Native PowerShell route |
 | Muse | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Native PowerShell route |
+| Antigravity | Windows | No | `& <AI-dir>/dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Use the absolute AI directory from the startup prompt |
 | Codex | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | macOS | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
 | Muse | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
+| Antigravity | macOS | Yes | `bash <AI-dir>/dsi.sh ...` | Bash and Python 3 | Antigravity runs from the selected project directory |
 | Codex | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | Linux | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
 | Muse | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
+| Antigravity | Linux | Yes | `bash <AI-dir>/dsi.sh ...` | Bash and Python 3 | Antigravity runs from the selected project directory |
 
 ## File roles
 
@@ -227,6 +233,13 @@ Windows without Bash, use the PowerShell implementation directly:
 & ./dsi.ps1 ...
 ```
 
+### Antigravity
+
+Antigravity itself exports `ANTIGRAVITY_CONVERSATION_ID` with its real conversation
+UUID to tool subprocesses. DSI Studio does not synthesize or override this value.
+Because Antigravity runs from the selected project directory, use the absolute
+`dsi.sh` path supplied in DSI Studio's startup prompt instead of `./dsi.sh`.
+
 ## Windows launcher smoke test
 
 `.github/scripts/test_launcher_windows.ps1` and the `Launcher smoke` workflow guard
@@ -346,10 +359,12 @@ The process environment must contain at least one of:
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
 MUSE_SESSION_ID
+ANTIGRAVITY_CONVERSATION_ID
 ```
 
 Claude Code normally supplies `CLAUDE_CODE_SESSION_ID` to its Bash and PowerShell
 tool subprocesses. Codex supplies `CODEX_THREAD_ID`; DSI Studio supplies
-`MUSE_SESSION_ID` to Muse using the same UUID as its MSP session. The launchers
+`MUSE_SESSION_ID` to Muse using the same UUID as its MSP session; Antigravity
+supplies `ANTIGRAVITY_CONVERSATION_ID` to its own tool subprocesses. The launchers
 derive the agent name from the variable found and intentionally do not accept any
 session value as a command-line argument.

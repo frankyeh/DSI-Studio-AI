@@ -51,9 +51,13 @@ else:
         agent = "Codex"
     else:
         session = os.environ.get("MUSE_SESSION_ID", "").strip()
-        if not session:
-            fail("Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or MUSE_SESSION_ID.")
-        agent = "Muse"
+        if session:
+            agent = "Muse"
+        else:
+            session = os.environ.get("ANTIGRAVITY_CONVERSATION_ID", "").strip()
+            if not session:
+                fail("Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, MUSE_SESSION_ID, or ANTIGRAVITY_CONVERSATION_ID.")
+            agent = "Antigravity"
 
 args = sys.argv[1:]
 values = []
