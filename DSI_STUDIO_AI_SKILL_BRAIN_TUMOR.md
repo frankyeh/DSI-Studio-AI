@@ -221,7 +221,11 @@ replace the component overlaps with Tumor Core alone.
 region index. Call `list_region` after every copy before using another index.
 `region_action_all_inter_1st` preserves its first region but modifies every later
 region in place, so lesion copies used for intersection are disposable and mandatory.
-Rename each copy before intersection so its provenance remains clear.
+Always supply the explicit ordered region-index list for tumor overlap. Explicit
+indices are used in the supplied order regardless of checked/shown state. If the index
+list is omitted, DSI Studio uses only checked/shown regions in table-index order, which
+may make the wrong region the first/reference region. Rename each copy before
+intersection so its provenance remains clear.
 
 ### 4.1 Bilateral CST command-order pattern
 

@@ -15,9 +15,12 @@ This file contains the complete region command inventory confirmed in the
 current source.
 
 `region_action_<operation>` uses `command[1]` for one region index or an
-`&`-separated index list. Commands that need an additional threshold or voxel
-radius use `command[2]`. Send a single index or numeric value as a number; keep
-an `&`-separated list as a string.
+`&`-separated index list. When `command[1]` is supplied, exactly those regions
+are used in the supplied order regardless of their checked/shown state. When it is
+omitted for an `all` or `sort` action, DSI Studio instead collects the currently
+checked/shown regions in table-index order. Commands that need an additional threshold
+or voxel radius use `command[2]`. Send a single index or numeric value as a number;
+keep an `&`-separated list as a string.
 
 | Command | Common example | Important behavior |
 |---|---|---|
@@ -89,7 +92,7 @@ an `&`-separated list as a string.
 | `region_action_sort_size` | `["region_action_sort_size","0&1&2"]` | Sort the supplied rows by region volume. |
 | `region_action_1st_ex_all` | `["region_action_1st_ex_all","0&1&2"]` | Subtract regions 1 and 2 from region 0. |
 | `region_action_all_ex_1st` | `["region_action_all_ex_1st","0&1&2"]` | Subtract region 0 from regions 1 and 2. |
-| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Preserve region 0 and replace regions 1 and 2 in place with their intersections with region 0. Region 0 defines the output dimensions and transform; later regions are mapped into region 0 space before intersection. |
+| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Preserve the first explicitly supplied region and replace later supplied regions in place with their intersections with it. Explicit indices are used in the supplied order regardless of checked/shown state. If the index list is omitted, only checked/shown regions are used, in table-index order. The first region defines the output dimensions and transform. |
 | `region_action_all_to_1st` | `["region_action_all_to_1st","0&1&2"]` | Assign and smooth later labels within the first region. |
 | `region_action_refine_all` | `["region_action_refine_all","0&1&2"]` | Refine all supplied labels using the current slice intensity image. |
 
@@ -97,9 +100,12 @@ an `&`-separated list as a string.
 
 - Discover current region indices and roles with `list_region` before mutation.
 - Re-run `list_region` after `copy_region`; insertion shifts every later row index.
-- For `region_action_all_inter_1st`, put the region whose grid/transform should define
-  the result first. Later regions are modified in place; use disposable copies when
-  the originals must be preserved.
+- For `region_action_all_inter_1st`, prefer an explicit ordered index list and put
+  the region whose grid/transform should define the result first. Explicit indices are
+  used regardless of checked/shown state. If the index list is omitted, only
+  checked/shown regions are used and table-index order determines which region is
+  first. Later regions are modified in place; use disposable copies when the originals
+  must be preserved.
 - `list_atlas` with an atlas name or index lists that atlas's region names and
   indices; do not guess them from any other source.
 - The two-element `add_region_from_atlas` form adds all labels in one call and
