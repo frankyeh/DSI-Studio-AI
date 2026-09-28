@@ -14,13 +14,14 @@ variables:
 ```text
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
+MUSE_SESSION_ID
 ```
 
 When `CLAUDE_CODE_SESSION_ID` is set, the launcher uses `Claude` as the agent name
-and that value as the session ID. Otherwise, when `CODEX_THREAD_ID` is set, it uses
-`Codex` as the agent name and that value as the session ID. Claude takes precedence
-if both variables are set. The launchers no longer read `DSI_STUDIO_AGENT`. Do not
-pass an agent name or session ID on the command line.
+and that value as the session ID. Otherwise it uses `CODEX_THREAD_ID` for `Codex`,
+then `MUSE_SESSION_ID` for `Muse`. This is also their precedence if more than one
+is set. The launchers no longer read `DSI_STUDIO_AGENT`. Do not pass an agent name
+or session ID on the command line.
 
 ## Common syntax
 
@@ -87,12 +88,16 @@ powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& '.
 |---|---|---:|---|---|---|
 | Codex | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
 | Claude | Windows | Yes | `bash ./dsi.sh ...` | Git Bash, Windows PowerShell, and Bash permission | Shared recommended route; Python is not required |
+| Muse | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
 | Codex | Windows | No | `./dsi ...` | `dsi.cmd`, `dsi.ps1`, and Windows PowerShell | Native wrapper uses the PowerShell call-operator route |
 | Claude | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1`, Windows PowerShell, and PowerShell permission | Native PowerShell route |
+| Muse | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Native PowerShell route |
 | Codex | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | macOS | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
+| Muse | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Codex | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | Linux | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
+| Muse | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 
 ## File roles
 
@@ -212,6 +217,16 @@ When Bash is unavailable or blocked, use the native wrapper:
 ./dsi ...
 ```
 
+### Muse
+
+DSI Studio starts Muse with `MUSE_SESSION_ID` set to the same UUID supplied as the
+MSP `session/start.sessionId`. Use the Bash route when Bash is available. On
+Windows without Bash, use the PowerShell implementation directly:
+
+```powershell
+& ./dsi.ps1 ...
+```
+
 ## Windows launcher smoke test
 
 `.github/scripts/test_launcher_windows.ps1` and the `Launcher smoke` workflow guard
@@ -245,7 +260,7 @@ On Windows, install Git for Windows or add its `bin` directory to the agent proc
 ./dsi ...
 ```
 
-Claude can use:
+Claude and Muse can use:
 
 ```powershell
 & ./dsi.ps1 ...
@@ -330,9 +345,11 @@ The process environment must contain at least one of:
 ```text
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
+MUSE_SESSION_ID
 ```
 
 Claude Code normally supplies `CLAUDE_CODE_SESSION_ID` to its Bash and PowerShell
-tool subprocesses. Codex supplies `CODEX_THREAD_ID`. The launchers derive the agent
-name from the variable found and intentionally do not accept either value as a
-command-line argument.
+tool subprocesses. Codex supplies `CODEX_THREAD_ID`; DSI Studio supplies
+`MUSE_SESSION_ID` to Muse using the same UUID as its MSP session. The launchers
+derive the agent name from the variable found and intentionally do not accept any
+session value as a command-line argument.

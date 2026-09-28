@@ -40,8 +40,16 @@ if($Session)
 else
 {
     $Session = $env:CODEX_THREAD_ID
-    if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID.' }
-    $Agent = 'Codex'
+    if($Session)
+    {
+        $Agent = 'Codex'
+    }
+    else
+    {
+        $Session = $env:MUSE_SESSION_ID
+        if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or MUSE_SESSION_ID.' }
+        $Agent = 'Muse'
+    }
 }
 
 function Convert-DsiValue([string]$Text)

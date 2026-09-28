@@ -47,9 +47,13 @@ if session:
     agent = "Claude"
 else:
     session = os.environ.get("CODEX_THREAD_ID", "").strip()
-    if not session:
-        fail("Missing CLAUDE_CODE_SESSION_ID or CODEX_THREAD_ID.")
-    agent = "Codex"
+    if session:
+        agent = "Codex"
+    else:
+        session = os.environ.get("MUSE_SESSION_ID", "").strip()
+        if not session:
+            fail("Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, or MUSE_SESSION_ID.")
+        agent = "Muse"
 
 args = sys.argv[1:]
 values = []

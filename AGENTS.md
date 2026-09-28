@@ -1,6 +1,6 @@
 # DSI Studio
 
-These instructions are shared by Codex and Claude agents. `AGENTS.md` is the
+These instructions are shared by Codex, Claude, and Muse agents. `AGENTS.md` is the
 authoritative operating manual for DSI Studio AI. Topic-specific command inventories
 remain in the related `DSI_STUDIO_AI_*.md` files and should be read only when needed.
 
@@ -15,12 +15,13 @@ The launchers derive the current agent and session from:
 ```text
 CLAUDE_CODE_SESSION_ID
 CODEX_THREAD_ID
+MUSE_SESSION_ID
 ```
 
-Claude takes precedence if both variables are set. Do not search for, invent,
-replace, or pass either session value on the command line.
+If more than one variable is set, precedence is Claude, then Codex, then Muse. Do
+not search for, invent, replace, or pass any session value on the command line.
 
-Use the same launcher for Codex and Claude:
+Use the same launcher for Codex, Claude, and Muse:
 
 ```bash
 bash ./dsi.sh <command> [values...]
