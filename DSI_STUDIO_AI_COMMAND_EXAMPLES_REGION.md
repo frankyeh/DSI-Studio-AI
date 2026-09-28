@@ -89,7 +89,7 @@ an `&`-separated list as a string.
 | `region_action_sort_size` | `["region_action_sort_size","0&1&2"]` | Sort the supplied rows by region volume. |
 | `region_action_1st_ex_all` | `["region_action_1st_ex_all","0&1&2"]` | Subtract regions 1 and 2 from region 0. |
 | `region_action_all_ex_1st` | `["region_action_all_ex_1st","0&1&2"]` | Subtract region 0 from regions 1 and 2. |
-| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Preserve region 0 and intersect regions 1 and 2 with it. Region 0 defines the output dimensions and transform; later regions are mapped into region 0 space before intersection. |
+| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Preserve region 0 and replace regions 1 and 2 in place with their intersections with region 0. Region 0 defines the output dimensions and transform; later regions are mapped into region 0 space before intersection. |
 | `region_action_all_to_1st` | `["region_action_all_to_1st","0&1&2"]` | Assign and smooth later labels within the first region. |
 | `region_action_refine_all` | `["region_action_refine_all","0&1&2"]` | Refine all supplied labels using the current slice intensity image. |
 
@@ -98,7 +98,8 @@ an `&`-separated list as a string.
 - Discover current region indices and roles with `list_region` before mutation.
 - Re-run `list_region` after `copy_region`; insertion shifts every later row index.
 - For `region_action_all_inter_1st`, put the region whose grid/transform should define
-  the result first.
+  the result first. Later regions are modified in place; use disposable copies when
+  the originals must be preserved.
 - `list_atlas` with an atlas name or index lists that atlas's region names and
   indices; do not guess them from any other source.
 - The two-element `add_region_from_atlas` form adds all labels in one call and

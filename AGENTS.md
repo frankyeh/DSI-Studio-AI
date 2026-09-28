@@ -682,7 +682,7 @@ source data or running reconstruction.
 
 ## 11. Operational safeguards
 
-1. Use one `bash ./dsi.sh` invocation per request.
+1. Use one `bash ./dsi.sh` invocation per request. Do not batch multiple index-sensitive or state-changing DSI Studio commands into one launcher request; send them sequentially and inspect each result before constructing the next command.
 2. Use `-Chat` for user-visible progress and results.
 3. Copy exact paths, window IDs, indices, model IDs, and parameter IDs from the user,
    current command output, or another verified source.

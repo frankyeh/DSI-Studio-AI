@@ -15,7 +15,7 @@ Evaluate a tumor in this order:
 3. Select and map relevant named eloquent pathways with AutoTrack.
 4. Convert each mapped tract to a region and measure its intersection with tumor and
    edema.
-5. Compare ipsilesional and contralateral tract volume and surface area.
+5. Compare left and right tract volume and surface area; assign lesion laterality only after anatomical verification.
 6. Integrate overlap, morphology, visual anatomy, and known tractography limitations.
 
 Do not use tumor- or edema-derived regions as ROI, Seed, ROA, End, or other tracking
@@ -84,7 +84,9 @@ is needed, create it from copies of Enhancing Tumor and Necrosis.
 Inspect the segmentation in sagittal, coronal, and axial views. When other relevant
 structural contrasts are available, compare the lesion against them. Inspect remote or
 disconnected components far from the dominant lesion rather than accepting them
-automatically.
+automatically. When no independent reference segmentation is available, treat the
+automated segmentation as provisional and compare it visually against all available
+relevant structural images.
 
 A successful `segment_brain` command means inference completed; it does not mean the
 segmentation has passed anatomical QC. If QC fails, do not continue quantitative
@@ -192,10 +194,10 @@ discover its current exact identifier.
 
 ## 3. Map bilateral pathways
 
-For every pathway selected for quantitative comparison, map the ipsilesional and
-contralateral homologs with identical AutoTrack settings. Follow the AutoTrack QC,
-tracking-size, tolerance, TIP, completion, and visualization guidance already
-maintained in `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`.
+For every pathway selected for quantitative comparison, map the left and right
+homologs with identical AutoTrack settings. Follow the AutoTrack QC, tracking-size,
+tolerance, TIP, completion, and visualization guidance already maintained in
+`DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`.
 
 Do not add tumor or edema constraints to AutoTrack.
 
@@ -206,72 +208,130 @@ ratio unless one side is meaningfully designated as the lesion side.
 
 ## 4. Measure direct tract overlap with tumor and edema
 
-After AutoTrack finishes, confirm the bundle is nonempty, then use `tract_to_region`
-to convert it into a spatial tract region. Record the tract-region dimensions and
-resolution from `list_region`.
+After AutoTrack finishes, confirm each bundle is nonempty, then use `tract_to_region`
+to convert the mapped bundle into a spatial tract region. Record each tract-region
+dimensions and resolution from `list_region`.
 
-Preserve the original tract region, Tumor Core, and Peritumoral Edema. Because
-`copy_region` inserts a new row immediately after its source and shifts later
-indices, call `list_region` after every copy before using another region index.
-Rename disposable copies so their provenance remains clear.
+Preserve the original tract regions and the original lesion masks. For tract
+involvement, report `Enhancing Tumor`, `Necrosis`, and `Peritumoral Edema`
+separately when available. Tumor Core overlap may be added as a summary, but do not
+replace the component overlaps with Tumor Core alone.
 
-For example:
+`copy_region` inserts the copy immediately after its source and shifts every later
+region index. Call `list_region` after every copy before using another index.
+`region_action_all_inter_1st` preserves its first region but modifies every later
+region in place, so lesion copies used for intersection are disposable and mandatory.
+Rename each copy before intersection so its provenance remains clear.
+
+### 4.1 Bilateral CST command-order pattern
+
+The following pattern is intentionally index-agnostic. Resolve every placeholder from
+the immediately preceding `list_tract` or `list_region`; do not reuse stale indices.
 
 ```bash
-bash ./dsi.sh tract_to_region <tract-index>
+bash ./dsi.sh list_tract
+
+bash ./dsi.sh tract_to_region <right-CST-tract-index>
 bash ./dsi.sh list_region
 
-bash ./dsi.sh copy_region <tumor-core-index>
+bash ./dsi.sh tract_to_region <left-CST-tract-index>
 bash ./dsi.sh list_region
-bash ./dsi.sh set_region_name <tumor-copy-index> "<tract-name> tumor overlap"
+```
+
+For the right CST, create one disposable copy for each available lesion compartment:
+
+```bash
+bash ./dsi.sh copy_region <enhancing-tumor-index>
+bash ./dsi.sh list_region
+bash ./dsi.sh set_region_name <new-index> "Right CST enhancing-tumor overlap"
+
+bash ./dsi.sh copy_region <necrosis-index>
+bash ./dsi.sh list_region
+bash ./dsi.sh set_region_name <new-index> "Right CST necrosis overlap"
 
 bash ./dsi.sh copy_region <edema-index>
 bash ./dsi.sh list_region
-bash ./dsi.sh set_region_name <edema-copy-index> "<tract-name> edema overlap"
+bash ./dsi.sh set_region_name <new-index> "Right CST edema overlap"
 
-bash ./dsi.sh region_action_all_inter_1st "<tract-region>&<tumor-copy>&<edema-copy>"
-bash ./dsi.sh show_only_regions "<tract-region>&<tumor-copy>&<edema-copy>"
+bash ./dsi.sh region_action_all_inter_1st "<right-CST-region>&<enhancing-copy>&<necrosis-copy>&<edema-copy>"
+bash ./dsi.sh show_only_regions "<right-CST-region>&<enhancing-copy>&<necrosis-copy>&<edema-copy>"
 bash ./dsi.sh show_region_statistics
 ```
 
-For `region_action_all_inter_1st`, the first region defines the output grid and
-transform. Later regions are mapped into that first region's space before
-intersection. For tract-overlap analysis, therefore put the tract-derived region
-first.
+Repeat the same sequence for the left CST using newly created lesion copies. Measure
+the original lesion masks separately in Section 1.3; do not use intersection masks as
+the source lesion-volume measurements.
 
-Use the original tract-region volume as the denominator:
+For `region_action_all_inter_1st`, the tract-derived region must be first. It defines
+the output grid and transform, and later regions are mapped into that space before
+being replaced by their intersections.
+
+Use the original tract-region volume as the denominator for every compartment:
 
 ```text
-tumor overlap volume = volume(tract region ∩ Tumor Core)
-edema overlap volume = volume(tract region ∩ Peritumoral Edema)
-tumor overlap fraction = tumor overlap volume / original tract-region volume
-edema overlap fraction = edema overlap volume / original tract-region volume
+enhancing-tumor overlap fraction =
+    volume(tract region ∩ Enhancing Tumor) / original tract-region volume
+
+necrosis overlap fraction =
+    volume(tract region ∩ Necrosis) / original tract-region volume
+
+edema overlap fraction =
+    volume(tract region ∩ Peritumoral Edema) / original tract-region volume
 ```
 
-Verify that an intersection volume does not exceed the tract-region volume or its
-corresponding lesion volume apart from small resampling/voxelization differences.
+Verify that each intersection does not exceed the original tract-region volume or its
+source lesion volume apart from small resampling/voxelization differences.
 
-Handle non-results explicitly:
+A zero-volume overlap is valid only after confirming that:
 
-- empty AutoTrack bundle: overlap is not computable;
-- zero tract-region volume: overlap fraction is not computable;
-- missing Tumor Core or edema label: that measurement is unavailable, not zero;
-- valid lesion region with no intersection: overlap is zero.
+- the source tract region is nonempty;
+- the source lesion mask is nonempty;
+- both belong to the same subject and valid mapping context;
+- the intersection operation completed successfully.
+
+Otherwise report the overlap as unavailable or not computable rather than zero.
+
+### 4.2 3D overlap QC
+
+After bilateral overlap statistics are recorded, inspect the relevant tracts and
+lesion/intersection regions together:
+
+```bash
+bash ./dsi.sh show_only_tracts "<left-tract>&<right-tract>"
+bash ./dsi.sh show_only_regions "<lesion-and-overlap-region-indices>"
+bash ./dsi.sh preview_screen 3d
+```
+
+Preserve the original lesion masks, original tract bundles, and tract-derived regions.
+After statistics and 3D QC are recorded, delete only disposable intersection copies if
+cleanup is needed.
 
 A nonzero intersection establishes spatial overlap between the reconstructed pathway
 and the segmented abnormality. It does not establish histologic infiltration or
 functional loss.
 
-## 5. Compare ipsilesional and contralateral tract morphology
+## 5. Compare left and right tract morphology
 
-Use `show_tract_statistics` with only the bilateral tract pair checked. Record:
+First report raw left and right measurements without assigning lesion side:
+
+```bash
+bash ./dsi.sh show_only_tracts "<left-tract>&<right-tract>"
+bash ./dsi.sh show_tract_statistics
+```
+
+Record for each side:
 
 ```text
 total volume(mm^3)
 total surface area(mm^2)
 ```
 
-Report the raw bilateral values and, when useful:
+Verify lesion laterality from the image orientation and segmented lesion location
+before labeling either tract ipsilesional or contralateral. For medial, midline, or
+bilateral lesions, keep the results as left/right and do not force an ipsilesional
+ratio.
+
+When one side is meaningfully designated as the lesion side, optionally calculate:
 
 ```text
 volume ratio = ipsilesional volume / contralateral volume
@@ -279,7 +339,7 @@ surface-area ratio = ipsilesional surface area / contralateral surface area
 ```
 
 Reduced ipsilesional volume or surface area may support pathway involvement when it
-agrees with tumor/edema overlap and visible tract distortion. Do not interpret the
+agrees with lesion overlap and visible tract distortion. Do not interpret the
 bilateral ratio alone.
 
 The contralateral tract is an internal reference, not a symmetric ground truth.
@@ -327,15 +387,17 @@ Brodmann involvement
   area — intersection volume — fraction of Tumor Core
 
 Eloquent pathway
-  pathway and side
-  tumor overlap volume and fraction
+  pathway
+  enhancing-tumor overlap volume and fraction
+  necrosis overlap volume and fraction
   edema overlap volume and fraction
-  ipsilesional tract volume
-  contralateral tract volume
-  volume ratio
-  ipsilesional surface area
-  contralateral surface area
-  surface-area ratio
+  left tract volume
+  right tract volume
+  left surface area
+  right surface area
+  verified lesion side, when applicable
+  volume ratio, when applicable
+  surface-area ratio, when applicable
   visual relationship
   interpretation
 ```

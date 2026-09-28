@@ -27,7 +27,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `run_command_history` | `["run_command_history","C:/data/s1.fz&C:/data/s2.fz"]` | Same, but against an explicit `&`-joined file list instead of a folder. |
 | `run_command_history` | `["run_command_history","C:/data/subjects","2:5"]` | Replay only commands at `list_history` indices 2 through 5 (inclusive), not the whole recorded history. A single index (e.g. `"3"`) replays just that one command. |
 | `run_command_history` | `["run_command_history","C:/data/subjects","0:1&12:15&16"]` | Multiple `&`-joined ranges/single indices, replayed in the order given: commands 0-1, then 12-15, then 16. Use this to skip noise (e.g. incidental status checks) recorded between the steps that actually matter. |
-| `show_only_tracts` | `["show_only_tracts","0&2&5"]` | Show only listed `&`-separated tract indices and hide all others. |
+| `show_only_tracts` | `["show_only_tracts","0&2&5"]` | Check/show only the listed `&`-separated tract indices and uncheck/hide all others. This also selects exactly those rows for checked-tract operations such as `show_tract_statistics`. |
 | `enable_auto_tract` | `["enable_auto_tract"]` | Load the symmetric tract atlas and enable automatic-tract controls. |
 | `open_tract` | `["open_tract","C:/output/cst.tt.gz"]` | Open one native-space tract file and show each loaded bundle. Open multiple files by sending one command per path. |
 | `open_tract` | `["open_tract","C:/output/all_bundles.tt.gz",0]` | Open the tract file with newly loaded bundles unchecked/hidden. The source tests only whether the third element is empty; any supplied value has this effect. |
