@@ -405,9 +405,35 @@ The seed limit prevents difficult, low-yield pathways from running indefinitely.
 AutoTrack already carries built-in anatomical region constraints for the named
 bundle, so do not add ROI/ROA/END/NotEND/Limiting/Terminative constraints unless a
 specific anatomical question requires additional restriction, such as isolating a
-minor branch. Adjust AutoTrack tolerance cautiously: larger values accept more
-variation and false positives; smaller values may reject distorted or variable
-anatomy.
+minor branch.
+
+If one expected named pathway finishes with zero tracts, use a bounded tolerance
+retry rather than repeatedly increasing tolerance until something appears. First
+record the current settings and failed result:
+
+```bash
+bash ./dsi.sh list_param tracking
+bash ./dsi.sh list_tract
+```
+
+By default, the current AutoTrack batch implementation uses three tolerance attempts:
+the default tolerance, default plus one subject voxel size, and default plus two
+subject voxel sizes. Mirror that bounded pattern for an interactive retry when the
+voxel size is known. For the human template the current default tolerance is 24 mm;
+for 2-mm isotropic subject data this corresponds to 24, 26, and 28 mm. Use
+`set_param tolerance <value>`, rerun the same exact AutoTrack identifier, and poll
+to completion after each attempt. If the subject voxel size differs, apply the same
+default/+1 voxel/+2 voxel pattern rather than copying the 26/28-mm examples. If the
+voxel size is not available from the current data metadata, do not invent it.
+
+Stop after those bounded attempts. If the pathway is still empty, report it as
+unmappable with the seed limit, tolerance values, and tract counts. Do not treat zero
+yield as proof that the anatomical pathway is absent. If many named pathways fail,
+investigate data quality, b-table/orientation, reconstruction, and mapping rather than
+continuing to relax tolerance.
+
+Larger tolerance accepts more variation and false positives; smaller tolerance may
+reject distorted or variable anatomy.
 
 ## Bundle cleanup
 

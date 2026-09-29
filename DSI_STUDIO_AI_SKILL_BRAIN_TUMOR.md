@@ -76,22 +76,57 @@ Tumor Core = Enhancing Tumor ∪ Necrosis
 
 Keep `Peritumoral Edema` separate. Never silently substitute one label for another.
 If an expected label is missing, report that measurement as unavailable rather than
-as zero. Preserve the original segmentation labels; when a combined Tumor Core region
-is needed, create it from copies of Enhancing Tumor and Necrosis.
+as zero. Preserve the original segmentation labels.
+
+For a presurgical Tumor Core, create and merge copies so the original component masks
+remain untouched. Region indices change after every table mutation, so resolve each
+placeholder from the immediately preceding `list_region`:
+
+```bash
+bash ./dsi.sh copy_region <current-enhancing-tumor-index>
+bash ./dsi.sh list_region
+bash ./dsi.sh set_region_name <enhancing-copy-index> "Tumor Core"
+
+bash ./dsi.sh copy_region <current-necrosis-index>
+bash ./dsi.sh list_region
+bash ./dsi.sh merge_regions "<current-Tumor-Core-index>&<necrosis-copy-index>"
+bash ./dsi.sh list_region
+```
+
+`merge_regions` keeps the first supplied region and removes the later merged rows.
+Do not construct Tumor Core if either required presurgical component is unavailable.
 
 ### 1.3 Segmentation QC and lesion size
 
-Inspect the segmentation in sagittal, coronal, and axial views. When other relevant
-structural contrasts are available, compare the lesion against them. Inspect remote or
-disconnected components far from the dominant lesion rather than accepting them
-automatically. When no independent reference segmentation is available, treat the
-automated segmentation as provisional and compare it visually against all available
-relevant structural images.
+Inspect the segmentation in sagittal, coronal, and axial views. Center the slice on
+Tumor Core for presurgical studies, or on the relevant verified abnormality when a
+Tumor Core is not appropriate:
+
+```bash
+bash ./dsi.sh show_only_regions "<lesion-region-indices>"
+bash ./dsi.sh move_slice_to_region <Tumor-Core-or-abnormality-index>
+
+bash ./dsi.sh set_roi_view 0
+bash ./dsi.sh preview_screen roi
+bash ./dsi.sh set_roi_view 1
+bash ./dsi.sh preview_screen roi
+bash ./dsi.sh set_roi_view 2
+bash ./dsi.sh preview_screen roi
+```
+
+When other relevant structural contrasts are available, compare the lesion against
+them. Inspect remote or disconnected components far from the dominant lesion rather
+than accepting them automatically. When no independent reference segmentation is
+available, treat the automated segmentation as provisional and compare it visually
+against all available relevant structural images.
 
 A successful `segment_brain` command means inference completed; it does not mean the
-segmentation has passed anatomical QC. If QC fails, do not continue quantitative
-interpretation until the questionable segmentation is corrected or explicitly
-accepted.
+segmentation has passed anatomical QC. Accept the segmentation for quantitative use
+only when its location and gross extent agree with the visible structural abnormality
+in all three planes, the structural-to-diffusion alignment is anatomically plausible,
+and any remote/disconnected component is visually justified. If QC fails, do not
+continue quantitative interpretation until the questionable segmentation is corrected
+or explicitly accepted.
 
 Use `show_region_statistics` to record, when available:
 
@@ -201,6 +236,12 @@ tolerance, TIP, completion, and visualization guidance already maintained in
 
 Do not add tumor or edema constraints to AutoTrack.
 
+If a clinically relevant named pathway remains empty after the bounded AutoTrack
+retry procedure in `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`, report the pathway as
+`unmappable` and record the tract count, seed limit, tolerance values, and attempts.
+Do not convert an unmappable pathway into a zero-overlap result or interpret it as
+anatomical absence.
+
 If the lesion is medial, crosses the midline, or has substantial involvement in both
 hemispheres, map the relevant left and right pathways and report each side directly.
 Do not force an ipsilesional/contralateral designation or calculate an ipsilesional
@@ -217,8 +258,12 @@ involvement, report `Enhancing Tumor`, `Necrosis`, and `Peritumoral Edema`
 separately when available. Tumor Core overlap may be added as a summary, but do not
 replace the component overlaps with Tumor Core alone.
 
-`copy_region` inserts the copy immediately after its source and shifts every later
-region index. Call `list_region` after every copy before using another index.
+Region-table indices are not stable across mutations. After `copy_region`,
+`merge_regions`, `delete_region`, `tract_to_region`, or
+`add_region_from_atlas`, call `list_region` before the next command that uses a
+numeric region index. Never predict the shifted index or carry a stale index across
+one of these operations.
+
 `region_action_all_inter_1st` preserves its first region but modifies every later
 region in place, so lesion copies used for intersection are disposable and mandatory.
 Always supply the explicit ordered region-index list for tumor overlap. Explicit
@@ -227,10 +272,12 @@ list is omitted, DSI Studio uses only checked/shown regions in table-index order
 may make the wrong region the first/reference region. Rename each copy before
 intersection so its provenance remains clear.
 
-### 4.1 Bilateral CST command-order pattern
+### 4.1 Generic bilateral pathway command-order pattern
 
-The following pattern is intentionally index-agnostic. Resolve every placeholder from
-the immediately preceding `list_tract` or `list_region`; do not reuse stale indices.
+The following CST example applies unchanged to AF, SLF, FAT, ILF, optic radiation,
+IFOF, uncinate, or another mapped bilateral pathway. It is intentionally
+index-agnostic. Resolve every placeholder from the immediately preceding `list_tract`
+or `list_region`; do not reuse stale indices.
 
 ```bash
 bash ./dsi.sh list_tract
@@ -310,6 +357,25 @@ Preserve the original lesion masks, original tract bundles, and tract-derived re
 After statistics and 3D QC are recorded, delete only disposable intersection copies if
 cleanup is needed.
 
+Treat a one-voxel or few-voxel intersection as resampling/partial-volume sensitive.
+For a clinically important small intersection, center on the intersection and inspect
+all three slice planes before interpreting it:
+
+```bash
+bash ./dsi.sh show_only_regions "<tract-region>&<small-intersection-region>"
+bash ./dsi.sh move_slice_to_region <small-intersection-region>
+bash ./dsi.sh set_roi_view 0
+bash ./dsi.sh preview_screen roi
+bash ./dsi.sh set_roi_view 1
+bash ./dsi.sh preview_screen roi
+bash ./dsi.sh set_roi_view 2
+bash ./dsi.sh preview_screen roi
+```
+
+If it remains only a tiny boundary contact, report it as a trace or borderline
+overlap rather than treating it as strong evidence of pathway involvement. Do not use
+a universal voxel-count threshold.
+
 A nonzero intersection establishes spatial overlap between the reconstructed pathway
 and the segmented abnormality. It does not establish histologic infiltration or
 functional loss.
@@ -330,10 +396,15 @@ total volume(mm^3)
 total surface area(mm^2)
 ```
 
-Verify lesion laterality from the image orientation and segmented lesion location
-before labeling either tract ipsilesional or contralateral. For medial, midline, or
-bilateral lesions, keep the results as left/right and do not force an ipsilesional
-ratio.
+Verify lesion laterality from the structural anatomy and segmented lesion before
+labeling either tract ipsilesional or contralateral. Use the same centered three-plane
+inspection from Section 1.3. `preview_screen roi` reports `R_side=left` or
+`R_side=right`; use that orientation metadata together with the visible lesion
+position to assign anatomical right/left. Atlas suffixes such as `_R`/`_L` and
+tract geometry may corroborate laterality but should not be the primary evidence.
+
+For medial, midline, or bilateral lesions, keep the results as left/right and do not
+force an ipsilesional ratio.
 
 When one side is meaningfully designated as the lesion side, optionally calculate:
 
@@ -418,9 +489,17 @@ verified anatomy: residual tumor, resection cavity, postoperative edema, or othe
 treatment-related change. Automated tumor segmentation may not correctly define a
 resection cavity.
 
+Do not automatically construct the presurgical Tumor Core after surgery. Analyze
+`Enhancing Tumor`, `Necrosis`, and `Peritumoral Edema` separately when those
+model labels are present, and construct a postoperative composite only when the
+verified anatomy gives that composite a clear meaning. In particular, do not treat a
+resection cavity as tumor necrosis merely because the model assigns that label.
+
 Map the same bilateral eloquent pathways with comparable acquisition,
 reconstruction, and AutoTrack settings when possible. Repeat tract-to-region
-intersection and bilateral tract-statistics analysis.
+intersection and bilateral tract-statistics analysis. Repeat CHA or Brodmann
+localization only when it answers the postoperative question; it is not required for
+every follow-up study.
 
 Changes after surgery can reflect resection, decompression, edema resolution,
 hemorrhage, susceptibility artifact, altered diffusion signal, registration, or
@@ -435,10 +514,23 @@ Preserve or record:
 - structural-image source, selected slice, registration/QC status, and model ID;
 - original lesion labels and any derived Tumor Core region;
 - CHA and Brodmann intersection statistics;
-- saved bilateral named-tract results used for interpretation;
+- bilateral named-tract results used for interpretation, recorded in the report and
+  saved when the user supplied or selected an output destination;
 - tract statistics and tract/lesion intersection statistics;
 - interpretable segmentation and tract QC views;
 - any manual segmentation corrections or exclusions.
+
+For agent-side QC, `preview_screen roi` and `preview_screen 3d` are valid recorded
+inspection views and do not require a filesystem destination. When the user requests
+saved images or supplies an output location, use the documented
+`save_roi_screen`/`save_lr_screen` commands. When a tract output destination is
+available, save the interpreted bundle with:
+
+```bash
+bash ./dsi.sh save_tract "<provided-output-path>" <bundle-index>
+```
+
+Do not invent an output path merely to satisfy this reproducibility section.
 
 Distinguish successful command execution from an anatomically accepted result in the
 final record.

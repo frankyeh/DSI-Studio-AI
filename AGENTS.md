@@ -199,6 +199,16 @@ The first-ever `log` call initializes the cursor at the current end of the conso
 and intentionally returns no older output. Call it before starting an asynchronous
 operation when its later output must be captured.
 
+The console log is process-wide rather than authoritative per-window state. When
+multiple data windows or background operations are active, a `log` reply can contain
+messages produced by another window. Treat those lines as evidence that an operation
+occurred somewhere in the running DSI Studio instance, not proof that the currently
+selected window was mutated. Before relying on a state-changing result, select the
+exact target with `set_window` and verify it with the corresponding state command,
+such as `list_tract`, `list_region`, `list_slice`, or `list_param`. Do not infer
+a tract deletion, trim result, region mutation, or similar state change from console
+attribution alone.
+
 Pass anything as `command[1]` (or `command[2]`) — the value itself is ignored — to instead
 pull everything still retained in the console buffer (e.g. `["log","all"]`), rather than only
 what's new since this session's cursor. Useful for catching up on another agent's or the
