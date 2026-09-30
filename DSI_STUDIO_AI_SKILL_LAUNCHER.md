@@ -8,22 +8,18 @@ bash ./dsi.sh <command> [values...] [-- <command> [values...] ...] [-Chat "messa
 
 Always include `bash` before `./dsi.sh`. Do not invoke `./dsi.sh` directly.
 
-All launchers identify the current agent and session from these environment
-variables:
+DSI Studio supplies `DSI_STUDIO_AGENT` to identify the current agent. The launcher
+then reads only that agent's native session variable:
 
 ```text
-CLAUDE_CODE_SESSION_ID
-CODEX_THREAD_ID
-MUSE_SESSION_ID
-ANTIGRAVITY_CONVERSATION_ID
+Codex       -> CODEX_THREAD_ID
+Claude      -> CLAUDE_CODE_SESSION_ID
+Muse        -> MUSE_SESSION_ID
+Antigravity -> ANTIGRAVITY_CONVERSATION_ID
 ```
 
-When `CLAUDE_CODE_SESSION_ID` is set, the launcher uses `Claude` as the agent name
-and that value as the session ID. Otherwise it uses `CODEX_THREAD_ID` for `Codex`,
-then `MUSE_SESSION_ID` for `Muse`, then `ANTIGRAVITY_CONVERSATION_ID` for
-`Antigravity`. This is also their precedence if more than one is set. The launchers
-no longer read `DSI_STUDIO_AGENT`. Do not pass an agent name or session ID on the
-command line.
+The launcher does not infer the agent from whichever session variables happen to be
+present. Do not pass an agent name or session ID on the command line.
 
 ## Common syntax
 
@@ -353,18 +349,19 @@ captures UTF-8 rather than re-decoding the child process output with an OEM code
 
 ### Missing session environment
 
-The process environment must contain at least one of:
+The process environment must contain `DSI_STUDIO_AGENT` and the matching native
+session variable:
 
 ```text
-CLAUDE_CODE_SESSION_ID
-CODEX_THREAD_ID
-MUSE_SESSION_ID
-ANTIGRAVITY_CONVERSATION_ID
+Codex       -> CODEX_THREAD_ID
+Claude      -> CLAUDE_CODE_SESSION_ID
+Muse        -> MUSE_SESSION_ID
+Antigravity -> ANTIGRAVITY_CONVERSATION_ID
 ```
 
-Claude Code normally supplies `CLAUDE_CODE_SESSION_ID` to its Bash and PowerShell
-tool subprocesses. Codex supplies `CODEX_THREAD_ID`; DSI Studio supplies
-`MUSE_SESSION_ID` to Muse using the same UUID as its MSP session; Antigravity
-supplies `ANTIGRAVITY_CONVERSATION_ID` to its own tool subprocesses. The launchers
-derive the agent name from the variable found and intentionally do not accept any
-session value as a command-line argument.
+DSI Studio supplies `DSI_STUDIO_AGENT`. Claude Code normally supplies
+`CLAUDE_CODE_SESSION_ID` to its Bash and PowerShell tool subprocesses; Codex
+supplies `CODEX_THREAD_ID`; DSI Studio supplies `MUSE_SESSION_ID` to Muse using
+the same UUID as its MSP session; Antigravity supplies
+`ANTIGRAVITY_CONVERSATION_ID` to its own tool subprocesses. The launchers
+intentionally do not accept any session value as a command-line argument.

@@ -11,17 +11,17 @@ separately grants access to the user-selected project directory. Antigravity sta
 in the selected project directory; its startup prompt gives the absolute path to this
 AI directory and launcher. Do not copy the AI support files into the project directory.
 
-The launchers derive the current agent and session from:
+DSI Studio supplies `DSI_STUDIO_AGENT` to identify the current agent. The launcher
+then reads only that agent's native session variable:
 
 ```text
-CLAUDE_CODE_SESSION_ID
-CODEX_THREAD_ID
-MUSE_SESSION_ID
-ANTIGRAVITY_CONVERSATION_ID
+Codex       -> CODEX_THREAD_ID
+Claude      -> CLAUDE_CODE_SESSION_ID
+Muse        -> MUSE_SESSION_ID
+Antigravity -> ANTIGRAVITY_CONVERSATION_ID
 ```
 
-If more than one variable is set, precedence is Claude, then Codex, then Muse, then
-Antigravity. Do not search for, invent, replace, or pass any session value on the
+Do not search for, invent, replace, or pass the agent name or session value on the
 command line.
 
 Use the same launcher for Codex, Claude, Muse, and Antigravity:

@@ -42,22 +42,20 @@ def fail(message):
     raise SystemExit(1)
 
 
-session = os.environ.get("CLAUDE_CODE_SESSION_ID", "").strip()
-if session:
-    agent = "Claude"
-else:
-    session = os.environ.get("CODEX_THREAD_ID", "").strip()
-    if session:
-        agent = "Codex"
-    else:
-        session = os.environ.get("MUSE_SESSION_ID", "").strip()
-        if session:
-            agent = "Muse"
-        else:
-            session = os.environ.get("ANTIGRAVITY_CONVERSATION_ID", "").strip()
-            if not session:
-                fail("Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, MUSE_SESSION_ID, or ANTIGRAVITY_CONVERSATION_ID.")
-            agent = "Antigravity"
+agent = os.environ.get("DSI_STUDIO_AGENT", "").strip()
+session_vars = {
+    "Codex": "CODEX_THREAD_ID",
+    "Claude": "CLAUDE_CODE_SESSION_ID",
+    "Muse": "MUSE_SESSION_ID",
+    "Antigravity": "ANTIGRAVITY_CONVERSATION_ID",
+}
+session_var = session_vars.get(agent)
+if not session_var:
+    fail("Missing or invalid DSI_STUDIO_AGENT.")
+
+session = os.environ.get(session_var, "").strip()
+if not session:
+    fail(f"Missing session ID for {agent}.")
 
 args = sys.argv[1:]
 values = []

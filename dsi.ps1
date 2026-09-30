@@ -32,32 +32,20 @@ if($env:DSI_ARGC)
     }
 }
 
-$Session = $env:CLAUDE_CODE_SESSION_ID
-if($Session)
+$Agent = $env:DSI_STUDIO_AGENT
+
+switch($Agent)
 {
-    $Agent = 'Claude'
+    'Codex'       { $Session = $env:CODEX_THREAD_ID }
+    'Claude'      { $Session = $env:CLAUDE_CODE_SESSION_ID }
+    'Muse'        { $Session = $env:MUSE_SESSION_ID }
+    'Antigravity' { $Session = $env:ANTIGRAVITY_CONVERSATION_ID }
+    default       { throw 'Missing or invalid DSI_STUDIO_AGENT.' }
 }
-else
+
+if(!$Session)
 {
-    $Session = $env:CODEX_THREAD_ID
-    if($Session)
-    {
-        $Agent = 'Codex'
-    }
-    else
-    {
-        $Session = $env:MUSE_SESSION_ID
-        if($Session)
-        {
-            $Agent = 'Muse'
-        }
-        else
-        {
-            $Session = $env:ANTIGRAVITY_CONVERSATION_ID
-            if(!$Session) { throw 'Missing CLAUDE_CODE_SESSION_ID, CODEX_THREAD_ID, MUSE_SESSION_ID, or ANTIGRAVITY_CONVERSATION_ID.' }
-            $Agent = 'Antigravity'
-        }
-    }
+    throw "Missing session ID for $Agent."
 }
 
 function Convert-DsiValue([string]$Text)
