@@ -34,6 +34,11 @@ bash ./dsi.sh set_slice <slice-index>
 bash ./dsi.sh list_slice
 ```
 
+When a FIB opened from Fiber Data Hub already exposes its structural MRI in
+`list_slice` with status `available`, select that existing slice with `set_slice`;
+do not add the same image again with `add_slice`. Poll `list_slice` until the
+selected row reports `ready`.
+
 If the selected slice reports `available` or `registering`, keep polling
 `list_slice` until it reports `ready`. `ready` means loading/registration has
 finished; it does not prove anatomical alignment. Inspect the structural image against
@@ -165,6 +170,13 @@ fraction of Tumor Core = intersection volume / total Tumor Core volume
 Rank affected CHA regions by intersection volume. If edema localization is useful,
 reload CHA and repeat the analysis separately with the edema region.
 
+After recording the CHA intersection results, remove the disposable CHA/intersection
+regions before loading another atlas. Call `list_region`, identify the current
+disposable CHA rows from that listing, and delete them with one
+`delete_region "<index>&<index>..."` command. Preserve the original lesion masks,
+Tumor Core, and any independently verified or manual regions. Do not construct the
+deletion list from previously recorded indices.
+
 ### 1.5 Brodmann-area involvement
 
 The human atlas is named exactly `Brodmann`. Find its current runtime index with
@@ -187,6 +199,11 @@ intersections.
 CHA and Brodmann are gray-matter parcellations. Their intersection volumes do not
 need to sum to the total Tumor Core volume, particularly for white-matter-centered
 tumors.
+
+After recording the Brodmann results, repeat the same cleanup for the disposable
+Brodmann/intersection rows: call `list_region`, construct the deletion list from the
+current table, and preserve the original lesion masks, Tumor Core, and any
+independently verified or manual regions before proceeding to tract mapping.
 
 ## 2. Select eloquent pathways
 
@@ -214,6 +231,14 @@ A practical selection is:
 - temporal language lesion: AF and ILF;
 - posterior temporal, parietal, or occipital lesion: optic radiation when vision is
   at risk.
+
+Select pathways from the actual structural lesion location and its white-matter
+extension, using CHA/Brodmann overlap only as supporting localization. Do not use a
+Brodmann-area label alone to trigger a tract. For temporal lesions, AF and ILF are the
+default language/semantic pathways. Add optic radiation when the lesion or edema
+extends into posterior temporal or temporo-occipital white matter along the expected
+optic-radiation/Meyer's-loop course, or when visual-pathway risk is specifically
+relevant. BA37 involvement alone is not sufficient.
 
 The inferior fronto-occipital fasciculus and uncinate fasciculus are optional. Map
 them when lesion anatomy or the clinical question specifically makes them relevant;
@@ -494,6 +519,16 @@ Do not automatically construct the presurgical Tumor Core after surgery. Analyze
 model labels are present, and construct a postoperative composite only when the
 verified anatomy gives that composite a clear meaning. In particular, do not treat a
 resection cavity as tumor necrosis merely because the model assigns that label.
+
+If postoperative imaging does not independently establish the identity of an
+abnormality, preserve the model labels (`Enhancing Tumor`, `Necrosis`, and
+`Peritumoral Edema`) verbatim and report them as provisional model outputs. Do not
+derive a resection cavity from the `Necrosis` label. If a resection cavity has been
+independently verified, or a user-supplied or manually created cavity mask is
+available, preserve the model outputs and analyze the cavity as a separate region. If
+the available imaging cannot distinguish cavity, residual tumor, and other
+postoperative change, stop the anatomical interpretation at `unresolved postoperative
+abnormality` rather than inventing a derived cavity or residual-tumor mask.
 
 Map the same bilateral eloquent pathways with comparable acquisition,
 reconstruction, and AutoTrack settings when possible. Repeat tract-to-region
