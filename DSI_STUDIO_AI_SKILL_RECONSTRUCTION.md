@@ -164,6 +164,18 @@ Rules:
 - Save corrected data as a new SZ file (`subject_preprocessed.sz`).
 - State which artifact each operation addresses.
 
+#### QC the preprocessed SZ (especially for groups)
+
+After preprocessing, run QC on the `.sz` and check NDC (neighboring DWI
+correlation) and contrast:
+
+- TOPUP/eddy should improve NDC substantially. If NDC does not improve,
+  something is wrong — stop and investigate before reconstructing.
+- NDC also identifies acquisition issues (motion, dropout, spikes).
+- When processing a group: preprocess all subjects first, then run QC
+  across all `.sz` files to confirm everything is good. DSI Studio flags
+  outliers in the QC report — follow up on every flagged subject.
+
 ### 4. Verify image and b-table orientation
 
 Check left-right, anterior-posterior, superior-inferior, laterality, and template
