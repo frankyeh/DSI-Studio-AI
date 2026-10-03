@@ -435,6 +435,42 @@ continuing to relax tolerance.
 Larger tolerance accepts more variation and false positives; smaller tolerance may
 reject distorted or variable anatomy.
 
+## Atlas-overlap statistics
+
+When the question is spatial overlap with a **built-in atlas**, use the dedicated
+nonmutating overlap commands instead of creating temporary atlas regions.
+
+For one region versus an atlas:
+
+```bash
+bash ./dsi.sh list_region
+bash ./dsi.sh show_region_overlap_statistics <region-index> <exact-atlas-name>
+```
+
+For one tract versus an atlas:
+
+```bash
+bash ./dsi.sh list_tract
+bash ./dsi.sh show_tract_overlap_statistics <tract-index> <exact-atlas-name>
+```
+
+For AI callers the atlas name must be explicit. Each command reports only atlas labels
+with nonzero intersection and returns the normal region-statistics table for those
+temporary intersections. The source region/tract is not added as a result column, and
+neither command creates, deletes, renames, reorders, or modifies Region-table rows.
+This avoids the index churn and cleanup required by
+`add_region_from_atlas` + `region_action_all_inter_1st` when only statistics are
+needed.
+
+Use `list_atlas` when the exact built-in atlas name is not already verified. Use
+`add_region_from_atlas` only when actual atlas region objects are needed for display,
+editing, tracking constraints, or downstream mask operations.
+
+`show_tract_overlap_statistics` compares a tract with a built-in atlas; it does not
+compare a tract with an arbitrary user/segmentation region. For tract overlap with a
+tumor, edema, resection cavity, or other ordinary mask, use `tract_to_region` and the
+appropriate region operations instead.
+
 ## Bundle cleanup
 
 TIP is bundle-level cleanup. Apply it to a visually coherent tract bundle, including
