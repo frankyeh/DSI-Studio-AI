@@ -19,11 +19,10 @@ Expect conversion to take minutes for a full multi-series exam (e.g. 250+
 seconds for 30+ series including multi-shell DWI). DWI series become `.sz`;
 structural series become `.nii.gz`.
 
-Warning: DICOM files pulled from a PACS/server often arrive with generic or
-duplicate filenames and may need renaming (`rename_dicom_dir`) before
-conversion. Renaming destroys the original filenames permanently. Warn the
-user before renaming, and suggest backing up or copying the DICOM folder
-first if the original names matter to them.
+Warning: most DICOM files arrive with generic or duplicate filenames and need
+renaming (`rename_dicom_dir`) before conversion. Renaming destroys the original
+filenames permanently. Warn the user before renaming, and suggest backing up
+or copying the DICOM folder first if the original names matter to them.
 
 **From NIfTI:** The starting point is a 4D DWI NIfTI plus its matching
 `.bval` and `.bvec` files. All three must be present and correspond
