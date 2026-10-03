@@ -15,6 +15,12 @@ Source Images). DSI Studio reads b-values and b-vectors directly from the
 DICOM headers during conversion. Do not look for separate bval/bvec files;
 they do not exist for a DICOM start.
 
+Warning: DICOM files pulled from a PACS/server often arrive with generic or
+duplicate filenames and may need renaming (`rename_dicom_dir`) before
+conversion. Renaming destroys the original filenames permanently. Warn the
+user before renaming, and suggest backing up or copying the DICOM folder
+first if the original names matter to them.
+
 **From NIfTI:** The starting point is a 4D DWI NIfTI plus its matching
 `.bval` and `.bvec` files (BIDS layout). All three must be present and
 correspond volume-for-volume before opening. Use `open_dwi_nifti` or
