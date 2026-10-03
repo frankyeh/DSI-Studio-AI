@@ -25,6 +25,87 @@ Keep each checkpoint brief, typically 2–6 bullets or a short paragraph. Do not
 raw tables. Do not declare a tract `safe`, `intact`, `destroyed`, or `resectable` from
 tractography alone.
 
+### Required explanation before and after every major step
+
+The chat is the primary neurosurgeon-facing presentation. **Do not silently execute several
+numbered steps and summarize them only afterward.** Before starting each numbered major
+step, give a short plain-language explanation in chat covering:
+
+1. **Purpose** — why this step is being done for this case.
+2. **Method** — what DSI Studio will measure or reconstruct and what the measurement means.
+3. **What to look for** — the specific result or spatial relationship that will answer the
+   clinical question.
+
+After the step finishes, give the required checkpoint with:
+
+4. **Result** — the important case-specific findings, including the key quantitative values.
+5. **Neurosurgical meaning** — how those findings may affect intervention, functional-risk
+   discussion, or postoperative interpretation, with important limitations stated.
+
+Assume the neurosurgeon may not know the analysis method. Explain terms such as tumor
+segmentation, atlas overlap, AutoTrack, T2R, and tract morphology when they first become
+relevant. Keep method explanations concise and clinically oriented rather than describing
+software implementation details.
+
+At minimum, explain these points as the workflow progresses:
+
+- **Step 1:** why enhancing tumor, necrosis, Tumor Core, and edema are measured separately;
+  why volume and structural-registration QC matter.
+- **Step 2:** that CHA/Brodmann overlap localizes the lesion anatomically by measuring
+  atlas-region intersection; it provides anatomical context and does not establish function.
+- **Step 3:** why each selected bilateral pathway is relevant to the lesion location and
+  which neurological system it represents.
+- **Step 4:** that AutoTrack reconstructs standardized named white-matter pathways and why
+  bilateral reconstruction is useful for comparison.
+- **Step 5:** that T2R asks how many reconstructed streamlines in each named pathway pass
+  through each lesion compartment; explain the numerator, denominator, and bundle fraction.
+- **Step 6:** why morphology and the live 3D tumor–tract relationship are inspected in
+  addition to T2R counts, and what displacement, compression, marginal course, or direct
+  intersection mean structurally.
+- **Step 7:** integrate lesion size/location, atlas localization, T2R, and 3D tract geometry
+  into a concise presurgical neurosurgical interpretation.
+- **Step 8:** for postoperative work, explain that the central question is preservation of
+  the same previously relevant eloquent pathways, not merely postoperative tumor volume.
+- **Step 9:** explain the preservation categories and what can and cannot be concluded from
+  tractography alone.
+- **Step 10:** explain what is being retained for reproducibility and why matched settings
+  and views matter for pre/post comparison.
+
+### Required interaction pauses
+
+The workflow is long, so use deliberate pause points rather than running the entire case
+without giving the surgeon time to inspect the results.
+
+**First hard pause — after the presurgical 3D tumor–tract review and integrated presurgical
+summary (Steps 6–7).** Leave the useful 3D tumor/edema and relevant tract scene visible.
+Do not immediately start postoperative analysis. End the chat turn with a concise summary
+and a continuation prompt such as:
+
+```text
+Presurgical analysis is complete and the 3D tumor–tract view is left open for review.
+Would you like to:
+1. continue with postoperative tract-preservation analysis;
+2. inspect another 3D viewpoint or tract combination;
+3. prepare/export a DICOM tract overlay for clinical review; or
+4. stop here?
+```
+
+If the user chooses DICOM overlay export, note that the current DSI Studio workflow is
+GUI-based and requires the original DICOM series loaded as the selected custom slice:
+
+```text
+Slices -> Mark Tracts on Slices
+(optional) Slices -> Mark Regions on Slices
+Slices -> Save Slices to DICOM
+```
+
+Export marked images as separate DICOM files and keep the original clinical DICOM unchanged.
+Do not imply that this GUI workflow is an AI command if no such command exists.
+
+**Second hard pause — after the final postoperative tract-preservation summary.** Leave the
+matched postoperative 3D view visible and ask whether the surgeon wants another matched
+view, DICOM-overlay guidance, or no further analysis.
+
 For presurgical work, prioritize the relationship of tumor/core/edema to eloquent anatomy.
 For postsurgical work, the **primary question is whether the previously relevant eloquent
 tracts remain reconstructable and anatomically preserved around the resection/treatment
@@ -606,6 +687,10 @@ Key intervention-relevant points
 Prioritize clinically meaningful findings. Do not drown the final summary in all raw atlas
 rows or every tract statistic.
 
+After giving this summary, **stop at the first hard pause described above**. Keep the
+presurgical 3D tumor–tract scene visible so the surgeon can inspect it before choosing the
+next action.
+
 # POSTSURGICAL EVALUATION
 
 ## 8. Primary goal: assess preservation of eloquent pathways
@@ -802,6 +887,9 @@ Clinical correlation priorities
 
 Do not make the postoperative report primarily a tumor-volume report when the clinical
 question is tract preservation.
+
+After this report, **stop at the second hard pause described above** and leave the matched
+postoperative 3D view visible for inspection.
 
 ## 10. Reproducibility record
 
