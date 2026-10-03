@@ -60,6 +60,7 @@ keep an `&`-separated list as a string.
 | `move_region` | `["move_region","80 100 80",3]` | Move region 3 so its center is at the specified location in that region's space. Empty regions return success without moving. |
 | `move_slice_to_region` | `["move_slice_to_region",3]` | Move slice crosshairs to a region center. |
 | `show_region_statistics` | `["show_region_statistics"]` | Compute statistics for checked regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. If the opened FIB is a connectometry database, it also adds one `<subject> mean_<metric>` row per subject per stored metric within the checked region, without needing a full correlational-tractography run — see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`. |
+| `show_region_overlap_statistics` | `["show_region_overlap_statistics",3,"CHA"]` | Compute intersections between one source region and every nonempty label of a built-in atlas **without changing the Region table**. `command[1]` is the region index; omit it only when intentionally using the current row. AI/Internal callers must provide `command[2]` as the exact atlas name; a local GUI user may omit the atlas and choose it from a dialog. Each nonempty atlas label becomes a result column, zero-overlap labels are omitted, and the rows are the same ordinary region statistics returned for temporary intersection regions. The source region itself is not a result column. |
 | `save_region_statistics` | `["save_region_statistics","C:/output/region_stat.txt"]` | Same statistics as `show_region_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_region_statistics` with no path fails with a usage error. |
 | `show_t2r` | `["show_t2r"]` | Compute tract-to-region connectivity for checked tracts and regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
 | `save_t2r` | `["save_t2r","C:/output/tract_to_region.txt"]` | Same as `show_t2r`, but always written to the given path, for any caller. The path is required. |
@@ -100,6 +101,12 @@ keep an `&`-separated list as a string.
 
 - Discover current region indices and roles with `list_region` before mutation.
 - Re-run `list_region` after `copy_region`; insertion shifts every later row index.
+- For statistics-only overlap between one region and a built-in atlas, prefer
+  `show_region_overlap_statistics <region-index> <atlas-name>`. It maps atlas labels
+  into the source region's space, reports only nonempty intersections, and does not
+  create or modify Region-table rows. Use `add_region_from_atlas` plus explicit region
+  operations only when actual atlas region objects are needed for visualization,
+  editing, tracking constraints, or downstream mask operations.
 - For `region_action_all_inter_1st`, prefer an explicit ordered index list and put
   the region whose grid/transform should define the result first. Explicit indices are
   used regardless of checked/shown state. If the index list is omitted, only
@@ -107,13 +114,17 @@ keep an `&`-separated list as a string.
   first. Later regions are modified in place; use disposable copies when the originals
   must be preserved.
 - `list_atlas` with an atlas name or index lists that atlas's region names and
-  indices; do not guess them from any other source.
+  indices; do not guess them from any other source. For
+  `show_region_overlap_statistics`, the atlas argument is the exact atlas name rather
+  than a runtime atlas index.
 - The two-element `add_region_from_atlas` form adds all labels in one call and
   needs no prior label discovery.
 - Confirm deletion, merging, overwrite, and mask-replacement operations.
 - For AI callers, `show_*` statistics commands return text directly; local GUI users
   may see a modal dialog. Use the corresponding `save_*` command when a persistent
-  output file is needed.
+  output file is needed. `show_region_overlap_statistics` currently has no separate
+  `save_*` command for AI; capture its returned text when persistent output is not
+  otherwise requested.
 - `add_region_from_atlas` changes the active template ID before adding labels.
 
 ## Region Window parameter reference
