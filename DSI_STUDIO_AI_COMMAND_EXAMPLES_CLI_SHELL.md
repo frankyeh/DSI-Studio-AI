@@ -34,6 +34,49 @@ An action still enforces its own required options. For example, `vis` requires `
 
 The request normally remains active until the internal action returns. A failed action produces `command line failed`; the captured command output may contain the detailed cause. Unused options are reported as warnings after execution and do not by themselves change a successful result into an error.
 
+### Atlas overlap statistics with `--overlap`
+
+Current DSI Studio CLI supports `--overlap=<atlas-name>` for region analysis and tract/post-tracking analysis. The atlas argument is an exact built-in atlas name such as `CHA`, `Brodmann`, or `HCP-MMP`. Zero-overlap atlas labels are omitted from the returned statistics table.
+
+For one region under `--action=ana`, `--overlap` calculates the intersection between that source region and every nonempty atlas label without materializing atlas regions:
+
+```bash
+bash ./dsi.sh run_cli "--action=ana --source=C:/data/subject.fz --region=C:/data/tumor.nii.gz --overlap=CHA --output=C:/data/tumor_CHA.txt"
+```
+
+Region overlap requires exactly one loaded region. The output uses the ordinary region-statistics path: by default `<source>.statistics.txt`; `--output` may name a file or directory, and `.txt` is appended when needed.
+
+For one existing tract under `--action=ana`:
+
+```bash
+bash ./dsi.sh run_cli "--action=ana --source=C:/data/subject.fz --tract=C:/data/CST.tt.gz --overlap=HCP-MMP"
+```
+
+The tract is voxelized and intersected with every nonempty atlas label. The overlap table is written by the shared post-tracking routine as `<tract-file>.overlap.txt` (for the example above, `CST.tt.gz.overlap.txt`). This overlap filename is based on the tract filename supplied to post-processing; `--output` does not redirect this overlap table.
+
+The same post-tracking option is available to newly generated tractography:
+
+```bash
+bash ./dsi.sh run_cli "--action=trk --source=C:/data/subject.fz --tract_count=10000 --overlap=HCP-MMP"
+```
+
+and to AutoTrack because completed AutoTrack bundles also pass through the same post-tracking routine:
+
+```bash
+bash ./dsi.sh run_cli "--action=atk --source=C:/data/subject.fz --track_id=Corticos --overlap=HCP-MMP"
+```
+
+For `trk`, the overlap table is created from the source-derived pre-save tract filename and therefore may not follow a later `--output` tract filename. For `atk`, each completed named bundle gets its own `<bundle-tract-file>.overlap.txt` beside its normal AutoTrack output.
+
+When a tracking window is already open, prefer the direct nonmutating AI commands when they express the requested operation more simply:
+
+```bash
+bash ./dsi.sh show_region_overlap_statistics <region-index> <atlas-name>
+bash ./dsi.sh show_tract_overlap_statistics <tract-index> <atlas-name>
+```
+
+Use CLI `--overlap` when working directly with files, batch CLI processing, or post-tracking output rather than an existing GUI table row.
+
 ### Wildcards
 
 `run_cli` uses the same wildcard-aware dispatcher as normal command-line startup. An explicit `--loop=<pattern>` enables looping. Without `--loop`, a `*` in `--source` becomes the loop pattern automatically except for `atk`, `src`, `qc`, `db`, and `tmp`.
