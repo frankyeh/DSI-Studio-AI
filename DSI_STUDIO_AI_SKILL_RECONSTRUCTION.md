@@ -109,6 +109,10 @@ sequence; when using the GUI, do them in the same order manually:
 6. **Resampling to isotropic** — see section 6 for resolution choice.
 7. **Mask** — generate or refine after all geometric changes.
 
+Geometry principle: keep the original DWI geometry while applying corrections
+that depend on the original acquisition (TOPUP/EDDY, motion, distortion),
+then resample before reconstruction. Do not resample first.
+
 Decide from what data is available, not from habit:
 
 - **Reverse-phase b0 available** → run TOPUP for susceptibility distortion,
@@ -184,13 +188,24 @@ After any orientation operation, recheck anatomical landmarks and record the
 change; an apparently plausible image may still be mirrored.
 
 A flipped b-table is a common mistake, especially with NIfTI as the source or
-in animal studies. Two checking routines exist:
+in animal studies. Two checking routines exist (CLI: `--check_btable`):
 
-- **With template alignment** (human or animal template): align the data to
-  the template and verify that major tract directions match the template
-  anatomy. Use when a suitable template is available.
-- **Without template**: use DSI Studio's automatic b-table check, then
-  confirm with local fiber directions and whole-brain tractography.
+- **Template-aware** (`--check_btable=1`, or `--cmd="check_btable"`): align
+  the data to the template and verify that major tract directions match the
+  template anatomy. Use when a suitable template is available.
+- **No-template** (`--check_btable=1` without `--template`, or
+  `--cmd="check_btable2"`): 24-candidate b-vector permutation/flip check.
+  Use when no template fits.
+
+For batch QC across subjects: `dsi_studio --action=qc --source=*.sz
+--check_btable=1` (add `--template=<name>` for the template-aware check).
+
+If a good-quality representative scan reveals a consistent swap/flip
+convention (e.g. `021fx`), apply the matching **b-table-only** correction to
+scans sharing that acquisition convention:
+`--cmd="swap_bybz+flip_bx"` (swap y/z, then flip x). Chain multiple
+operations with `+`. Do not infer a group-wide correction from a low-SNR or
+artifact-heavy outlier.
 
 Automatic b-table checking is evidence, not proof. Confirm its result using
 anatomy, local fiber directions, and whole-brain tractography. Be cautious with
@@ -206,7 +221,8 @@ Know the agent's limits and handle them without asking the user to inspect:
   alone.
 
   The template alignment done for the b-table check covers both: its R² is
-  also an orientation and mask QC metric. If R² is poor, warn the user that
+  also an orientation and mask QC metric (CLI: `--export_r` writes a `.rXX`
+  file with the registration R²). If R² is poor, warn the user that
   wrong orientation or a bad mask are likely causes — do not ask them to
   inspect images; state the finding and what it implies.
 
