@@ -704,6 +704,15 @@ bash ./dsi.sh preview_screen 3d
 For a clinically important small T2R intersection, also inspect all three slice planes
 with the relevant tract and lesion visible.
 
+Offer to save a rotating video for each pathway with the tumor. Keep the
+White_Matter region visible for anatomical context:
+
+```bash
+bash ./dsi.sh show_only_tracts "<tract-index>"
+bash ./dsi.sh show_only_regions "<white-matter-index>&<tumor-core-index>"
+bash ./dsi.sh save_rotation_video "<output-path>.avi"
+```
+
 Describe the reconstructed pathway in anatomically useful terms such as:
 
 ```text
