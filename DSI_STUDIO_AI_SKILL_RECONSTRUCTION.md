@@ -189,7 +189,9 @@ correlation) and contrast:
 - NDC also identifies acquisition issues (motion, dropout, spikes).
 - When processing a group: preprocess all subjects first, then run QC
   across all `.sz` files to confirm everything is good. DSI Studio flags
-  outliers in the QC report — follow up on every flagged subject.
+  outliers in the QC report — follow up on every flagged subject. Note:
+  outlier detection only works with a group of `.sz` files; a single
+  subject will never be flagged as an outlier.
 
 ### 4. Verify image and b-table orientation
 
