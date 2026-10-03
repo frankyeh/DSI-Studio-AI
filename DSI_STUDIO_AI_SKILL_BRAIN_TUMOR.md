@@ -336,8 +336,11 @@ supporting numbers; the three diameters are the primary size description.
 To visualize the tumor on the brain surface, show the `White_Matter` region
 from the tumor segmentation — it is already a skull-stripped brain mask. Do
 not use `add_surface` on raw T1w (it includes the skull), and do not merge
-tissue regions; just show the White_Matter region alongside the tumor
-compartments.
+tissue regions.
+
+Turn off `Gray_Matter` and `Others`; show only `White_Matter` plus the tumor
+compartments (Necrosis, Peritumoral Edema, Enhancing Tumor). Gray matter and
+other tissue labels clutter the surface and hide the tumor.
 
 ### Required checkpoint after Step 1
 
