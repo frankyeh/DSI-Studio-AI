@@ -106,8 +106,12 @@ Decide from what data is available, not from habit:
   the reversed direction has only b0 (or a few b0 volumes) for TOPUP. Look
   for a second run of the same protocol (e.g. `dir258_2` next to `dir258_1`)
   that is much smaller than the full run. SBRef images paired with each run
-  also hint at the run structure. When in doubt, check the phase-encoding
-  direction in the headers before assuming.
+  also hint at the run structure.
+
+  Do not try to determine whether it is AP/PA or LR/RL yourself. As long as
+  the two runs have opposite phase-encoding directions, DSI Studio figures
+  out the pair automatically (it also reads phase direction from NIfTI JSON
+  sidecars when present). `--rev_pe` accepts `.nii.gz` or `.sz`.
 
   Reverse-phase patterns seen in practice (see DSI-Studio-Test/topup):
 
