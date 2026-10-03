@@ -109,6 +109,23 @@ Decide from what data is available, not from habit:
   also hint at the run structure. When in doubt, check the phase-encoding
   direction in the headers before assuming.
 
+  Reverse-phase patterns seen in practice (see DSI-Studio-Test/topup):
+
+  - **AP/PA** (most common): full DWI one way, b0-only the other.
+    Example: `s12_dMRI_dir258_1_HDFT` (full AP) + `s14_dMRI_dir258_2_HDFT`
+    (b0 PA). The reverse may be named `DWIB0REVPE`.
+  - **PA/AP** (flipped): same as above with directions swapped.
+    Example: full `HCPDTI` (PA) + `DWIB0REVPE_b0` (AP).
+  - **LR/RL** (HCP-style, less common): full DWI both ways or full + b0.
+    Example: `100206_3T_DWI_dir95_3mm` (LR) + `.rz` reverse file (RL).
+  - **Full + Full**: both directions carry the full protocol (larger, slower).
+  - **Full + multiple b0**: reversed side has several b0 volumes.
+
+  File clues: DSI Studio uses the `.rz` extension for reverse-phase data.
+  After TOPUP it writes `<name>.topup.AP_PA.nii.gz` (or `.topup.RL_LR.nii.gz`),
+  `<name>.topup.acqparams.txt`, and a `.topup_log`. Presence of these outputs
+  means TOPUP already ran — do not run it again.
+
 - **No reverse-phase data** → EDDY alone for motion and eddy currents.
   Accept that susceptibility distortion cannot be fully corrected; do not
   claim otherwise.
