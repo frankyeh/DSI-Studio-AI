@@ -301,7 +301,14 @@ ordinary tractography unless a downstream method explicitly needs it.
 
 ### 8. Validate the FZ
 
-Open the result and inspect:
+Standard post-reconstruction steps:
+
+1. Open the `.fz` with `open_fib`.
+2. Load structural images (T1w, T2w, FLAIR) as slice backgrounds with
+   `add_slice`. This is standard — always load at least the T1w for
+   anatomical reference.
+
+Then inspect:
 
 - anisotropy contrast and laterality;
 - dominant directions in coherent white matter;
