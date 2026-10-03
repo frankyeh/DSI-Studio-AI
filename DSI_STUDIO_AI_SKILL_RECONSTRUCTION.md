@@ -11,9 +11,13 @@ DICOM or NIfTI + bval/bvec → SZ → reconstruction → FZ
 There are two entry routes. Do not mix them up.
 
 **From DICOM:** Convert first with `convert_dicom_dir` (or File → Open
-Source Images). DSI Studio reads b-values and b-vectors directly from the
-DICOM headers during conversion. Do not look for separate bval/bvec files;
-they do not exist for a DICOM start.
+Source Images). Point it at the parent folder containing all series, not at
+an individual series folder; it converts recursively. DSI Studio reads
+b-values and b-vectors directly from the DICOM headers during conversion. Do
+not look for separate bval/bvec files; they do not exist for a DICOM start.
+Expect conversion to take minutes for a full multi-series exam (e.g. 250+
+seconds for 30+ series including multi-shell DWI). DWI series become `.sz`;
+structural series become `.nii.gz`.
 
 Warning: DICOM files pulled from a PACS/server often arrive with generic or
 duplicate filenames and may need renaming (`rename_dicom_dir`) before
