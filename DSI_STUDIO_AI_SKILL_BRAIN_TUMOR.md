@@ -605,24 +605,24 @@ A tract that shows a header with no data rows has zero reconstructed intersectio
 all checked regions — this is a valid result, not a command failure. Contralateral
 bundles routinely show headers without data.
 
-### 5.2 Streamline involvement fraction
+### 5.2 Lesion involvement by volume
 
-For each tract bundle and each lesion compartment:
+Do not report streamline counts — the count is artificial, determined by
+seeding parameters rather than biology. Instead, use `intersect volume(mm^3)`
+from the T2R output, which estimates the volume of tract-lesion overlap.
+
+For each tract bundle and each lesion compartment, report:
 
 ```text
-intersecting streamline count = T2R "number of tracts" for that region
-
-total bundle streamline count = tract count from list_tract or show_tract_statistics
-
-lesion involvement fraction =
-    intersecting streamline count / total bundle streamline count
+intersect volume (mm^3) = T2R "intersect volume(mm^3)" for that region
 ```
 
-Use the total count from the **same completed bundle** as denominator. A streamline can
-pass through multiple lesion compartments, so fractions are not expected to sum to one.
+A streamline can pass through multiple lesion compartments, so volumes are not
+expected to sum to the total lesion volume.
 
-Do not call this an `overlap volume`. T2R answers: **what fraction of the reconstructed
-pathway intersects this lesion region?**
+T2R answers: **what volume of the reconstructed pathway intersects this lesion
+region?** It measures geometric intersection of streamlines with segmented
+regions, not histological invasion.
 
 For this workflow use the `number of tracts` row as numerator. Do **not** use the generic
 T2R `intersect ratio` as the bundle streamline fraction.
