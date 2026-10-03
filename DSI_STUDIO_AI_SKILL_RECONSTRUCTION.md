@@ -184,8 +184,13 @@ Rules:
 After preprocessing, run QC on the `.sz` and check NDC (neighboring DWI
 correlation) and contrast:
 
-- TOPUP/eddy should improve NDC substantially. If NDC does not improve,
-  something is wrong — stop and investigate before reconstructing.
+- TOPUP corrects deformation only; it does not improve NDC or contrast.
+  NDC and contrast improvements come from motion correction or EDDY.
+- After TOPUP the images are masked (background zeroed), so unmasked NDC
+  always increases artificially. Compare **masked NDC** only — a small drop
+  is fine.
+- If masked NDC drops substantially or bad slices appear, something is
+  wrong — stop and investigate before reconstructing.
 - NDC also identifies acquisition issues (motion, dropout, spikes).
 - When processing a group: preprocess all subjects first, then run QC
   across all `.sz` files to confirm everything is good. DSI Studio flags
