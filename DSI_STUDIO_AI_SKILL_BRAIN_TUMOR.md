@@ -163,6 +163,14 @@ bash ./dsi.sh set_slice <slice-index>
 bash ./dsi.sh list_slice
 ```
 
+When many structural NIfTIs are available, QC them first to compare
+resolutions — pick the highest-resolution structural (e.g. 1 mm isotropic
+MPRAGE) for tumor segmentation. Watch out for thick slices: a structural
+with fine in-plane resolution but thick slices (e.g. 0.5×0.5×5 mm) is not
+good for tumor segmentation, which needs true 3D accuracy. Lower-resolution
+structurals give coarser segmentations. `dir` the folder and check each
+candidate's dimensions and voxel size before choosing.
+
 When a FIB opened from Fiber Data Hub already exposes its structural MRI in `list_slice`
 with status `available`, select that existing slice with `set_slice`; do not add the same
 image again with `add_slice`. Poll `list_slice` until the selected row reports `ready`.
