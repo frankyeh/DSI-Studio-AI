@@ -40,14 +40,14 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `save_template_tract` | `["save_template_tract","C:/output/cst_template.tt.gz",0]` | Save one tract in loaded template space. |
 | `save_slice_tract` | `["save_slice_tract","C:/output/cst_T1w.tt.gz",0]` | Save one tract in current slice space. |
 | `save_tract_endpoint` | `["save_tract_endpoint","C:/output/cst_endpoints.txt",0]` | Save native-space endpoints for one tract bundle index. |
-| `save_mni_tract_endpoint` | `["save_mni_tract_endpoint","C:/output/cst_mni_endpoints.txt",0]` | Save endpoints in MNI coordinates for one tract bundle index. |
+| `save_mni_tract_endpoint` | `["save_mni_tract_endpoint","C:/output/cst_mni_endpoints.txt",0]` | Save endpoints in MNI coordinates. |
 | `save_slice_tract_endpoint` | `["save_slice_tract_endpoint","C:/output/cst_T1w_endpoints.txt",0]` | Save endpoints in current slice space for one tract bundle index. |
 | `save_all_tracts` | `["save_all_tracts","C:/output/checked_tracts.tt.gz"]` | Save all checked tracts together. |
 | `save_all_tracts_to_folder` | `["save_all_tracts_to_folder","C:/output/tracts"]` | Save checked tracts as separate files in a folder. |
 | `save_tdi` | `["save_tdi","C:/output/cst_tdi.nii.gz",0]` | Save tract-density imaging output in current slice space. |
 | `save_tdi2` | `["save_tdi2","C:/output/cst_tdi_2x.nii.gz",0]` | Save the alternate two-times-resolution tract-density output. |
 | `save_tract_values` | `["save_tract_values","C:/output/cst_qa.txt",0,"qa"]` | Save the named metric along one tract bundle; arguments are filename, tract index, and metric name. |
-| `tract_to_region` | `["tract_to_region",0]` | Convert tract trajectories to a region. |
+| `tract_to_region` | `["tract_to_region",0]` | Convert tract trajectories to a region in the **current slice space**. The resulting voxel count/volume therefore depends on the selected slice grid, resolution, and registration. Record the current slice plus the new region dimensions/resolution when using this quantitatively; do not directly compare absolute tract-derived region volumes across sessions unless the spatial definition is controlled and validated. |
 | `endpoint_to_region` | `["endpoint_to_region",0]` | Convert tract endpoints to region(s). |
 | `update_tract` | `["update_tract"]` | Refresh counts and rendering for tract bundles. |
 | `delete_tract` | `["delete_tract","0&2&5"]` | Delete one or more tract bundles. Use one index or an `&`-separated index list; omit the index to use the current row. |
@@ -78,7 +78,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `check_tract` | `["check_tract",0,1]` | Set one tract's checked state. |
 | `check_uncheck_all_tract` | `["check_uncheck_all_tract",1]` | Check/uncheck all tracts; explicit `1` or `0` is preferred. |
 | `select_cluster_color` | `["select_cluster_color",0,4294901760]` | Set one bundle to a packed Qt ARGB color and switch to assigned coloring. |
-| `show_tract_statistics` | `["show_tract_statistics"]` | Compute statistics for checked tracts. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. If the opened FIB is a connectometry database, it also adds one `<subject> mean_<metric>` row per subject per stored metric along the checked tract, without needing a full correlational-tractography run — see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`. |
+| `show_tract_statistics` | `["show_tract_statistics"]` | Compute statistics for checked tracts. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. If the opened FIB is a connectometry database, it also adds one `<subject> mean_<metric>` row per subject per stored metric along the checked tract, without needing a full correlational-tractography run — see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`. For longitudinal work, treat tract volume/surface-area changes as descriptive and account for acquisition, reconstruction, registration, tracking, and space differences before biological interpretation. |
 | `show_tract_overlap_statistics` | `["show_tract_overlap_statistics",0,"CHA"]` | Voxelize one tract bundle and compute its intersections with every nonempty label of a built-in atlas **without creating Region-table rows**. `command[1]` is the tract index; omit it only when intentionally using the current tract. AI/Internal callers must provide `command[2]` as the exact atlas name; a local GUI user may omit the atlas and choose it from a dialog. Each nonempty atlas label becomes a result column, zero-overlap labels are omitted, and the rows are ordinary region statistics for the temporary tract-atlas intersections. Use this for tract-vs-atlas localization; it does not compare a tract with an arbitrary tumor/edema region. |
 | `save_tract_statistics` | `["save_tract_statistics","C:/output/tract_stat.txt"]` | Same statistics as `show_tract_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_tract_statistics` with no path fails with a usage error. |
 | `show_tract_recognition` | `["show_tract_recognition","",0]` | Recognize tract index 0 and return ranked atlas matches; at least one tract must be checked. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
@@ -184,6 +184,21 @@ Do not use TIP as generic tract-count cleanup.
 `delete_repeated_tract` uses its first parameter as the distance threshold. An
 optional second parameter selects one tract index or an `&`-separated tract-index
 list; omit it to operate on checked bundles.
+
+## Longitudinal and voxelization caution
+
+`tract_to_region` is a display/workflow conversion into the currently selected slice
+space. The same tract bundle can therefore produce different voxel counts or volumes
+if the current slice grid, voxel size, registration, or sampled tract geometry differs
+between sessions. Use the resulting tract-region volume primarily as a **within-session
+denominator** for region-overlap fractions.
+
+Do not treat a pre/post change in absolute tract-derived region volume as direct tract
+loss or gain. Likewise, changes in `show_tract_statistics` volume or surface area
+remain descriptive unless acquisition, reconstruction, registration, tracking
+parameters, spatial definition, and QC are sufficiently controlled. For longitudinal
+reports, state these limitations explicitly and prioritize concordant anatomical and
+overlap findings over an isolated volume change.
 
 ## Tracking workflow notes
 
