@@ -123,7 +123,11 @@ Decide from what data is available, not from habit:
 - **Reverse-phase b0 available** → run TOPUP for susceptibility distortion,
   then EDDY for eddy currents and motion.
   (`--rev_pe=<rev_b0> --save_src=subject_preprocessed.sz`, then
-  `--cmd="[Step T2][Corrections][EDDY]"`)
+  `--cmd="[Step T2][Corrections][EDDY]"` — *unless* it is DSI/HDFT data)
+- **DSI/HDFT data (many b-values, e.g. 258 directions)** → TOPUP plus
+  DSI Studio's built-in motion correction, no EDDY. EDDY does not work well
+  with the large number of distinct b-values in DSI acquisitions.
+  (`--motion_correction=1`)
 
   How to spot the reverse-phase series in a DICOM listing: in the common
   AP-PA pattern, only one phase-encoding direction carries the full DWI;
