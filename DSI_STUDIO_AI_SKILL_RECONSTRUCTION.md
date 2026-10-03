@@ -352,19 +352,19 @@ Do not repeatedly tune parameters to make a poor acquisition look attractive.
 Default native-space GQI:
 
 ```bash
-dsi_studio --action=rec --source=subject.sz --method=4 --param0=1.25 --output=subject_gqi.fz
+dsi_studio --action=rec --source=subject.sz --method=4 --param=1.25 --output=subject_gqi.fz
 ```
 
 Batch GQI:
 
 ```bash
-dsi_studio --action=rec --source=*.sz --method=4 --param0=1.25 --output=fib/
+dsi_studio --action=rec --source=*.sz --method=4 --param=1.25 --output=fib/
 ```
 
 EDDY followed by GQI:
 
 ```bash
-dsi_studio --action=rec --source=subject.sz --cmd="[Step T2][Corrections][EDDY]" --method=4 --param0=1.25 --output=subject_gqi.fz
+dsi_studio --action=rec --source=subject.sz --cmd="[Step T2][Corrections][EDDY]" --method=4 --param=1.25 --output=subject_gqi.fz
 ```
 
 TOPUP/EDDY preparation using reverse-phase data:
