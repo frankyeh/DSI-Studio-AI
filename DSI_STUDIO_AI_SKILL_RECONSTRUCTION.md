@@ -59,6 +59,11 @@ individual anatomy, lesions, distortion, and presurgical work.
 
 ### 2. Inspect the source before reconstruction
 
+Do not ask the user to describe their files. Ask only for the data location,
+then inspect it yourself with `run_shell` (`dir "<path>"` on Windows,
+`ls "<path>"` elsewhere). Identify DICOM series folders vs NIfTI+bval/bvec
+sets from the listing before deciding the starting route.
+
 Confirm:
 
 - dimensions, voxel size, volume count, b-values, and b-vector count;
