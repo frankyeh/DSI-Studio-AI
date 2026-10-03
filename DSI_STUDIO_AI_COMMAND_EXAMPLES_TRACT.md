@@ -79,6 +79,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `check_uncheck_all_tract` | `["check_uncheck_all_tract",1]` | Check/uncheck all tracts; explicit `1` or `0` is preferred. |
 | `select_cluster_color` | `["select_cluster_color",0,4294901760]` | Set one bundle to a packed Qt ARGB color and switch to assigned coloring. |
 | `show_tract_statistics` | `["show_tract_statistics"]` | Compute statistics for checked tracts. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. If the opened FIB is a connectometry database, it also adds one `<subject> mean_<metric>` row per subject per stored metric along the checked tract, without needing a full correlational-tractography run — see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`. |
+| `show_tract_overlap_statistics` | `["show_tract_overlap_statistics",0,"CHA"]` | Voxelize one tract bundle and compute its intersections with every nonempty label of a built-in atlas **without creating Region-table rows**. `command[1]` is the tract index; omit it only when intentionally using the current tract. AI/Internal callers must provide `command[2]` as the exact atlas name; a local GUI user may omit the atlas and choose it from a dialog. Each nonempty atlas label becomes a result column, zero-overlap labels are omitted, and the rows are ordinary region statistics for the temporary tract-atlas intersections. Use this for tract-vs-atlas localization; it does not compare a tract with an arbitrary tumor/edema region. |
 | `save_tract_statistics` | `["save_tract_statistics","C:/output/tract_stat.txt"]` | Same statistics as `show_tract_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_tract_statistics` with no path fails with a usage error. |
 | `show_tract_recognition` | `["show_tract_recognition","",0]` | Recognize tract index 0 and return ranked atlas matches; at least one tract must be checked. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
 | `save_tract_recognition` | `["save_tract_recognition","C:/output/tract_names.txt",0]` | Same as `show_tract_recognition`, but always written to the given path, for any caller. The path is required. |
@@ -182,6 +183,12 @@ list; omit it to operate on checked bundles.
 - The two-element form uses current parameters without region constraints; supply explicit ROI settings to use regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
 - Explicit ROI settings are validated before the new tract bundle/thread is created.
+- For statistics-only tract overlap with a built-in atlas, prefer
+  `show_tract_overlap_statistics <tract-index> <atlas-name>`. It voxelizes the tract
+  internally, reports only nonempty atlas intersections, and does not create a
+  temporary Region-table row. Use `tract_to_region` when an actual tract-derived
+  region is needed, especially for overlap with arbitrary lesion masks such as tumor
+  or edema.
 - `run_tracking` clears any leftover differential-tracking state whenever `dt_index1` and `dt_index2` are both `0`, so a plain tracking run never silently reuses metrics from an earlier `run_dif_tracking`. Use `run_dif_tracking` for a differential run instead of `run_tracking`.
 - If `dt_index1`/`dt_index2` are nonzero but were never applied (e.g. `set_param` was used without a following `run_dif_tracking`/`set_dt_index`), `run_tracking` fails with an error suggesting `run_dif_tracking`, instead of silently tracking without the differential metrics.
 - Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
@@ -189,6 +196,8 @@ list; omit it to operate on checked bundles.
 - AutoTrack names are hierarchical: use a parent entry for the whole tract family and a child only for a requested subdivision or branch.
 - Clustering commands delete the original bundle and replace it with clusters.
 - Confirm deleting, trimming, cutting, clustering, reconnecting, and merging.
+- `show_tract_overlap_statistics` currently has no separate `save_*` command for AI;
+  capture its returned text when persistent output is not otherwise requested.
 - Removed generic names with no handler must not be used; copy exact commands from this file.
 
 ## Tracking parameters
