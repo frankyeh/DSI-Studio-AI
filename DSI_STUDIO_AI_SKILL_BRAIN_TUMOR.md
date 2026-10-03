@@ -276,6 +276,34 @@ homologs with identical AutoTrack settings. Follow the AutoTrack QC, tracking-si
 tolerance, TIP, completion, and visualization guidance already maintained in
 `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`.
 
+`run_auto_track` is asynchronous and independent bundles can be launched one after
+another without waiting for the previous bundle to finish. After the desired settings
+are established, issue **all selected left/right `run_auto_track` calls back-to-back**.
+Do not insert a long wait or a completion poll after each individual launch.
+
+For example, if CST and arcuate fasciculus are selected:
+
+```bash
+bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
+bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractR"
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusR"
+```
+
+After **all** desired AutoTrack commands have been launched, poll the full tract table
+approximately every 10 seconds:
+
+```bash
+bash ./dsi.sh list_tract
+```
+
+Each requested tract row reports `running` or `done`. Continue polling about every
+10 seconds until every requested AutoTrack row reports `done`; then perform dependent
+operations such as `tract_to_region`, tract statistics, overlap analysis, saving, or
+visualization. This grouped polling is preferred to serially waiting for each tract.
+Do not repeatedly poll one bundle at very short intervals while other desired bundles
+have not yet been launched.
+
 Do not add tumor or edema constraints to AutoTrack.
 
 If a clinically relevant named pathway remains empty after the bounded AutoTrack
