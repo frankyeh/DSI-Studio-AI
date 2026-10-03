@@ -331,6 +331,14 @@ The anatomical location ([lobe, hemisphere]) comes from Step 2 atlas overlap
 (CHA/Brodmann), not from raw coordinates. Volumes stay in the report as
 supporting numbers; the three diameters are the primary size description.
 
+### Brain surface for tumor location visualization
+
+To visualize the tumor on the brain surface, show the `White_Matter` region
+from the tumor segmentation — it is already a skull-stripped brain mask. Do
+not use `add_surface` on raw T1w (it includes the skull), and do not merge
+tissue regions; just show the White_Matter region alongside the tumor
+compartments.
+
 ### Required checkpoint after Step 1
 
 Report briefly:
