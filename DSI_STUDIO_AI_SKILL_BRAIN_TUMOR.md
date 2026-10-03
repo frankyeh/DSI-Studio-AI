@@ -210,6 +210,17 @@ Tumor Core = Enhancing Tumor ∪ Necrosis
 Keep `Peritumoral Edema` separate. If an expected label is missing, report it as
 unavailable rather than zero. Preserve the original segmentation labels.
 
+**Segmentation failure fallback:** if `human_tumor` (or the T1w-specific alternative)
+fails to produce a usable lesion segmentation — no tumor found, severely fragmented
+labels, or a missing compartment needed for Tumor Core — an alternative is to derive a
+rough tumor region from the isotropic diffusion (ISO) map, where tumor tissue often
+stands out. The downside is low resolution: the ISO map is at diffusion resolution
+(e.g. 2.5 mm), far coarser than the structural image, so the resulting region is
+suitable only for gross localization, not for precise volumetry or margin assessment.
+Prefer re-running segmentation (check that the correct slice is selected, try
+`human_tumor_T1w` for T1w-only data) before falling back to the ISO map, and always
+report which method produced the lesion regions.
+
 Before lesion-only QC or statistics, isolate the intended lesion rows:
 
 ```bash
@@ -235,6 +246,17 @@ bash ./dsi.sh list_region
 `merge_regions` keeps the first supplied region and removes later merged rows. Do not
 construct Tumor Core if either required component is unavailable.
 
+**Index bookkeeping (important):** every `copy_region`/`merge_regions`/`delete_region`
+shifts subsequent indices. After each mutation, run `list_region` and write down the new
+index→name mapping before issuing the next index-dependent command. Never carry an index
+across a mutation without re-resolving it. When a step needs several regions, resolve
+all of them from the same fresh `list_region` output.
+
+After merging, verify the derived Tumor Core before using it: its volume should equal
+Enhancing Tumor volume + Necrosis volume (within rounding). Run `show_region_statistics`
+on the original components and the merged Core; a mismatch means the wrong rows were
+merged.
+
 ### 1.3 Three-plane QC and lesion measurements
 
 Center on Tumor Core and inspect sagittal, coronal, and axial views:
@@ -254,9 +276,11 @@ bash ./dsi.sh preview_screen roi
 `preview_screen roi` is a coarse text rendering plus orientation/coverage metadata. Use
 it for gross location/alignment checks, not as a substitute for full-resolution image
 inspection. When a clinically important boundary or laterality decision cannot be resolved
-from the text view, state that limitation and use `save_roi_screen` for human review when
-an output destination has been provided or requested. Do not invent an output path solely
-for QC.
+from the text view, state that limitation explicitly rather than inferring the answer,
+and use `save_roi_screen` for human review when an output destination has been provided
+or requested. Do not invent an output path solely for QC. The same limitation applies to
+`preview_screen 3d` in Step 6: it confirms which structures are co-visible, not fine
+tumor–tract boundaries.
 
 A successful `segment_brain` means inference completed; it does not establish anatomical
 validity. Inspect remote/disconnected components rather than accepting them automatically.
@@ -498,6 +522,12 @@ bash ./dsi.sh show_t2r
 
 Omit unavailable regions. One `show_t2r` call can analyze several checked bundles; the
 output identifies each tract separately.
+
+**Output format note:** the result lists a header for every checked tract bundle, but
+data rows (`number of tracts`, etc.) appear only for bundles with nonzero intersection.
+A tract that shows a header with no data rows has zero reconstructed intersection with
+all checked regions — this is a valid result, not a command failure. Contralateral
+bundles routinely show headers without data.
 
 ### 5.2 Streamline involvement fraction
 
