@@ -167,18 +167,19 @@ Automatic b-table checking is evidence, not proof. Confirm its result using
 anatomy, local fiber directions, and whole-brain tractography. Be cautious with
 low-SNR, low-direction, partial-coverage, animal, or severely pathological data.
 
-Know the agent's limits and say so:
+Know the agent's limits and handle them without asking the user to inspect:
 
 - **Brain not in axial view** (common in animal scans): hard for the agent to
   detect from numbers alone. Image dimensions can hint (e.g. the longest axis
   is not superior-inferior), but human brains are rarely flipped — an
-  occasional z-flip is the main human case. However, the R² reported by
-  template alignment (during the b-table check above) doubles as an
-  orientation check: a poor R² suggests wrong orientation or a bad mask.
+  occasional z-flip is the main human case.
 - **Mask quality**: the agent cannot reliably judge a mask from metrics
-  alone, but a poor template-alignment R² is a red flag for mask problems
-  too. When R² is low, show axial, coronal, and sagittal views and let the
-  user confirm before proceeding.
+  alone.
+
+  The template alignment done for the b-table check covers both: its R² is
+  also an orientation and mask QC metric. If R² is poor, warn the user that
+  wrong orientation or a bad mask are likely causes — do not ask them to
+  inspect images; state the finding and what it implies.
 
 ### 5. Inspect the mask
 
