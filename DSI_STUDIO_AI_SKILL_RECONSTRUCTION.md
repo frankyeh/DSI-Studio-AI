@@ -139,7 +139,8 @@ Decide from what data is available, not from habit:
 Rules:
 
 - Avoid repeated interpolation, registration, smoothing, or resampling.
-- Isotropic resampling is optional and does not create true spatial resolution.
+- Isotropic resampling is recommended for anisotropic data; see section 6.
+  It does not create true spatial resolution.
 - Save corrected data as a new SZ file (`subject_preprocessed.sz`).
 - State which artifact each operation addresses.
 
@@ -164,6 +165,17 @@ coronal, and sagittal views.
 - A broad mask adds background orientations and wastes computation.
 
 ### 6. Select reconstruction settings
+
+#### Resampling to isotropic (recommended)
+
+Anisotropic voxels are bad for tractography. Many scanners acquire high
+in-plane resolution (e.g. 0.5 mm) with thick slices (e.g. 5 mm). Resample to
+isotropic at a resolution between the in-plane and slice thickness — e.g.
+1 mm or 2 mm for 0.5×0.5×5 mm data. This does not create true spatial
+resolution, but it gives tractography consistent step geometry. Check the
+voxel size during source inspection (section 2) and resample before
+reconstruction if the slice thickness is much larger than the in-plane
+resolution.
 
 #### GQI
 
