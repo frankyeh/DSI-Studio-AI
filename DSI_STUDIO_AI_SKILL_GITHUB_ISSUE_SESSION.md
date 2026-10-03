@@ -1,13 +1,13 @@
-# DSI Studio ChatGPT (Web) GitHub Issue Channel
+# DSI Studio GitHub Agent Issue Channel
 
-DSI Studio can use one private GitHub issue as a command/result mailbox for
-ChatGPT Web. ChatGPT writes the next request into the issue body. DSI Studio
-writes the latest result into one issue comment marked
-`"dsi_session_result":true`.
+DSI Studio can use one private GitHub issue as a command/result mailbox for a
+web AI agent (ChatGPT, Muse, or any agent with GitHub issue access). The agent
+writes the next request into the issue body. DSI Studio writes the latest result
+into one issue comment marked `"dsi_session_result":true`.
 
 ```text
-ChatGPT Web -> private GitHub issue -> DSI Studio
-ChatGPT Web <- result comment       <- DSI Studio
+AI agent -> private GitHub issue -> DSI Studio
+AI agent <- result comment       <- DSI Studio
 ```
 
 This route does not use GitHub Actions, workflow dispatch, repository request
@@ -21,44 +21,44 @@ or unpublished confidential data in the issue.
 ## Bootstrap from an empty Issue URL
 
 An empty **Issue URL** is the normal first-run state for a user who has just selected
-**ChatGPT (Web)**. The user is not expected to know how to create the GitHub issue or
-understand the issue-channel protocol before starting.
+**GitHub (ChatGPT, Muse, ...)**. The user is not expected to know how to create the
+GitHub issue or understand the issue-channel protocol before starting.
 
-DSI Studio should direct the user to ChatGPT for bootstrap setup. A helper action such
-as **Set up with ChatGPT** should open ChatGPT in the default browser and copy a short
-bootstrap prompt to the clipboard. The user pastes that prompt into a new ChatGPT
-conversation. The public `frankyeh/DSI-Studio-AI` repository can be read before the
+DSI Studio offers **Ask ChatGPT...** and **Ask Muse...** helper buttons. Each opens
+the chosen agent in the default browser and copies a short bootstrap prompt naming
+that agent to the clipboard. The user pastes the prompt into a new conversation with
+that agent. The public `frankyeh/DSI-Studio-AI` repository can be read before the
 private issue-channel repository has been selected.
 
-A suitable bootstrap prompt is:
+A suitable bootstrap prompt is (with the agent name filled in):
 
 ```text
-I want to connect ChatGPT (Web) to DSI Studio.
+I want to connect ChatGPT to DSI Studio.
 
 Read the public GitHub file:
 frankyeh/DSI-Studio-AI/DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md
 
-Follow its bootstrap instructions. Use the GitHub tools available in ChatGPT. If
-GitHub issue access is not available, guide me through enabling the ChatGPT GitHub
-app first. Find an eligible private personal repository for the DSI Studio issue
-channel, preferably DSI-Studio-Connect, create a new DSI Studio session issue, and
-give me the complete Issue URL to paste into DSI Studio.
+Follow its bootstrap instructions. Use the GitHub tools available to you. If
+GitHub issue access is not available, guide me through enabling it first. Find
+an eligible private personal repository for the DSI Studio issue channel,
+preferably DSI-Studio-Connect, create a new DSI Studio session issue, and give
+me the complete Issue URL to paste into DSI Studio.
 
 Do not send DSI Studio commands until I tell you that DSI Studio has connected.
 ```
 
-When a ChatGPT conversation arrives through this bootstrap path, the agent should
+When an agent conversation arrives through this bootstrap path, the agent should
 handle setup directly instead of asking the user to understand the protocol:
 
 1. Read this file completely before creating the session issue.
-2. Check whether GitHub issue actions are available to ChatGPT.
+2. Check whether GitHub issue actions are available to you.
 3. If GitHub is not connected or issue actions are unavailable, guide the user to
-   enable the ChatGPT GitHub app and grant it access to the intended private
-   repository.
+   enable GitHub access (for example the ChatGPT GitHub app) and grant it access
+   to the intended private repository.
 4. Find an eligible private repository owned by the user's personal GitHub account.
    Prefer a dedicated repository such as `owner/DSI-Studio-Connect`. If no eligible
    repository exists, ask the user to create a private personal repository with
-   Issues enabled, then continue after it is visible to ChatGPT.
+   Issues enabled, then continue after it is visible to you.
 5. Create the required `DSI Studio session ...` issue using the procedure below.
 6. Read the issue back to verify access, then clearly give the complete issue URL to
    the user and tell them to paste it into DSI Studio's **Issue URL** field and click
@@ -67,10 +67,10 @@ handle setup directly instead of asking the user to understand the protocol:
    `"dsi_session_result":true` result comment exists before sending the first
    request.
 
-The bootstrap handles ChatGPT's GitHub access and issue creation. DSI Studio's local
-GitHub token is separate. If DSI Studio has no issue-channel token configured, the
-user must configure that token in **AI Settings** before starting the connection;
-the token must never be pasted into ChatGPT.
+The bootstrap handles the agent's GitHub access and issue creation. DSI Studio's
+local GitHub token is separate. If DSI Studio has no issue-channel token configured,
+the user must configure that token in **AI Settings** before starting the
+connection; the token must never be pasted into the agent.
 
 ## Repository requirements
 
@@ -92,7 +92,7 @@ The repository may be empty. It needs only:
 
 - private visibility;
 - Issues enabled;
-- access for the ChatGPT GitHub integration;
+- access for the AI agent's GitHub integration;
 - access for the fine-grained token configured in DSI Studio.
 
 No Contents, Actions, Workflows, Pull requests, or Administration permission is
@@ -100,7 +100,7 @@ needed for this channel.
 
 ## Agent repository selection
 
-When the user has not named an exact repository, the ChatGPT agent should:
+When the user has not named an exact repository, the AI agent should:
 
 1. List private repositories visible through the connected GitHub integration.
 2. Keep personal-account repositories whose owner matches the authenticated user.
@@ -110,15 +110,14 @@ When the user has not named an exact repository, the ChatGPT agent should:
 
 Do not silently select a public or organization-owned repository. General code
 access does not prove that issue actions are available. Creating and then reading
-the session issue is the practical ChatGPT-side access test.
+the session issue is the practical agent-side access test.
 
 If the user already names an exact repository, verify that repository instead of
 listing alternatives.
 
 ## One-time DSI Studio token setup
 
-DSI Studio uses a GitHub token separate from the GitHub integration used by
-ChatGPT.
+DSI Studio uses a GitHub token separate from the GitHub integration used by the AI agent.
 
 Create a fine-grained personal access token:
 
@@ -138,7 +137,7 @@ The token owner need not technically be the repository owner, but the token must
 have access to the selected private repository. Using the same account for the
 repository owner, issue creator, and token owner is the simplest arrangement.
 
-Never paste the token into ChatGPT, an issue, a repository file, a prompt, a
+Never paste the token into the AI agent, an issue, a repository file, a prompt, a
 screenshot, or a command result.
 
 Configure it in DSI Studio:
@@ -148,7 +147,7 @@ Configure it in DSI Studio:
 3. Paste the token into **GitHub token (issue channel)**.
 4. Click **Save**.
 
-If no token is configured, **ChatGPT (Web)** is disabled in the New Chat dialog
+If no token is configured, **GitHub agent** is disabled in the New Chat dialog
 and DSI Studio displays a setup hint.
 
 The token is stored in local `QSettings`. Revoke or rotate it if the computer or
@@ -156,7 +155,7 @@ settings storage may have been exposed.
 
 ## What DSI Studio verifies
 
-Starting a ChatGPT (Web) connection performs real GitHub API operations. DSI Studio:
+Starting a GitHub agent connection performs real GitHub API operations. DSI Studio:
 
 1. Calls `GET /user` to identify the token owner.
 2. Reads the selected issue.
@@ -186,21 +185,21 @@ Each GitHub request has a 15-second transfer timeout. Transient network failures
 are retried. Rate limits use GitHub's retry/reset information. Permanent HTTP
 failures such as authorization loss stop the channel.
 
-## Give ChatGPT access to the private repository
+## Give the AI agent access to the private repository
 
-ChatGPT must use a connected GitHub integration that supports issue creation,
+The AI agent must use a connected GitHub integration that supports issue creation,
 issue reading, issue-body updates, issue-comment reading, and issue closing.
 
-1. In ChatGPT, open **Settings** -> **Apps**.
+1. In the agent app, open its GitHub integration settings (for ChatGPT: **Settings** -> **Apps**).
 2. Open the GitHub app configuration.
 3. Grant access to the private issue-channel repository.
 4. If the repository was created later, add it to the app's selected repositories.
-5. Start a new ChatGPT conversation if the repository is not visible in the current
+5. Start a new agent conversation if the repository is not visible in the current
    one.
 
 The credentials have separate roles:
 
-- ChatGPT uses its GitHub integration to select the repository, create the session
+- The AI agent uses its GitHub integration to select the repository, create the session
   issue, replace its body, read the result comment, and close the issue.
 - DSI Studio uses its locally stored token to read the issue and create or update
   the result comment.
@@ -211,7 +210,7 @@ The agent must never request, receive, repeat, display, or test the DSI Studio t
 
 ### Agent procedure
 
-The ChatGPT agent should:
+The AI agent should:
 
 1. Resolve and verify the exact private personal repository. If the user entered
    through the empty-Issue-URL bootstrap, perform the bootstrap steps above first.
@@ -266,22 +265,21 @@ Do not create request/result files, workflow dispatches, commits, or GitHub Acti
 ### DSI Studio user procedure
 
 There is no separate **Connect Issue** or **Reconnect Issue** button. An empty
-**Issue URL** after selecting **ChatGPT (Web)** is expected for a new user; the issue
-is created by ChatGPT during bootstrap.
+**Issue URL** after selecting **GitHub agent** is expected for a new user; the issue
+is created by the AI agent during bootstrap.
 
 First-time setup:
 
 1. Open DSI Studio's **AI Agent** window and click **New Chat**.
-2. In **Agent**, select **ChatGPT (Web)**.
-3. If **Issue URL** is empty, use DSI Studio's ChatGPT setup helper. It should open
-   ChatGPT and copy the bootstrap prompt shown above. Paste the prompt into ChatGPT.
-4. Follow ChatGPT's setup guidance. ChatGPT will verify GitHub issue access, select
+2. In **Agent**, select **GitHub agent**.
+3. If **Issue URL** is empty, use DSI Studio's setup helper (**Ask ChatGPT...** / **Ask Muse...**). It opens the chosen agent and copies the bootstrap prompt shown above. Paste the prompt into that agent.
+4. Follow the agent's setup guidance. The agent will verify GitHub issue access, select
    an eligible private personal repository, and create the new session issue.
-5. Copy the complete issue URL returned by ChatGPT, return to DSI Studio, and paste
+5. Copy the complete issue URL returned by the AI agent, return to DSI Studio, and paste
    it into **Issue URL**.
 6. Click **Start**.
-7. Return to the same ChatGPT conversation and tell ChatGPT that DSI Studio is
-   connected. ChatGPT then verifies the result comment before sending commands.
+7. Return to the same agent conversation and tell the agent that DSI Studio is
+   connected. The agent then verifies the result comment before sending commands.
 
 For an existing issue, skip the bootstrap and paste the complete issue URL directly
 before clicking **Start**.
@@ -294,7 +292,7 @@ https://github.com/<owner>/<repository>/issues/<number>
 
 After a successful connection:
 
-- the agent label shows `ChatGPT(Web)`;
+- the agent label shows `GitHub agent`;
 - the status reports `Connected to <issue URL>`;
 - the main action button shows **Stop**;
 - DSI Studio creates or reuses the result comment and begins polling the issue body.
@@ -320,13 +318,13 @@ the GitHub channel. It does not close DSI Studio, remove the chat, or close the 
 After stopping the active web session, the button shows **Resume**. Clicking it
 reconnects immediately using that chat's own saved issue URL -- no dialog, no
 prompt to review or edit it. Each chat remembers its own issue URL independently,
-so resuming a different existing ChatGPT (Web) chat reconnects to *that* chat's
+so resuming a different existing GitHub agent chat reconnects to *that* chat's
 URL, not whichever issue was connected most recently elsewhere.
 
 To review or change the issue URL instead of a plain resume, select the chat and
-click the `ChatGPT(Web)` agent label. Its caption already shows the bound issue
-(for example `ChatGPT(Web) · owner/repository/issues/12`), and clicking it opens
-**Change Issue Link**, locked to **ChatGPT (Web)** and prefilled with the current
+click the `GitHub agent` agent label. Its caption already shows the bound issue
+(for example `GitHub agent · owner/repository/issues/12`), and clicking it opens
+**Change Issue Link**, locked to **GitHub agent** and prefilled with the current
 URL. Confirming disconnects any active channel first, then reconnects with
 whatever URL was entered. There is no separate reconnect command or button.
 
@@ -360,7 +358,7 @@ A request may contain `command`, `chat`, `reasoning`, or a useful combination. A
 with `missing command field`.
 
 DSI Studio injects the web-agent identity internally as
-`Codex/ChatGPT-GitHub`. Do not add or rely on an `agent` field.
+`GitHub`. Do not add or rely on an `agent` field.
 
 There is no normal request-type keyword and no per-request `window` or `title`
 field. The sole exception is the remote `{"request":"close"}` envelope described
@@ -685,7 +683,7 @@ Replace the issue body with a higher request ID and:
 A remote-close request does not require `session`. DSI Studio attempts to publish
 `state:"closed"` and then disconnects the issue channel. It does not close the
 GitHub issue, a DSI Studio data window, or DSI Studio itself. After acknowledgement,
-ChatGPT may close the issue.
+The AI agent may close the issue.
 
 Closing the GitHub issue directly also stops DSI Studio when the next poll observes
 the closed state, but the explicit close request is preferred because it provides a
@@ -695,14 +693,14 @@ protocol acknowledgement.
 
 ### Issue URL is empty
 
-For a new ChatGPT (Web) session this is expected. Use DSI Studio's ChatGPT setup
-helper, paste its bootstrap prompt into ChatGPT, and let ChatGPT create the session
+For a new GitHub agent session this is expected. Use DSI Studio's setup
+helper, paste its bootstrap prompt into the AI agent, and let the agent create the session
 issue. Paste the returned complete issue URL into DSI Studio and click **Start**.
 Do not manually invent an issue URL.
 
 ### No result comment appears
 
-Confirm that the user selected **New Chat** -> **ChatGPT (Web)**, pasted the correct
+Confirm that the user selected **New Chat** -> **GitHub agent**, pasted the correct
 issue URL, and clicked **Start**.
 
 Then verify that the DSI Studio token:
@@ -748,12 +746,12 @@ again. That later log may report that curl could not start, did not finish, or w
 an error to standard error. There is no automatic transfer timeout or cancellation
 command.
 
-### ChatGPT cannot list or create the issue
+### The AI agent cannot list or create the issue
 
-Add the private repository to the ChatGPT GitHub app configuration. Code-search
+Add the private repository to the agent's GitHub app configuration. Code-search
 visibility alone is not enough; the integration must support issue actions. If the
 user has no eligible private personal repository yet, have them create one with
-Issues enabled and then grant the ChatGPT GitHub app access to it.
+Issues enabled and then grant the agent's GitHub app access to it.
 
 ### Authorization fails after the channel started
 

@@ -21,7 +21,7 @@ without needing a follow-up `set_window` call):
 bash ./dsi.sh set_window tracking7ff6ab123410
 ```
 
-The ChatGPT (Web) issue equivalent is:
+The GitHub agent issue equivalent is:
 
 ```json
 {"cmd":"set_window","param":"tracking7ff6ab123410"}
@@ -61,7 +61,7 @@ bash ./dsi.sh maximize
 bash ./dsi.sh close
 ```
 
-ChatGPT (Web) issue examples:
+GitHub agent issue examples:
 
 ```json
 {"command":{"cmd":"bring_to_front"}}
@@ -173,7 +173,7 @@ These two operations use the word `close` but affect different things:
 ```
 
 closes the currently selected DSI Studio reconstruction, tracking, image, or
-connectometry window. It does not disconnect ChatGPT (Web).
+connectometry window. It does not disconnect the GitHub agent.
 
 ```json
 {"id":7,"request":"close"}

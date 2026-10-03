@@ -169,7 +169,7 @@ everything else is passed to the operating system shell after local user approva
   the task was registered, not that the transfer completed.
 - Initialize the session log cursor before the first asynchronous curl. With the
   launcher, call `log` once before `run_shell curl`; the first log may be empty. With
-  ChatGPT (Web), send a prior `log` request or set `include_log:true` on the curl-start
+  GitHub agent: send a prior `log` request or set `include_log:true` on the curl-start
   request.
 - While curl is active, `list_window` reports its synthetic `curlN` ID as `busy`.
   Poll until the entry disappears, then call `log` again to retrieve output or errors.

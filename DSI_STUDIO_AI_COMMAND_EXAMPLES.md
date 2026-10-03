@@ -48,7 +48,7 @@ reference before using them.
 Use `SKILL` documents when the task is procedural rather than a command lookup:
 
 - [Launcher and session transport](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
-- [ChatGPT Web GitHub issue session](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
+- [GitHub agent issue session](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
 - [Reconstruction](DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md)
 - [Fiber tracking](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 - [Brain-tumor presurgical and postsurgical evaluation](DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md)

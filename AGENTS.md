@@ -180,7 +180,7 @@ After any successful close, immediately select `main` or another valid current I
 the session still remembers the now-invalid closed target. Put `close` last in a
 multi-command request.
 
-For ChatGPT (Web), a command named `close` closes the selected DSI Studio window,
+For the GitHub agent, a command named `close` closes the selected DSI Studio window,
 while an issue-session `request:"close"` disconnects the GitHub issue channel. See
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` and `DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md`.
 
@@ -574,7 +574,7 @@ completion. Initialize the log cursor before the first asynchronous curl. Poll
 output or errors. Do not place a command that depends on the downloaded file after
 `curl` in the same command array.
 
-For ChatGPT (Web), initialize logging with a prior `log` request or
+For the GitHub agent, initialize logging with a prior `log` request or
 `include_log:true` on the curl-start request.
 
 Never send credentials, tokens, or other sensitive text in a `run_shell` command —
