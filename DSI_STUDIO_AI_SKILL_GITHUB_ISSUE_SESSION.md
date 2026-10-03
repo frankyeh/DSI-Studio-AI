@@ -397,6 +397,16 @@ A command object has this form:
 - one string, number, or Boolean;
 - an array when the command needs multiple separate values.
 
+Warning: DSI Studio does not split a `param` string on spaces. For
+multi-argument commands, always use an array:
+
+```json
+{"cmd":"segment_brain","param":["human_tumor","15"]}
+```
+
+Do NOT write `{"cmd":"segment_brain","param":"human_tumor 15"}` — the whole
+string becomes the model ID and the command fails with "cannot find model".
+
 Commands in an array execute in order and stop after the first error. The reply
 contains one result for every attempted command, including `set_window`.
 
