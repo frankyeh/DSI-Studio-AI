@@ -127,7 +127,9 @@ Decide from what data is available, not from habit:
 - **DSI/HDFT data (many b-values, e.g. 258 directions)** → TOPUP plus
   DSI Studio's built-in motion correction, no EDDY. EDDY does not work well
   with the large number of distinct b-values in DSI acquisitions.
-  (`--motion_correction=1`)
+
+  Caution: `--rev_pe=<file>` triggers TOPUP **followed by EDDY**. For
+  TOPUP-only, use `--cmd="topup=<file>+motion_correction"` instead.
 
   How to spot the reverse-phase series in a DICOM listing: in the common
   AP-PA pattern, only one phase-encoding direction carries the full DWI;
