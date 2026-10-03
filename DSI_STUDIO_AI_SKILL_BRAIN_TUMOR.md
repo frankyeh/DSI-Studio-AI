@@ -313,6 +313,24 @@ lesion hemisphere or bilateral/midline involvement
 gross lobe/location and important adjacent anatomy
 ```
 
+### Radiologist-style tumor reporting
+
+Report the lesion the way a radiologist does: three orthogonal diameters plus
+anatomical location, not just volumes. `show_region_statistics` returns a
+bounding box (min/max x, y, z in mm) for each checked region. Derive the three
+diameters as max minus min per axis, convert to cm, and report largest first:
+
+```text
+A heterogeneously enhancing mass in the [lobe, hemisphere] measuring
+approximately [X] x [Y] x [Z] cm, with central necrosis measuring
+[A] x [B] x [C] cm and surrounding vasogenic edema extending to
+[D] x [E] x [F] cm.
+```
+
+The anatomical location ([lobe, hemisphere]) comes from Step 2 atlas overlap
+(CHA/Brodmann), not from raw coordinates. Volumes stay in the report as
+supporting numbers; the three diameters are the primary size description.
+
 ### Required checkpoint after Step 1
 
 Report briefly:
