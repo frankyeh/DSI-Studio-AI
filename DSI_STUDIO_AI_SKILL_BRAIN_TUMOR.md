@@ -315,21 +315,45 @@ gross lobe/location and important adjacent anatomy
 
 ### Radiologist-style tumor reporting
 
-Report the lesion the way a radiologist does: three orthogonal diameters plus
-anatomical location, not just volumes. `show_region_statistics` returns a
+Report the lesion the way a radiologist does: anatomical location plus three
+orthogonal diameters, not just volumes. `show_region_statistics` returns a
 bounding box (min/max x, y, z in mm) for each checked region. Derive the three
-diameters as max minus min per axis, convert to cm, and report largest first:
+diameters as max minus min per axis, convert to cm, and report largest first.
+For the Tumor Core (a merged region), take the union of the component bounding
+boxes.
+
+Location comes from Step 2 atlas overlap (CHA/Brodmann), not from raw
+coordinates. Hemisphere follows the MNI x sign (negative = left). Report each
+atlas region's intersection volume and its fraction of the Tumor Core.
+
+Template:
 
 ```text
-A heterogeneously enhancing mass in the [lobe, hemisphere] measuring
-approximately [X] x [Y] x [Z] cm, with central necrosis measuring
-[A] x [B] x [C] cm and surrounding vasogenic edema extending to
-[D] x [E] x [F] cm.
+Findings:
+
+There is a heterogeneously enhancing mass in the [hemisphere] [lobe],
+centered in the [gyrus] with extension into [adjacent regions], measuring
+approximately [X] x [Y] x [Z] cm (Tumor Core [V] cm^3).
+
+The mass shows [central] necrosis measuring approximately [A] x [B] x [C] cm
+([V] cm^3) with a [peripheral] enhancing component measuring [D] x [E] x [F] cm
+([V] cm^3). Surrounding vasogenic edema extends to approximately
+[G] x [H] x [I] cm ([V] cm^3).
+
+[Atlas] overlap of the Tumor Core: [region 1] [fraction]%, [region 2]
+[fraction]%, ...
 ```
 
-The anatomical location ([lobe, hemisphere]) comes from Step 2 atlas overlap
-(CHA/Brodmann), not from raw coordinates. Volumes stay in the report as
-supporting numbers; the three diameters are the primary size description.
+"Central"/"peripheral" are impression descriptions — segmentation gives
+bounding boxes and center points, not a direct measurement of the spatial
+topology between necrosis and enhancing tissue. State the limitation when the
+relationship cannot be resolved from the segmentation output.
+
+Worked example (M028Y): left frontal lobe mass centered in precentral gyrus,
+1.5 x 1.3 x 1.1 cm (Tumor Core 9.0 cm^3); central necrosis 1.4 x 1.2 x 1.0 cm
+(6.7 cm^3); peripheral enhancing 1.4 x 1.2 x 1.1 cm (2.2 cm^3); edema
+1.9 x 2.0 x 2.1 cm (14.8 cm^3). CHA overlap: precentral gyrus 33%,
+prefrontal 17%, premotor 9%.
 
 ### Brain surface for tumor location visualization
 
