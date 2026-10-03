@@ -154,9 +154,28 @@ compatibility. Image flips or axis swaps must transform b-vectors consistently.
 After any orientation operation, recheck anatomical landmarks and record the
 change; an apparently plausible image may still be mirrored.
 
+A flipped b-table is a common mistake, especially with NIfTI as the source or
+in animal studies. Two checking routines exist:
+
+- **With template alignment** (human or animal template): align the data to
+  the template and verify that major tract directions match the template
+  anatomy. Use when a suitable template is available.
+- **Without template**: use DSI Studio's automatic b-table check, then
+  confirm with local fiber directions and whole-brain tractography.
+
 Automatic b-table checking is evidence, not proof. Confirm its result using
 anatomy, local fiber directions, and whole-brain tractography. Be cautious with
 low-SNR, low-direction, partial-coverage, animal, or severely pathological data.
+
+Know the agent's limits and say so:
+
+- **Brain not in axial view** (common in animal scans): hard for the agent to
+  detect from numbers alone. Image dimensions can hint (e.g. the longest axis
+  is not superior-inferior), but human brains are rarely flipped — an
+  occasional z-flip is the main human case. When uncertain, show the user
+  the three orthogonal views and ask.
+- **Mask quality**: the agent cannot reliably judge a mask from metrics.
+  Show axial, coronal, and sagittal views and let the user confirm.
 
 ### 5. Inspect the mask
 
