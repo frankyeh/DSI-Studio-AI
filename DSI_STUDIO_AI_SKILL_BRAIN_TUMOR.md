@@ -11,7 +11,8 @@ details are needed.
 Evaluate a tumor in this order:
 
 1. Segment and measure tumor and edema.
-2. Localize the tumor with `CHA` and identify overlapping `Brodmann` areas.
+2. Localize the tumor directly against `CHA` and `Brodmann` with
+   `show_region_overlap_statistics`.
 3. Select and map relevant named eloquent pathways with AutoTrack.
 4. Convert each mapped tract to a region and measure its intersection with tumor and
    edema.
@@ -146,21 +147,28 @@ Keep the component measurements separate even when Tumor Core is also reported.
 
 ### 1.4 CHA localization
 
-The human atlas is named exactly `CHA`. Atlas numeric indices are runtime-dependent,
-so use `list_atlas` to find the current `CHA` atlas index, then load all CHA labels
-with `add_region_from_atlas`.
+The human atlas is named exactly `CHA`. For this verified atlas name, do not load all
+CHA labels into the Region table merely to calculate overlap. Call the nonmutating
+atlas-overlap command directly on the current Tumor Core region:
 
-Determine location from actual Tumor Core overlap rather than preselecting a CHA
-region. Use Tumor Core as the first region in `region_action_all_inter_1st` and the
-disposable CHA regions as the following regions. The first region is preserved; each
-following region becomes:
-
-```text
-CHA region ∩ Tumor Core
+```bash
+bash ./dsi.sh list_region
+bash ./dsi.sh show_region_overlap_statistics <current-Tumor-Core-index> CHA
 ```
 
-Use `show_region_statistics` and report only nonzero intersections. For each affected
-CHA region report:
+`show_region_overlap_statistics` maps every atlas label into the source region's
+space, intersects it with the source region, discards zero-overlap labels, and returns
+the ordinary region-statistics table for the nonempty intersections. Each returned
+column is named by the overlapping CHA label. The source Tumor Core itself is not a
+result column.
+
+This command does **not** add, delete, rename, reorder, or modify Region-table rows.
+Therefore no disposable CHA regions, intersection copies, or cleanup step is needed,
+and the Tumor Core index remains valid until some other command mutates the Region
+table.
+
+Use the `volume (mm^3)` row from the overlap table and the independently measured
+Tumor Core volume from Section 1.3. For each affected CHA region report:
 
 ```text
 intersection volume (mm^3)
@@ -168,22 +176,31 @@ fraction of Tumor Core = intersection volume / total Tumor Core volume
 ```
 
 Rank affected CHA regions by intersection volume. If edema localization is useful,
-reload CHA and repeat the analysis separately with the edema region.
+run the same direct analysis separately on the current edema region:
 
-After recording the CHA intersection results, remove the disposable CHA/intersection
-regions before loading another atlas. Call `list_region`, identify the current
-disposable CHA rows from that listing, and delete them with one
-`delete_region "<index>&<index>..."` command. Preserve the original lesion masks,
-Tumor Core, and any independently verified or manual regions. Do not construct the
-deletion list from previously recorded indices.
+```bash
+bash ./dsi.sh list_region
+bash ./dsi.sh show_region_overlap_statistics <current-edema-index> CHA
+```
+
+An atlas label with zero intersection is omitted from the table. If the source region
+is nonempty, the atlas name is valid, and anatomical mapping/QC is acceptable, a
+result with no atlas-label columns can represent a true absence of atlas overlap rather
+than a command failure.
 
 ### 1.5 Brodmann-area involvement
 
-The human atlas is named exactly `Brodmann`. Find its current runtime index with
-`list_atlas`, load all labels, and intersect the disposable Brodmann regions with
-the original Tumor Core region using the same `region_action_all_inter_1st` logic.
+The human atlas is named exactly `Brodmann`. Use the same direct nonmutating command;
+do not load all Brodmann labels or use `region_action_all_inter_1st` merely to obtain
+intersection statistics:
 
-Report only Brodmann areas with nonzero tumor intersection:
+```bash
+bash ./dsi.sh list_region
+bash ./dsi.sh show_region_overlap_statistics <current-Tumor-Core-index> Brodmann
+```
+
+Each nonempty returned column is an overlapping Brodmann area. Use the
+`volume (mm^3)` row and report:
 
 ```text
 Brodmann area
@@ -198,12 +215,12 @@ intersections.
 
 CHA and Brodmann are gray-matter parcellations. Their intersection volumes do not
 need to sum to the total Tumor Core volume, particularly for white-matter-centered
-tumors.
+tumors. No Region-table cleanup is needed after either direct overlap command.
 
-After recording the Brodmann results, repeat the same cleanup for the disposable
-Brodmann/intersection rows: call `list_region`, construct the deletion list from the
-current table, and preserve the original lesion masks, Tumor Core, and any
-independently verified or manual regions before proceeding to tract mapping.
+Use `add_region_from_atlas` plus explicit region operations only when actual atlas
+region objects are needed for visualization, editing, tracking constraints, or another
+operation beyond statistics. Do not materialize atlas regions solely to reproduce the
+statistics already returned by `show_region_overlap_statistics`.
 
 ## 2. Select eloquent pathways
 
@@ -277,6 +294,13 @@ ratio unless one side is meaningfully designated as the lesion side.
 After AutoTrack finishes, confirm each bundle is nonempty, then use `tract_to_region`
 to convert the mapped bundle into a spatial tract region. Record each tract-region
 dimensions and resolution from `list_region`.
+
+`show_tract_overlap_statistics` is for comparing one tract with a **built-in atlas**.
+It does not accept an arbitrary tumor or edema region as the overlap target. Therefore
+do not substitute it for the lesion-overlap workflow in this section. For tract versus
+tumor/edema, `tract_to_region` followed by explicit region intersection remains the
+correct operation. Use `show_tract_overlap_statistics <tract-index> <atlas-name>` only
+when a separate tract-versus-atlas localization question is needed.
 
 Preserve the original tract regions and the original lesion masks. For tract
 involvement, report `Enhancing Tumor`, `Necrosis`, and `Peritumoral Edema`
@@ -533,8 +557,9 @@ abnormality` rather than inventing a derived cavity or residual-tumor mask.
 Map the same bilateral eloquent pathways with comparable acquisition,
 reconstruction, and AutoTrack settings when possible. Repeat tract-to-region
 intersection and bilateral tract-statistics analysis. Repeat CHA or Brodmann
-localization only when it answers the postoperative question; it is not required for
-every follow-up study.
+localization only when it answers the postoperative question; when needed, use the
+direct `show_region_overlap_statistics` workflow from Sections 1.4-1.5 rather than
+materializing atlas labels.
 
 Changes after surgery can reflect resection, decompression, edema resolution,
 hemorrhage, susceptibility artifact, altered diffusion signal, registration, or
