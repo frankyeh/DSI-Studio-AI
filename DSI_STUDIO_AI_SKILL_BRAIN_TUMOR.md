@@ -691,6 +691,34 @@ After giving this summary, **stop at the first hard pause described above**. Kee
 presurgical 3D tumor–tract scene visible so the surgeon can inspect it before choosing the
 next action.
 
+### Optional: export a DICOM series with tract/lesion markings
+
+If the surgical team wants a DICOM series with the evaluated pathways (and optionally a
+tumor region) burned into the pixels — e.g. for navigation-system import — produce it
+with the slice-marking workflow. **This requires the original DICOM series as the slice
+source.** A NIfTI structural image alone is not sufficient: `save_slices_to_dicom`
+rejects any slice not loaded from original DICOM files.
+
+Purpose: give the surgeon a DICOM series where the relevant tracts (and, optionally, a
+lesion compartment) are visible as intensity markings in the image data itself.
+
+```bash
+bash ./dsi.sh add_slice "<dicom1>,<dicom2>,..."   # original DICOM series
+bash ./dsi.sh set_slice <dicom-slice-index>       # poll list_slice until ready
+bash ./dsi.sh show_only_tracts "<relevant-left-tract>&<relevant-right-tract>"
+bash ./dsi.sh mark_tracts_on_slices 1.0
+bash ./dsi.sh mark_region_on_slices <tumor-core-index> 1.2   # optional
+bash ./dsi.sh save_slices_to_dicom "<output-directory>"
+```
+
+What to verify before handing off:
+
+- `mark_tracts_on_slices` burns only **checked** tracts and fails when none are checked;
+  confirm the `show_only_tracts` selection matches the pathways from Step 3.
+- Marking is cumulative in memory; reload the slice if a marking step needs redoing.
+- Reopen the produced `mod_*.dcm` series and verify orientation, intensity, and that the
+  tract/region markings land in the expected anatomy.
+
 # POSTSURGICAL EVALUATION
 
 ## 8. Primary goal: assess preservation of eloquent pathways

@@ -35,6 +35,9 @@ This file contains the complete slice and segmentation inventory confirmed in th
 | `save_slice_mapping` | `["save_slice_mapping","C:/output/T1w.linear_reg.txt",7]` | Save registration mapping for a custom slice. |
 | `open_slice_mapping` | `["open_slice_mapping","C:/output/T1w.linear_reg.txt",7]` | Stop registration and load a mapping for a custom slice. |
 | `save_slice_volume` | `["save_slice_volume","C:/output/T1w.nii.gz",7]` | Save the bound custom-slice volume as NIfTI. |
+| `mark_tracts_on_slices` | `["mark_tracts_on_slices",1.0]` | Burn the currently **checked** tracts into the current custom slice at the given intensity ratio (× slice maximum). Fails with `no tract is selected; use show_only_tracts first` when no tract is checked. A GUI-supplied ratio is written back into the recorded command for replay. |
+| `mark_region_on_slices` | `["mark_region_on_slices",5,1.2]` | Burn one region (region-table index) into the current custom slice at the given intensity ratio. GUI-supplied region/ratio are written back into the recorded command for replay. |
+| `save_slices_to_dicom` | `["save_slices_to_dicom","C:/output/dicom"]` | Write the marked slice as DICOM (`mod_*.dcm`). **Requires the current slice to be loaded from original DICOM files** (`add_slice` with DICOMs) — a NIfTI-loaded slice is rejected. |
 | `delete_slice` | `["delete_slice",7]` | Delete one custom slice; built-in slices cannot be deleted. |
 | `list_unet` | `["list_unet"]` | List segmentation model index, live `available` flag, internal model ID, display name, and description for the **currently selected slice**. Treat this live availability as authoritative; a known model ID is not necessarily callable on every current slice. |
 | `segment_brain` | `["segment_brain","<model-ID-from-list_unet>",7]` | Run a model whose current `available` flag is true, using the exact `model` column value, on a slice index or exact slice name, and create label regions. See footnote 1. |
@@ -68,6 +71,38 @@ may be passed to `segment_brain`. `available=0` means do not call that model for
 current slice. Availability is live state and can change after selecting a different
 slice, loading data, or completing registration, so call `list_unet` after the target
 slice is selected and ready rather than relying on a previous subject/window.
+
+## Marking tracts/regions on slices and exporting DICOM
+
+For the basic AI-agent workflow that burns evaluated anatomy into a DICOM series
+(e.g. tract overlays for surgical navigation):
+
+```bash
+bash ./dsi.sh add_slice "<dicom1>,<dicom2>,..."   # original DICOM series; comma-separated files form one image
+bash ./dsi.sh set_slice <dicom-slice-index>       # poll list_slice until status is ready
+bash ./dsi.sh show_only_tracts "<idx1>&<idx2>&..." # check exactly the tracts to mark
+bash ./dsi.sh mark_tracts_on_slices 1.0           # burn checked tracts at 1.0 × slice max
+bash ./dsi.sh mark_region_on_slices <region-index> 1.2  # optional: burn a region at 1.2 × max
+bash ./dsi.sh save_slices_to_dicom "<output-directory>" # writes mod_*.dcm
+```
+
+Rules and limitations:
+
+- `mark_tracts_on_slices` operates on **checked tracts only**. It fails when none are
+  checked, so always establish the selection with `show_only_tracts` first — a silent
+  no-op must never produce apparently successful DICOMs.
+- `save_slices_to_dicom` requires the current slice to have been loaded from the
+  **original DICOM series** (`source_files`). A NIfTI structural image such as
+  `sub-..._T1w.nii.gz` is rejected with `save_slices_to_dicom requires original DICOM
+  files loaded from the Slices menu`. There is currently no path from NIfTI-only data
+  to this type of modified DICOM.
+- Marking is **cumulative in memory**: every mark modifies the in-memory slice pixels.
+  There is no command to restore the original pixels yet; reload the slice to start over.
+- Output files are named `mod_<original-stem>.dcm`. If the output already exists, a
+  non-User (agent) call fails instead of overwriting.
+- Compressed DICOM input is not supported (`compressed DICOM is not supported`).
+- The recorded history keeps the GUI-supplied region index and intensity ratio, so a
+  GUI-driven marking replays deterministically (e.g. `mark_region_on_slices,5,1.200000`).
 
 ## Source-confirmed cautions
 
