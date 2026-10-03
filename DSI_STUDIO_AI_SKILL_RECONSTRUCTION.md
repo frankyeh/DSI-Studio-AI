@@ -185,10 +185,10 @@ After preprocessing, run QC on the `.sz` and check NDC (neighboring DWI
 correlation) and contrast:
 
 - TOPUP corrects deformation only; it does not improve NDC or contrast.
-  NDC and contrast improvements come from motion correction or EDDY.
 - After TOPUP the images are masked (background zeroed), so unmasked NDC
-  always increases artificially. Compare **masked NDC** only — a small drop
-  is fine.
+  and contrast always increase artificially. Compare **masked NDC** only —
+  a small drop is fine. Do not attribute contrast gains to motion
+  correction or EDDY without checking; masking alone inflates contrast.
 - If masked NDC drops substantially or bad slices appear, something is
   wrong — stop and investigate before reconstructing.
 - NDC also identifies acquisition issues (motion, dropout, spikes).
