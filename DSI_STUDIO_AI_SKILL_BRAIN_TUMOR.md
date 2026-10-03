@@ -540,6 +540,13 @@ Continue until every requested tract row reports `done`. Only then perform depen
 statistics, T2R, saving, editing, or visualization. Do not serially wait for each bundle
 before launching the next.
 
+Once all tracts are done, assign a distinct color to each bundle in one call so
+the pathways are visually separable:
+
+```bash
+bash ./dsi.sh color_all_cluster
+```
+
 If a clinically relevant pathway remains empty after the bounded tolerance retry
 procedure, report it as `unmappable` with tract count, seed limit, tolerance values, and
 attempts. Do not interpret zero yield as anatomical absence or zero lesion involvement.
