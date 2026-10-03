@@ -256,7 +256,13 @@ The AI agent should:
 13. Inspect the nested reply before deciding the next command.
 14. For asynchronous work, send the start command once and use later higher-ID
     status requests instead of repeating it.
-15. At the end, send a higher-ID remote-close request, verify `state:"closed"` when
+15. For long blocking operations (e.g. TOPUP/EDDY via `run_cli`, full-volume
+    reconstruction): do not poll the issue channel. The channel processes one
+    blocking command at a time, so polling wastes quota and status requests
+    queue behind the running task. Instead, tell the user the operation started
+    and ask them to signal when DSI Studio shows it as done, then verify with
+    one status request.
+16. At the end, send a higher-ID remote-close request, verify `state:"closed"` when
     available, and then close the GitHub issue.
 
 Commands belong only in the issue body. Do not use issue comments to send commands.
