@@ -340,8 +340,9 @@ tissue regions.
 
 Turn off `Gray_Matter` and `Others`; show `White_Matter` plus the tumor
 compartments (Necrosis, Peritumoral Edema, Enhancing Tumor). `Basal_Ganglia`
-may stay visible. Gray matter and other tissue labels clutter the surface
-and hide the tumor.
+may stay visible. Show `Cerebellar_Cortex` only if the tumor is near the
+cerebellum. Gray matter and other tissue labels clutter the surface and hide
+the tumor.
 
 ### Required checkpoint after Step 1
 
