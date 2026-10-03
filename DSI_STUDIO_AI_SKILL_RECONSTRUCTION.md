@@ -123,9 +123,12 @@ Decide from what data is available, not from habit:
   then EDDY for eddy currents and motion.
   (`--rev_pe=<rev_b0> --save_src=subject_preprocessed.sz`, then
   `--cmd="[Step T2][Corrections][EDDY]"` — *unless* it is DSI/HDFT data)
-- **DSI/HDFT data (many b-values, e.g. 258 directions)** → TOPUP plus
+- **DSI/HDFT data (23 b-values, e.g. 258 directions)** → TOPUP plus
   DSI Studio's built-in motion correction, no EDDY. EDDY does not work well
-  with the large number of distinct b-values in DSI acquisitions.
+  with the large number of distinct b-values in DSI acquisitions. Do not run
+  motion correction if EDDY is done — they do similar jobs.
+- **Single-shell (one b-value) or multi-shell (2–3 b-values)** → use EDDY
+  (with TOPUP if reverse-phase data is available).
 
   Caution: `--rev_pe=<file>` triggers TOPUP **followed by EDDY**. For
   TOPUP-only, use `--cmd="topup=<file>+motion_correction"` instead.
