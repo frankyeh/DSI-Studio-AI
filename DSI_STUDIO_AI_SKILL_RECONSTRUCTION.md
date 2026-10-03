@@ -6,6 +6,22 @@ Reconstruction converts diffusion signals into fiber orientations and metrics:
 DICOM or NIfTI + bval/bvec → SZ → reconstruction → FZ
 ```
 
+## Starting points
+
+There are two entry routes. Do not mix them up.
+
+**From DICOM:** Convert first with `convert_dicom_dir` (or File → Open
+Source Images). DSI Studio reads b-values and b-vectors directly from the
+DICOM headers during conversion. Do not look for separate bval/bvec files;
+they do not exist for a DICOM start.
+
+**From NIfTI:** The starting point is a 4D DWI NIfTI plus its matching
+`.bval` and `.bvec` files (BIDS layout). All three must be present and
+correspond volume-for-volume before opening. Use `open_dwi_nifti` or
+`save_nifti` on an already-open source.
+
+In both cases the first saved product is `subject_raw.sz`. Never overwrite it.
+
 Preserve the raw input and each important processing stage:
 
 ```text
@@ -57,15 +73,24 @@ susceptibility information that was never acquired.
 
 ### 3. Apply only justified corrections
 
-- With suitable reverse-phase data, use TOPUP for susceptibility distortion and
-  EDDY for eddy-current distortion and motion.
-- Without reverse-phase data, EDDY can address motion and eddy currents but
-  cannot fully correct susceptibility distortion.
+Decide from what data is available, not from habit:
+
+- **Reverse-phase b0 available** → run TOPUP for susceptibility distortion,
+  then EDDY for eddy currents and motion.
+  (`--rev_pe=<rev_b0> --save_src=subject_preprocessed.sz`, then
+  `--cmd="[Step T2][Corrections][EDDY]"`)
+- **No reverse-phase data** → EDDY alone for motion and eddy currents.
+  Accept that susceptibility distortion cannot be fully corrected; do not
+  claim otherwise.
+- **Clean single-shell data, minimal motion** → EDDY is optional. Inspect
+  first; do not preprocess by default.
+
+Rules:
+
 - Avoid repeated interpolation, registration, smoothing, or resampling.
 - Isotropic resampling is optional and does not create true spatial resolution.
-- Save corrected data as a new SZ file.
-
-State which artifact each operation addresses.
+- Save corrected data as a new SZ file (`subject_preprocessed.sz`).
+- State which artifact each operation addresses.
 
 ### 4. Verify image and b-table orientation
 
