@@ -17,11 +17,11 @@ This file contains rendering, camera, surface, and display commands confirmed in
 |---|---|---|
 | `rotate` | `["rotate","15 1 0 0"]` | Rotate the 3D view by degrees around axis `x y z`. |
 | `rotate_view` | `["rotate_view","left",15]` | Rotate the 3D view by a `command[2]` angle in degrees toward `command[1]`: `"left"`/`"right"` yaw around the vertical axis, `"up"`/`"down"` pitch around the horizontal axis. A friendlier alternative to `rotate` when the exact axis vector doesn't matter. |
-| `set_view` | `["set_view",0,1]` | Reset to numeric view `0`, `1`, or `2`; other view numbers are rejected. Optional `flipped` is `0` for unflipped or `1` for flipped; when omitted, the current flip state toggles after each call. |
+| `set_view` | `["set_view",0,0]` | Reset to numeric view `0`, `1`, or `2`; other view numbers are rejected. `command[2]` is `0` for unflipped or `1` for flipped. **For reproducible/scripted views always provide it explicitly**; when omitted, the current flip state toggles after each call. |
 | `set_zoom` | `["set_zoom",1.5]` | Set the absolute camera zoom derived from the transformation-matrix determinant; zero is rejected. |
 | `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera transformation with the first 16 supplied floats. |
 | `get_camera` | `["get_camera"]` | Print `view_direction`, `view_position (voxel)`, `image_left`, and `image_up`. `image_left` and `image_up` report the subject-anatomical LPS directions at the left and top of the current screen, derived from the inverse camera matrix, so rolled and oblique views can be verified without reading pixels. Use `save_camera` for the raw, round-trippable 16-float matrix. |
-| `preview_screen` | `["preview_screen","3d"]` | **Recommended way for an agent to "see" the window without saving/opening an image file.** `command[1]` selects the view: `"3d"` for the OpenGL scene or `"roi"` for the 2D ROI/slice scene. Prints a digit-grid text rendering plus summary stats directly to the log — no file needs to be opened. See "Reading `preview_screen` output" below. |
+| `preview_screen` | `["preview_screen","3d"]` | Recommended inline **coarse** inspection for an agent when no image file is being opened. `command[1]` selects `"3d"` or `"roi"`. It prints digit-grid text plus summary stats; use it for gross position, orientation, occupancy, and layer checks, not as a substitute for full-resolution visual QC. See "Reading `preview_screen` output" below. |
 | `open_camera` | `["open_camera","C:/work/camera.txt"]` | Load at least 16 camera-matrix floats from a text file. |
 | `save_camera` | `["save_camera","C:/work/camera.txt"]` | Save the current 16-float transformation matrix. |
 | `store_camera` | `["store_camera"]` | Store the current camera in the default `cameraa` settings slot; the current implementation shows a modal notice and records the command as canceled. |
@@ -96,9 +96,42 @@ connected-component (`blobs`) count, and raw luminance range. A full capture is 
 to a temp JPG (`dsi_preview_3d_<label>.jpg` / `dsi_preview_roi_<label>.jpg`) for cases where opening
 an actual image is preferable to reading the text form.
 
+### Agent visual-QC limits
+
+The digit grid is intentionally low-resolution. It is appropriate for gross checks such
+as whether a lesion or tract is on the expected side, whether a layer intersects the
+current slice, and whether the camera is obviously wrong. It is not sufficient by
+itself for subtle boundaries, small contacts, definitive segmentation acceptance,
+precise laterality when the lesion is near midline, or detailed pre/post morphologic
+comparison.
+
+When the task requires full-resolution human review and the user has requested saved
+images or supplied an output location, use `save_roi_screen` for the 2D ROI/slice scene
+and `save_lr_screen` for 3D anatomy/tract context. Do not invent output paths solely to
+circumvent the text-preview limitation; instead report the limitation when no saved
+image destination is available.
+
+### Reproducible 3D captures
+
+For comparable captures across sessions or time points, do not rely on the current
+camera state. Reset it explicitly and keep the recipe identical:
+
+```bash
+bash ./dsi.sh set_view 0 0
+bash ./dsi.sh rotate "15 1 0 0"   # only if this same rotation is desired in every session
+bash ./dsi.sh rotate "20 0 1 0"
+bash ./dsi.sh preview_screen 3d
+```
+
+The explicit final `0` in `set_view 0 0` matters: omitting the flip argument toggles
+the current flip state and can make nominally identical commands produce opposite
+views. When an exact camera matrix needs to be reused and a file destination is
+available, `save_camera`/`open_camera` provides a round-trippable alternative.
+
 ## Source-confirmed cautions
 
 - `set_camera` and camera files require at least 16 floats; additional values are ignored.
+- `set_view` should include an explicit `flipped` value for scripted/reproducible captures; omission toggles the current flip state.
 - `store_camera`, `store_camera1`, and `store_camera2` display modal messages and return the command-history canceled state even though the setting is stored.
 - `save_rotation_video` does not validate the filename extension or expose codec/fps/step controls. JPEG-encoding and AVI-open failures are checked, but the underlying AVI API does not report later frame-write or finalization errors. A success reply therefore cannot rule out a later disk-write failure.
 - `clear_surface` removes the current single surface. Surface appearance and visibility remain controlled through `set_param` using `surface_*` and `show_surface`; there are no surface IDs/lists or `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`, `set_surface_alpha`, or `set_surface_visible` command handlers.
@@ -106,7 +139,7 @@ an actual image is preferable to reading the text form.
 - Default to `save_lr_screen` when saving a 3D rendering to illustrate anatomy, tract shape, or a tract/region overlay. Use plain `save_screen` only when the user explicitly asks for a single screenshot.
 - `rotate_view`'s left/right/up/down-to-axis-sign mapping is a reasonable but not empirically re-verified choice; if a rotation visibly goes the wrong way, re-check with `preview_screen,3d` after a small-angle test call before doing a larger rotation.
 - `preview_screen` fails if `command[1]` is missing or not exactly `"roi"`/`"3d"`, and fails a zoom request (`command[2]` given) for a channel that has no prior non-zoom capture cached yet.
-- `preview_screen` is for the agent to inspect the scene inline via text; use `save_lr_screen`/`save_roi_screen` when the user wants an actual image file.
+- `preview_screen` is a coarse text-based agent inspection aid, not equivalent to full-resolution image review. Use `save_lr_screen`/`save_roi_screen` when a saved image is requested or an output destination is available for human QC.
 
 ## Rendering parameter reference
 
