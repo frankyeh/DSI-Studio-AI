@@ -15,12 +15,12 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 
 | Command | Common example | Important behavior |
 |---|---|---|
-| `list_tract` | `["list_tract"]` | List every tract bundle with `index`, readable `status`, shown state, name, tract count, deleted count, and seeds. |
-| `list_tract status` | `["list_tract","status"]` | Return compact `status` and total bundle count. `status=done` means no tracking thread remains active. |
+| `list_tract` | `["list_tract"]` | List every tract bundle with `index`, readable `status`, shown state, name, tract count, deleted count, and seeds. For several running AutoTrack bundles, use this full listing about every 10 seconds to monitor the batch until every requested row is `done`. |
+| `list_tract status` | `["list_tract","status"]` | Return compact `status` and total bundle count. `status=done` means no tracking thread remains active. The full `list_tract` output is preferred while monitoring a multi-bundle AutoTrack batch because it shows each row separately. |
 | `run_tracking` | `["run_tracking","Whole Brain"]` | Start asynchronous tracking with the current tracking parameters and no region constraints; `command[1]` is the mandatory new bundle name. |
 | `run_tracking` | `["run_tracking","CST","0:3&1:0"]` | Start tracking with explicit region settings: region 0 as Seed and region 1 as ROI. The third element uses `index:type` entries separated by `&`. See **ROI settings syntax**. |
 | `list_auto_tract` | `["list_auto_tract"]` | List valid hierarchical automatic tract names. Normally use this before AutoTrack; a task-specific skill may provide verified exact identifiers and explicitly waive discovery for those entries. Use a parent entry for the whole tract family and a child only for a requested subdivision. |
-| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract` or a verified exact identifier supplied by a task-specific skill; never guess atlas labels. The command is asynchronous: poll `list_tract status` until `done` before dependent or other state-changing tracking-window work. Standard coherent bundles generally use about 10,000 tracts with TIP 3–4 when sufficiently populated. |
+| `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Use an exact name from `list_auto_tract` or a verified exact identifier supplied by a task-specific skill; never guess atlas labels. The command is asynchronous. When several independent bundles use the same settings, issue all desired `run_auto_track` calls back-to-back without waiting for each one to finish, then poll the full `list_tract` output about every 10 seconds until every requested row is `done`. Do not serially wait on each bundle. Standard coherent bundles generally use about 10,000 tracts with TIP 3–4 when sufficiently populated. |
 | `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL","0:0&1:1"]` | Explicit extra ROI/ROA constraints are supported but are not the standard AutoTrack workflow because named AutoTrack entries already carry built-in anatomical constraints. Add them only for a specific need, such as isolating a minor branch. |
 | `list_history` | `["list_history"]` | List every command recorded so far in this window's session with its `index`, in order. Use this before `run_command_history` to see what would be replayed and to pick which index range(s) to use. |
 | `run_command_history` | `["run_command_history","C:/data/subjects"]` | Batch-replay every command recorded so far in this window's session (opens, tracking, saves, etc.) once per file found in the folder, substituting each file into the recorded load step and remapping related load/save filenames. Record the pipeline once against one subject with ordinary commands, then call this to apply it across a folder. |
@@ -116,14 +116,22 @@ bash ./dsi.sh resample_tract 0.5 "0&2"
 index    status    shown    name    tracts    deleted    seeds
 ```
 
-Each row's `status` is `running` or `done`. Compact status returns:
+Each row's `status` is `running` or `done`. For an AutoTrack batch, launch all desired
+independent `run_auto_track` calls first, then call the full `list_tract` about every
+10 seconds so each requested row can be monitored together. Continue until all
+requested rows show `done`; there is no need to wait for one tract to finish before
+starting the next.
+
+Compact status returns:
 
 ```text
 status    bundles
 ```
 
-`bundles` is the total number of tract rows, not the number of running jobs. Poll
-`["list_tract","status"]` until `status=done` before a dependent operation.
+`bundles` is the total number of tract rows, not the number of running jobs.
+`list_tract status` is useful when only an aggregate completion flag is needed, but
+for several AutoTrack bundles the full `list_tract` output is preferred because it
+shows which specific rows are still running.
 
 ## Tract-index selection for edit commands
 
@@ -183,6 +191,7 @@ list; omit it to operate on checked bundles.
 - The two-element form uses current parameters without region constraints; supply explicit ROI settings to use regions.
 - The three-element form accepts explicit ROI settings when the third string is empty or contains `:`.
 - Explicit ROI settings are validated before the new tract bundle/thread is created.
+- `run_auto_track` calls for independent bundles may be launched back-to-back. When several named bundles are needed with the same current settings, launch all of them first, then poll the full `list_tract` about every 10 seconds until every requested row is `done`. Do not serially wait for each AutoTrack bundle before launching the next.
 - For statistics-only tract overlap with a built-in atlas, prefer
   `show_tract_overlap_statistics <tract-index> <atlas-name>`. It voxelizes the tract
   internally, reports only nonempty atlas intersections, and does not create a
@@ -191,7 +200,7 @@ list; omit it to operate on checked bundles.
   or edema.
 - `run_tracking` clears any leftover differential-tracking state whenever `dt_index1` and `dt_index2` are both `0`, so a plain tracking run never silently reuses metrics from an earlier `run_dif_tracking`. Use `run_dif_tracking` for a differential run instead of `run_tracking`.
 - If `dt_index1`/`dt_index2` are nonzero but were never applied (e.g. `set_param` was used without a following `run_dif_tracking`/`set_dt_index`), `run_tracking` fails with an error suggesting `run_dif_tracking`, instead of silently tracking without the differential metrics.
-- Tracking is asynchronous; `status=done` from `list_tract status` is definitive completion.
+- Tracking is asynchronous; the row statuses from `list_tract` are definitive completion indicators, and `list_tract status` remains available for an aggregate completion flag.
 - `run_command_history` fails if this window's session has no recorded commands yet, or if none of the *selected* commands is a `load_`/`open_` command (there is nothing to substitute a new file into). Build the pipeline first with ordinary commands (`open_fib`, `run_tracking`, `save_tract`, ...) against one subject, then call `list_history` to check exactly what was recorded, then `run_command_history` to replay it -- all of it, a single `from:to` range, or several `&`-joined ranges/indices (e.g. `"0:1&12:15&16"`) to skip noise recorded in between. It never pops a dialog for a missing/failed file when called by an agent; it logs and skips that file instead of blocking.
 - AutoTrack names are hierarchical: use a parent entry for the whole tract family and a child only for a requested subdivision or branch.
 - Clustering commands delete the original bundle and replace it with clusters.
