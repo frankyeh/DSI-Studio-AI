@@ -338,9 +338,10 @@ from the tumor segmentation — it is already a skull-stripped brain mask. Do
 not use `add_surface` on raw T1w (it includes the skull), and do not merge
 tissue regions.
 
-Turn off `Gray_Matter` and `Others`; show only `White_Matter` plus the tumor
-compartments (Necrosis, Peritumoral Edema, Enhancing Tumor). Gray matter and
-other tissue labels clutter the surface and hide the tumor.
+Turn off `Gray_Matter` and `Others`; show `White_Matter` plus the tumor
+compartments (Necrosis, Peritumoral Edema, Enhancing Tumor). `Basal_Ganglia`
+may stay visible. Gray matter and other tissue labels clutter the surface
+and hide the tumor.
 
 ### Required checkpoint after Step 1
 
