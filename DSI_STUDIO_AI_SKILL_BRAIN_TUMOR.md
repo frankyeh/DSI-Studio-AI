@@ -671,7 +671,14 @@ Record for each side:
 total number of tracts
 total volume(mm^3)
 total surface area(mm^2)
+curl (route/distance ratio)
 ```
+
+Compare ipsilesional vs contralateral curl: a displaced tract shows increased
+curl compared to its healthy homolog. A substantially higher curl on the lesion
+side (e.g. 20%+) indicates tumor-induced displacement — the tract is being
+pushed aside and taking a longer, more winding route. Similar curl on both
+sides suggests the pathway is not significantly displaced.
 
 Verify lesion laterality from structural anatomy and segmentation before labeling a tract
 ipsilesional/contralateral. `preview_screen roi` reports `R_side=left` or `R_side=right`,
