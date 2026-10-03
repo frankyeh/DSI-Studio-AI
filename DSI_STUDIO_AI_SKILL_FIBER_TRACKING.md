@@ -375,15 +375,31 @@ For example, map the entire left cingulum with `Association_CingulumL`, not an
 `Association_CingulumL_...` child; use the corresponding parent entry for the corpus
 callosum. Select a child only when a specific subdivision or branch is requested.
 
-Then use the exact returned or task-skill-provided name:
+Then use the exact returned or task-skill-provided names. `run_auto_track` is
+asynchronous, and independent named bundles can be launched back-to-back without
+waiting for the previous one to finish. When several bundles are needed with the same
+current settings, launch **all of them first**:
 
 ```bash
 bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
+bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractR"
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
+bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusR"
 ```
 
-`run_auto_track` is asynchronous. Poll `list_tract status` until it reports
-`done` before a dependent operation or another state-changing tracking-window
-operation such as loading/registering a structural slice for the next analysis step.
+Do not wait for each AutoTrack call to finish before launching the next requested
+bundle. After the final launch, poll the full tract table approximately every 10
+seconds:
+
+```bash
+bash ./dsi.sh list_tract
+```
+
+Each tract row reports `running` or `done`. Continue polling about every 10 seconds
+until all requested rows are `done`. Only then perform operations that depend on the
+finished tract geometry or indices, such as statistics, `tract_to_region`, saving,
+editing, overlap analysis, or visualization. Avoid rapid per-bundle polling; grouped
+polling is both sufficient and preferred.
 
 Atlas names use underscore-separated hierarchical prefixes such as
 `Association_*`, `ProjectionBrainstem_*`, and `Commissure_*`. Never guess or use
@@ -421,10 +437,14 @@ the default tolerance, default plus one subject voxel size, and default plus two
 subject voxel sizes. Mirror that bounded pattern for an interactive retry when the
 voxel size is known. For the human template the current default tolerance is 24 mm;
 for 2-mm isotropic subject data this corresponds to 24, 26, and 28 mm. Use
-`set_param tolerance <value>`, rerun the same exact AutoTrack identifier, and poll
-to completion after each attempt. If the subject voxel size differs, apply the same
-default/+1 voxel/+2 voxel pattern rather than copying the 26/28-mm examples. If the
-voxel size is not available from the current data metadata, do not invent it.
+`set_param tolerance <value>` and rerun the same exact AutoTrack identifier. For a
+single failed bundle, wait for that retry result before deciding whether to advance to
+the next tolerance. If several bundles require retry at the same tolerance, launch
+those retry `run_auto_track` calls back-to-back, then poll `list_tract` about every
+10 seconds until all retry rows are `done`; do not serially wait for each retry bundle.
+If the subject voxel size differs, apply the same default/+1 voxel/+2 voxel pattern
+rather than copying the 26/28-mm examples. If the voxel size is not available from the
+current data metadata, do not invent it.
 
 Stop after those bounded attempts. If the pathway is still empty, report it as
 unmappable with the seed limit, tolerance values, and tract counts. Do not treat zero
@@ -504,46 +524,43 @@ original or obtain user approval when cleanup must remain recoverable.
 
 ## Result cleanup and visualization
 
-After tracking finishes:
+After asynchronous tracking has been launched, wait for the requested tract batch to
+finish before tract-dependent cleanup or visualization. For an AutoTrack batch, poll
+the full tract table about every 10 seconds:
 
-1. Poll until `status=done`:
+```bash
+bash ./dsi.sh list_tract
+```
 
-   ```bash
-   bash ./dsi.sh list_tract status
-   ```
+Proceed when every requested row reports `done`. Then:
 
-2. Inspect bundle indices and tract counts:
-
-   ```bash
-   bash ./dsi.sh list_tract
-   ```
-
-3. Apply bundle cleanup only when appropriate.
-4. Assign distinct bundle colors:
+1. Inspect bundle indices and tract counts from the final `list_tract` output.
+2. Apply bundle cleanup only when appropriate.
+3. Assign distinct bundle colors:
 
    ```bash
    bash ./dsi.sh color_all_cluster
    ```
 
-5. Hide the whole-brain bundle:
+4. Hide the whole-brain bundle:
 
    ```bash
    bash ./dsi.sh check_tract <whole-brain-index> 0
    ```
 
-6. Show only the target bundle:
+5. Show only the target bundle:
 
    ```bash
    bash ./dsi.sh show_only_tracts <target-index>
    ```
 
-7. Turn off slice rendering:
+6. Turn off slice rendering:
 
    ```bash
    bash ./dsi.sh set_param show_slice 0
    ```
 
-8. Add subject-mapped built-in white-matter context:
+7. Add subject-mapped built-in white-matter context:
 
    ```bash
    bash ./dsi.sh add_surface 0 25
