@@ -304,9 +304,10 @@ ordinary tractography unless a downstream method explicitly needs it.
 Standard post-reconstruction steps:
 
 1. Open the `.fz` with `open_fib`.
-2. Load structural images (T1w, T2w, FLAIR) as slice backgrounds with
-   `add_slice`. This is standard — always load at least the T1w for
-   anatomical reference.
+2. Load the common structural images as slice backgrounds with `add_slice`:
+   T1w, T2w, FLAIR, and any other available structural contrasts. This is
+   standard — load all of them, not just the T1w, for full anatomical
+   reference.
 
 Then inspect:
 
