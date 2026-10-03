@@ -605,6 +605,9 @@ A tract that shows a header with no data rows has zero reconstructed intersectio
 all checked regions — this is a valid result, not a command failure. Contralateral
 bundles routinely show headers without data.
 
+Report only the ipsilesional (tumor-side) tracts. The contralateral side has no
+lesion intersection by definition — do not report its zero rows.
+
 ### 5.2 Lesion involvement by volume
 
 Do not report streamline counts — the count is artificial, determined by
