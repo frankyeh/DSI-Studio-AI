@@ -30,6 +30,12 @@ first if the original names matter to them.
 correspond volume-for-volume before opening. Use `open_dwi_nifti` or
 `save_nifti` on an already-open source.
 
+NIfTI data may or may not be preprocessed already. Check the dataset README
+or description before deciding: if a reverse-encoding DWI is supplied
+alongside (e.g. a second NIfTI with opposite phase encoding), TOPUP/eddy
+still needs to run. If the data is documented as already corrected, skip
+preprocessing and go straight to reconstruction. Do not assume either way.
+
 In both cases the first saved product is `subject_raw.sz`. Never overwrite it.
 
 Preserve the raw input and each important processing stage:
