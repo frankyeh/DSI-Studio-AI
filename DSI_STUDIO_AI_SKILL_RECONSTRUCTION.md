@@ -172,10 +172,13 @@ Know the agent's limits and say so:
 - **Brain not in axial view** (common in animal scans): hard for the agent to
   detect from numbers alone. Image dimensions can hint (e.g. the longest axis
   is not superior-inferior), but human brains are rarely flipped — an
-  occasional z-flip is the main human case. When uncertain, show the user
-  the three orthogonal views and ask.
-- **Mask quality**: the agent cannot reliably judge a mask from metrics.
-  Show axial, coronal, and sagittal views and let the user confirm.
+  occasional z-flip is the main human case. However, the R² reported by
+  template alignment (during the b-table check above) doubles as an
+  orientation check: a poor R² suggests wrong orientation or a bad mask.
+- **Mask quality**: the agent cannot reliably judge a mask from metrics
+  alone, but a poor template-alignment R² is a red flag for mask problems
+  too. When R² is low, show axial, coronal, and sagittal views and let the
+  user confirm before proceeding.
 
 ### 5. Inspect the mask
 
