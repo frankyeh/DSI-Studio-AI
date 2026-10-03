@@ -128,6 +128,11 @@ Decide from what data is available, not from habit:
   out the pair automatically (it also reads phase direction from NIfTI JSON
   sidecars when present). `--rev_pe` accepts `.nii.gz` or `.sz`.
 
+  When several DWI series exist, match by image dimension: the reverse-phase
+  data must have the same dimensions as the main DWI for TOPUP. A series
+  with different dimensions cannot be paired — pick the DWI whose geometry
+  matches the reverse data.
+
   Reverse-phase patterns seen in practice (see DSI-Studio-Test/topup):
 
   - **AP/PA** (most common): full DWI one way, b0-only the other.
