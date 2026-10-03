@@ -26,9 +26,14 @@ user before renaming, and suggest backing up or copying the DICOM folder
 first if the original names matter to them.
 
 **From NIfTI:** The starting point is a 4D DWI NIfTI plus its matching
-`.bval` and `.bvec` files (BIDS layout). All three must be present and
-correspond volume-for-volume before opening. Use `open_dwi_nifti` or
-`save_nifti` on an already-open source.
+`.bval` and `.bvec` files. All three must be present and correspond
+volume-for-volume before opening. Use `open_dwi_nifti` or `save_nifti` on an
+already-open source.
+
+If the NIfTI files follow BIDS naming (`sub-<label>[_ses-<label>]_dwi.nii.gz`
+with matching `.bval`/`.bvec`/`.json`), use `bids_to_src` on the BIDS folder
+instead — it finds and converts all DWI sets at once. Identify BIDS by the
+`_dwi.nii.gz` suffix in a `dir` listing.
 
 NIfTI data may or may not be preprocessed already. Check the dataset README
 or description before deciding: if a reverse-encoding DWI is supplied
