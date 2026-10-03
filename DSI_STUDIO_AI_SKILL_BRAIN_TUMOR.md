@@ -467,9 +467,10 @@ Use these verified human AutoTrack identifiers directly for the standard tumor w
 Use the parent SLF entry rather than mapping SLF II/III separately for routine tumor
 planning.
 
-Reconstruct only the ipsilateral (lesion-side) pathways. There is no need to
-reconstruct the contralateral homologs for comparison — the clinical question is
-whether the lesion disrupts its own side's pathways, not left-right symmetry.
+Reconstruct the ipsilateral (lesion-side) pathways and their contralateral
+homologs. The contralateral side serves as a control: a displaced tract shows
+increased curl (large route/distance ratio) compared to its healthy homolog,
+so left-right comparison is useful for detecting tumor-induced displacement.
 
 Practical selection:
 
@@ -502,7 +503,8 @@ Before launching tracking, state:
 ```text
 Selected pathways
 - pathway names and why each is relevant to this lesion location
-- lesion side (only ipsilateral pathways are reconstructed; no contralateral comparison)
+- bilateral homologs reconstructed; contralateral side is the control for
+  curl (route/distance ratio) comparison to detect displacement
 
 Potential neurosurgical relevance
 - which functional domains are being evaluated (motor, language, visual, semantic, etc.)
