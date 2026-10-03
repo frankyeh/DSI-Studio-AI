@@ -1,72 +1,98 @@
 # DSI Studio AI Brain Tumor Neurosurgical Evaluation
 
-Use this skill for presurgical or postsurgical brain-tumor evaluation intended to support
-a neurosurgeon. The goal is to turn DSI Studio measurements into a concise, anatomically
-grounded assessment of the lesion and the eloquent pathways that may affect intervention.
-Use the general command manuals for exact command semantics rather than inferring behavior.
+Use this skill for presurgical or postsurgical brain-tumor evaluation intended to support a neurosurgeon. The goal is to turn DSI Studio measurements into a concise, anatomically grounded assessment of the lesion and the eloquent pathways that may affect intervention.
 
-This workflow provides imaging and tractography decision support. Tractography does not by
-itself establish function, tissue viability, safe resection margins, or whether a pathway
-can be sacrificed. Interpret findings together with the neurological examination,
-functional imaging when available, cortical/subcortical mapping, operative anatomy, and
-other clinical information.
+This workflow provides imaging and tractography decision support. Tractography does not by itself establish function, tissue viability, safe resection margins, or whether a pathway can be sacrificed. Interpret findings together with the neurological examination, functional imaging when available, cortical/subcortical mapping, operative anatomy, and other clinical information.
 
 ## Mandatory reporting behavior
 
-Do not wait until the end to report everything. **After each major step is completed,
-provide a short checkpoint summary before continuing.** Each checkpoint should contain:
+Do not wait until the end to report everything. **After each major step is completed, provide a short checkpoint summary before continuing.** Each checkpoint should contain:
 
 1. **Findings** — the few quantitative/anatomical results that matter most.
-2. **Potential neurosurgical relevance** — which finding may affect surgical corridor,
-   resection margin, eloquent-risk discussion, need for closer functional correlation,
-   or postoperative interpretation.
+2. **Potential neurosurgical relevance** — which finding may affect surgical corridor, resection margin, eloquent-risk discussion, need for closer functional correlation, or postoperative interpretation.
 
-Keep each checkpoint brief, typically 2–6 bullets or a short paragraph. Do not repeat all
-raw tables. Do not declare a tract `safe`, `intact`, `destroyed`, or `resectable` from
-tractography alone.
+Keep each checkpoint brief, typically 2–6 bullets or a short paragraph. Do not repeat all raw tables. Do not declare a tract `safe`, `intact`, `destroyed`, or `resectable` from tractography alone.
 
-For presurgical work, prioritize the relationship of tumor/core/edema to eloquent anatomy.
-For postsurgical work, the **primary question is whether the previously relevant eloquent
-tracts remain reconstructable and anatomically preserved around the resection/treatment
-site**.
+When presenting the case to a neurosurgeon, assume the listener may **not** know the analysis method. For every analysis that materially contributes to the interpretation, explain in plain clinical language:
+
+1. **Purpose** — why this analysis is useful for this case.
+2. **Method** — what DSI Studio is measuring, in one or two sentences without unnecessary implementation detail.
+3. **Result** — the important case-specific quantitative or spatial finding.
+4. **Interpretation** — what the finding may mean for intervention or postoperative assessment, including limitations.
+
+For example, do not merely report a T2R fraction. Explain that T2R asks what fraction of the reconstructed streamlines in a named pathway passes through a segmented lesion region, then state why that relationship matters in this case.
+
+For presurgical work, prioritize the relationship of tumor/core/edema to eloquent anatomy. For postsurgical work, the **primary question is whether the previously relevant eloquent tracts remain reconstructable and anatomically preserved around the resection/treatment site**.
+
+## Optional voice-demo mode
+
+When the user asks for a **voice demo**, first complete the quantitative/anatomical evaluation and verify the important findings. Then present the case as an interactive neurosurgical walkthrough rather than reading command output aloud.
+
+Use short spoken segments with the DSI Studio `voice` command when available. Each segment should explain:
+
+```text
+what is currently being shown
+why this analysis/view is useful
+what method produced the finding
+what the case-specific result is
+why it may matter clinically
+```
+
+Keep each spoken segment focused. Do not narrate every command, table row, seed count, or implementation detail.
+
+### Voice demo should use the live 3D window
+
+Use the 3D view actively when explaining the relationship between tumor and eloquent tracts. Show the relevant lesion regions and only the tract bundles needed for the point being discussed, then change viewpoint deliberately to reveal whether the pathway runs through, along, anterior/posterior to, superior/inferior to, or around the lesion.
+
+A typical pattern is:
+
+```bash
+bash ./dsi.sh show_only_regions "<relevant-lesion-indices>"
+bash ./dsi.sh show_only_tracts "<relevant-tract-indices>"
+bash ./dsi.sh set_view 0 0
+bash ./dsi.sh preview_screen 3d
+bash ./dsi.sh voice "<short explanation of what is shown and why it matters>"
+
+bash ./dsi.sh rotate_view left 20
+bash ./dsi.sh preview_screen 3d
+bash ./dsi.sh voice "<explain the relationship revealed by this second angle>"
+
+bash ./dsi.sh rotate_view up 15
+bash ./dsi.sh preview_screen 3d
+bash ./dsi.sh voice "<explain the final spatial relationship or uncertainty>"
+```
+
+`rotate` may also be used with an explicit axis, for example:
+
+```bash
+bash ./dsi.sh rotate "20 0 1 0"
+```
+
+Use only a few purposeful viewpoints. Reset with `set_view 0 0` before starting a comparable pre/post demonstration. For longitudinal presentation, use the same view reset and the same rotation sequence for both sessions whenever possible.
+
+For a presurgical voice demo, emphasize the spatial relationship between Tumor Core/edema and the relevant motor, language, or visual pathways. For a postoperative voice demo, emphasize whether the same eloquent pathways remain reconstructable around the operative site and how their course relates to cavity/residual abnormality/edema.
+
+The narration should teach the analysis as it demonstrates the case. Briefly explain concepts such as:
+
+- **tumor segmentation** — separates enhancing tumor, necrosis, and peritumoral edema so each component can be quantified and related to anatomy;
+- **CHA/Brodmann overlap** — localizes which atlas-defined anatomical regions are intersected by the lesion; this is anatomical context, not proof of function;
+- **AutoTrack** — reconstructs a named white-matter pathway using standardized tract recognition so bilateral pathways can be compared;
+- **T2R** — counts reconstructed streamlines from a tract bundle that pass through each lesion region and allows calculation of a bundle involvement fraction;
+- **tract morphology** — compares reconstructed bundle size/shape and gross trajectory, which may show displacement or attenuation but does not directly measure neurological function;
+- **postoperative preservation** — asks whether the same pathway remains reconstructable in its expected course after treatment, while acknowledging that failure to reconstruct does not prove transection.
+
+Do not use voice narration to overstate certainty. State important limitations aloud when they materially affect the case.
 
 ### Companion-manual routing
 
 | Tumor workflow section | Companion manual |
 |---|---|
-| §1 segmentation, slice readiness, model availability, three-plane QC | `DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
-| §2 atlas localization | `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
-| §3–4 pathway selection and AutoTrack | `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md` |
-| §5 tract-to-lesion connectivity | `DSI_STUDIO_AI_SKILL_T2R_CONNECTOME.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
-| §6 tract morphology, laterality, and spatial QC | `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md` |
-| §8 postoperative tract-preservation evaluation | Slice, Rendering, Region, Tract, T2R, and Fiber-Tracking manuals above |
-
-## Workflow overview
-
-### Presurgical evaluation
-
-1. Verify the structural image and segment the lesion.
-2. Quantify lesion compartments and establish laterality/anatomical extent.
-3. Localize the Tumor Core against `CHA` and `Brodmann` as supporting anatomical context.
-4. Select and reconstruct the relevant bilateral eloquent pathways with AutoTrack.
-5. Quantify tract-to-lesion involvement with T2R.
-6. Compare bilateral tract morphology and inspect tract/lesion spatial relationships.
-7. Integrate the findings into a neurosurgical summary.
-
-### Postsurgical evaluation
-
-1. Verify postoperative anatomy and identify the cavity/residual abnormality conservatively.
-2. Reconstruct the **same eloquent pathways that were relevant preoperatively**, using
-   comparable settings whenever possible.
-3. Determine whether each pathway remains reconstructable in its expected course and how
-   it relates to the cavity, residual lesion, and postoperative edema.
-4. Compare pre/post tract morphology and T2R descriptively.
-5. Report the preservation status of each eloquent pathway as reconstruction-based
-   evidence, with uncertainty explicitly stated.
-
-Do not use tumor- or edema-derived regions as ROI, Seed, ROA, End, or other tracking
-constraints for standard AutoTrack. Reconstruct the named tract independently first, then
-measure its relationship to the lesion.
+| segmentation, slice readiness, model availability, three-plane QC | `DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
+| atlas localization | `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
+| pathway selection and AutoTrack | `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md` |
+| tract-to-lesion connectivity | `DSI_STUDIO_AI_SKILL_T2R_CONNECTOME.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
+| tract morphology, laterality, 3D demonstration | `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`, `DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md` |
+| postoperative tract preservation | Slice, Rendering, Region, Tract, T2R, and Fiber-Tracking manuals above |
 
 # PRESURGICAL EVALUATION
 
@@ -82,25 +108,13 @@ bash ./dsi.sh set_slice <slice-index>
 bash ./dsi.sh list_slice
 ```
 
-When a FIB opened from Fiber Data Hub already exposes its structural MRI in `list_slice`
-with status `available`, select that existing slice with `set_slice`; do not add the same
-image again with `add_slice`. Poll `list_slice` until the selected row reports `ready`.
+When a FIB already exposes its structural MRI in `list_slice` with status `available`, select that existing slice with `set_slice`; do not add the same image again. Poll `list_slice` until the selected row reports `ready`.
 
-`ready` means loading/registration has finished; it does not prove anatomical alignment.
-Inspect the structural image against diffusion anatomy before segmentation. Record the FIB
-reconstruction space, structural-image source/slice, and segmentation model ID.
+`ready` means loading/registration has finished; it does not prove anatomical alignment. Inspect structural-to-diffusion alignment before quantitative interpretation. Record the FIB reconstruction space, structural-image source/slice, and segmentation model ID.
 
-### 1.2 Tumor model and label definition
+### 1.2 Tumor segmentation
 
-Use `human_tumor` (**U-Net Studio Human Tumor Lesion V2**) by default. It is the
-contrast-flexible tumor model for T1w, T1w-gd, T2w, FLAIR, and related structural MRI
-contrasts. `human_tumor_T1w` is the T1w-specific lightweight alternative.
-
-Do not use `human_tumorsynth` when separate tumor-core and edema measurements are
-required; its current DSI Studio output provides a single `Tumor` region.
-
-Confirm model availability for the selected slice. Use the exact internal model ID only
-when its `available` field is true:
+Use `human_tumor` (**U-Net Studio Human Tumor Lesion V2**) by default. Confirm availability with `list_unet`; use the exact model ID only when `available` is true.
 
 ```bash
 bash ./dsi.sh list_unet
@@ -108,7 +122,7 @@ bash ./dsi.sh segment_brain "human_tumor" "<slice-name-or-index>"
 bash ./dsi.sh list_region
 ```
 
-The expected lesion labels are:
+Expected lesion labels:
 
 ```text
 Enhancing Tumor
@@ -116,9 +130,7 @@ Necrosis
 Peritumoral Edema
 ```
 
-`human_tumor` also emits five tissue labels. These are not lesion compartments for this
-workflow and can shift region indices. Resolve lesion rows by exact name from a fresh
-`list_region`; never infer their indices from creation order.
+`human_tumor` also emits five tissue labels. They are not lesion compartments and can shift Region-table indices. Resolve lesion rows by exact name from a fresh `list_region`; never infer indices from creation order.
 
 For presurgical work define:
 
@@ -126,42 +138,29 @@ For presurgical work define:
 Tumor Core = Enhancing Tumor ∪ Necrosis
 ```
 
-Keep `Peritumoral Edema` separate. If an expected label is missing, report it as
-unavailable rather than zero. Preserve the original segmentation labels.
+Keep `Peritumoral Edema` separate. Preserve the original labels. If either Enhancing Tumor or Necrosis is unavailable, report that and do not construct Tumor Core.
 
-Before lesion-only QC or statistics, isolate the intended lesion rows:
-
-```bash
-bash ./dsi.sh list_region
-bash ./dsi.sh show_only_regions "<enhancing-index>&<necrosis-index>&<edema-index>"
-```
-
-For Tumor Core, create and merge copies so the original components remain untouched.
-Re-resolve indices after every mutation:
+Create Tumor Core from copies so original segmentation remains untouched:
 
 ```bash
-bash ./dsi.sh copy_region <current-enhancing-tumor-index>
+bash ./dsi.sh copy_region <current-enhancing-index>
 bash ./dsi.sh list_region
 bash ./dsi.sh set_region_name <enhancing-copy-index> "Tumor Core"
-
 bash ./dsi.sh copy_region <current-necrosis-index>
 bash ./dsi.sh list_region
 bash ./dsi.sh merge_regions "<current-Tumor-Core-index>&<necrosis-copy-index>"
 bash ./dsi.sh list_region
 ```
 
-`copy_region` inserts the copy immediately after its source and shifts later indices.
-`merge_regions` keeps the first supplied region and removes later merged rows. Do not
-construct Tumor Core if either required component is unavailable.
+`copy_region` inserts the copy immediately after the source and shifts later indices. `merge_regions` keeps the first supplied region and removes later merged rows. Re-resolve indices after every mutation.
 
 ### 1.3 Three-plane QC and lesion measurements
 
-Center on Tumor Core and inspect sagittal, coronal, and axial views:
+Isolate the lesion rows and inspect sagittal, coronal, and axial views:
 
 ```bash
 bash ./dsi.sh show_only_regions "<lesion-region-indices>"
 bash ./dsi.sh move_slice_to_region <Tumor-Core-index>
-
 bash ./dsi.sh set_roi_view 0
 bash ./dsi.sh preview_screen roi
 bash ./dsi.sh set_roi_view 1
@@ -170,21 +169,11 @@ bash ./dsi.sh set_roi_view 2
 bash ./dsi.sh preview_screen roi
 ```
 
-`preview_screen roi` is a coarse text rendering plus orientation/coverage metadata. Use
-it for gross location/alignment checks, not as a substitute for full-resolution image
-inspection. When a clinically important boundary or laterality decision cannot be resolved
-from the text view, state that limitation and use `save_roi_screen` for human review when
-an output destination has been provided or requested. Do not invent an output path solely
-for QC.
+`preview_screen roi` is coarse text-based QC. Use it for gross location/alignment checks, not subtle boundary validation. If a clinically important boundary or laterality decision cannot be resolved, state the limitation and use `save_roi_screen` for human review when the user provided or requested an output destination.
 
-A successful `segment_brain` means inference completed; it does not establish anatomical
-validity. Inspect remote/disconnected components rather than accepting them automatically.
-
-Immediately before lesion statistics, isolate exactly the intended lesion rows because
-`show_region_statistics` uses currently checked/shown regions:
+Immediately before statistics, isolate only the lesion regions because `show_region_statistics` reports currently checked/shown regions:
 
 ```bash
-bash ./dsi.sh list_region
 bash ./dsi.sh show_only_regions "<enhancing-index>&<necrosis-index>&<Tumor-Core-index>&<edema-index>"
 bash ./dsi.sh show_region_statistics
 ```
@@ -196,96 +185,74 @@ Enhancing Tumor volume (mm^3)
 Necrosis volume (mm^3)
 Tumor Core volume (mm^3)
 Peritumoral Edema volume (mm^3)
-lesion hemisphere or bilateral/midline involvement
+lesion laterality
 gross lobe/location and important adjacent anatomy
 ```
 
 ### Required checkpoint after Step 1
 
-Report briefly:
+Explain briefly:
 
 ```text
+Purpose/method
+- segmentation separates the major lesion compartments so their burden and anatomical extent can be measured independently
+
 Findings
-- lesion side and gross anatomical location
-- Enhancing Tumor, Necrosis, Tumor Core, and edema volumes
+- lesion side and location
+- lesion-compartment volumes
 - whether segmentation/alignment QC is acceptable or limited
 
 Potential neurosurgical relevance
-- whether the lesion is cortical/subcortical, deep, midline, or crosses compartments
-- whether edema or Tumor Core approaches regions where motor, language, or visual
-  pathways may need dedicated evaluation
-- any segmentation uncertainty that could affect subsequent planning measurements
+- whether Tumor Core or edema approaches motor, language, visual, deep, or midline structures
+- uncertainty that could affect subsequent planning measurements
 ```
 
-Do not infer functional eloquence from location alone; use Step 2 only as anatomical
-context and Steps 3–6 for tract-specific assessment.
+## 2. Localize Tumor Core anatomically
 
-## 2. Localize the Tumor Core anatomically
-
-### 2.1 CHA localization
-
-The human atlas is named exactly `CHA`. Do not load CHA labels into the Region table just
-to calculate overlap:
+### 2.1 CHA
 
 ```bash
-bash ./dsi.sh list_region
 bash ./dsi.sh show_region_overlap_statistics <current-Tumor-Core-index> CHA
 ```
 
-The command maps atlas labels into the source region space, returns ordinary region
-statistics for nonempty intersections, omits zero-overlap labels, and does not mutate the
-Region table.
+This maps atlas regions into the source region space and reports statistics only for nonempty intersections without adding atlas rows to the Region table.
 
-For each affected CHA region report:
+For each important CHA region report:
 
 ```text
 intersection volume (mm^3)
 fraction of Tumor Core = intersection volume / total Tumor Core volume
 ```
 
-If edema localization would materially help pathway selection, run the same analysis on
-the edema region separately.
-
-### 2.2 Brodmann-area localization
-
-Use the same nonmutating workflow with the atlas named exactly `Brodmann`:
+### 2.2 Brodmann
 
 ```bash
-bash ./dsi.sh list_region
 bash ./dsi.sh show_region_overlap_statistics <current-Tumor-Core-index> Brodmann
 ```
 
-Report nonempty areas with intersection volume and fraction of Tumor Core. Brodmann
-overlap is anatomical localization, not proof that the corresponding function is impaired.
-CHA and Brodmann are gray-matter parcellations, so their intersection volumes need not sum
-to total Tumor Core volume, particularly for white-matter-centered lesions.
-
-Use `add_region_from_atlas` only when actual atlas regions are needed for visualization,
-editing, tracking constraints, or another downstream operation.
+Report only clinically meaningful nonempty areas. Brodmann/CHA overlap provides anatomical localization; it does not prove functional impairment or eloquence. Gray-matter atlas intersections need not sum to total Tumor Core volume, especially for white-matter-centered lesions.
 
 ### Required checkpoint after Step 2
 
-Report the **few dominant anatomical involvements**, not the full atlas table:
+Explain:
 
 ```text
+Purpose/method
+- atlas overlap identifies which standardized anatomical parcels physically intersect the segmented Tumor Core
+
 Findings
-- major CHA regions intersected by Tumor Core, ranked by intersection volume
-- major Brodmann areas involved, when meaningful
-- whether the lesion appears predominantly cortical, subcortical/white-matter, or mixed
+- dominant CHA regions
+- relevant Brodmann areas
+- cortical versus subcortical/white-matter predominance
 
 Potential neurosurgical relevance
-- which functional systems may warrant tract reconstruction or closer functional
-  correlation (motor, language, visual, etc.)
-- whether cortical localization and white-matter extension suggest different risks
-- important caveat if mass effect/registration uncertainty could distort atlas localization
+- which functional systems warrant tract reconstruction or closer functional correlation
+- atlas/registration limitations caused by mass effect or distortion
 ```
 
-Do not use a Brodmann label alone to declare eloquence or to decide resectability.
+## 3. Select relevant bilateral eloquent pathways
 
-## 3. Select the eloquent pathways relevant to this lesion
-
-Use these verified human AutoTrack identifiers directly for the standard tumor workflow;
-`list_auto_tract` is not needed for these entries.
+Use verified AutoTrack identifiers:
 
 | Function | Pathway | Left | Right |
 |---|---|---|---|
@@ -293,60 +260,28 @@ Use these verified human AutoTrack identifiers directly for the standard tumor w
 | Language | Arcuate fasciculus | `Association_ArcuateFasciculusL` | `Association_ArcuateFasciculusR` |
 | Language | Superior longitudinal fasciculus | `Association_SuperiorLongitudinalFasciculusL` | `Association_SuperiorLongitudinalFasciculusR` |
 | Language | Frontal aslant tract | `Association_FrontalAslantTractL` | `Association_FrontalAslantTractR` |
-| Temporal language / semantic | Inferior longitudinal fasciculus | `Association_InferiorLongitudinalFasciculusL` | `Association_InferiorLongitudinalFasciculusR` |
+| Temporal/semantic | Inferior longitudinal fasciculus | `Association_InferiorLongitudinalFasciculusL` | `Association_InferiorLongitudinalFasciculusR` |
 | Vision | Optic radiation | `ProjectionBasalGanglia_OpticRadiationL` | `ProjectionBasalGanglia_OpticRadiationR` |
-
-Use the parent SLF entry rather than mapping SLF II/III separately for routine tumor
-planning.
 
 Practical selection:
 
-- perirolandic or motor lesion: CST;
-- frontal language lesion: AF, SLF, FAT;
-- parietal language lesion: AF, SLF;
-- temporal language lesion: AF, ILF;
-- posterior temporal, parietal, or occipital lesion: optic radiation when visual-pathway
-  risk is relevant.
+- perirolandic/motor lesion → CST;
+- frontal language lesion → AF, SLF, FAT;
+- parietal language lesion → AF, SLF;
+- temporal language lesion → AF, ILF;
+- posterior temporal/parietal/occipital lesion → optic radiation when visual-pathway risk is relevant.
 
-For temporal lesions, add optic radiation when lesion or edema extends into posterior
-temporal or temporo-occipital white matter. If agent-side anatomy/QC is too coarse to
-confidently exclude such extension, map optic radiation rather than omit it. Do not use
-edema volume alone as the trigger, and do not use a Brodmann label alone to trigger a
-tract.
+For temporal lesions, add optic radiation when lesion or edema extends into posterior temporal or temporo-occipital white matter. If agent-side anatomy/QC is too coarse to confidently exclude such extension, map optic radiation rather than omit it. Do not use edema volume alone as the trigger.
 
-Optional pathways:
-
-| Pathway | Left | Right |
-|---|---|---|
-| Inferior fronto-occipital fasciculus | `Association_InferiorFrontoOccipitalFasciculusL` | `Association_InferiorFrontoOccipitalFasciculusR` |
-| Uncinate fasciculus | `Association_UncinateFasciculusL` | `Association_UncinateFasciculusR` |
-
-If another pathway is required, use `list_auto_tract` to discover its exact identifier.
+Optional pathways when clinically relevant include IFOF and uncinate fasciculus. Use `list_auto_tract` to discover other exact identifiers.
 
 ### Required checkpoint after Step 3
 
-Before launching tracking, state:
+State which pathways are selected, why each is relevant to the lesion location, which functional systems are being evaluated, and any clinically important pathway that cannot be assessed.
 
-```text
-Selected pathways
-- pathway names and why each is relevant to this lesion location
-- bilateral homologs that will be reconstructed
+## 4. Reconstruct selected pathways
 
-Potential neurosurgical relevance
-- which functional domains are being evaluated (motor, language, visual, semantic, etc.)
-- which lesion component/location triggered each pathway selection
-- any clinically important pathway that cannot be evaluated with the available data
-```
-
-Keep this short. The purpose is to make the subsequent tractography scope explicit.
-
-## 4. Reconstruct the selected bilateral pathways
-
-Map left and right homologs with identical AutoTrack settings. Follow AutoTrack QC,
-tolerance, TIP, and retry guidance in `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md`.
-
-`run_auto_track` is asynchronous. When several bundles are needed with the same settings,
-launch all selected calls back-to-back without waiting for each one:
+Map bilateral homologs with comparable settings. `run_auto_track` is asynchronous. Launch all independent bundles back-to-back first:
 
 ```bash
 bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
@@ -355,163 +290,89 @@ bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusR"
 ```
 
-After all desired AutoTrack calls are launched, poll the full tract table about every 10
-seconds:
+After all desired calls are launched, poll the entire tract table about every 10 seconds:
 
 ```bash
 bash ./dsi.sh list_tract
 ```
 
-Continue until every requested tract row reports `done`. Only then perform dependent
-statistics, T2R, saving, editing, or visualization. Do not serially wait for each bundle
-before launching the next.
+Continue until every requested bundle reports `done`. Do not serially wait for each bundle before launching the next. Only after all required bundles are complete should the agent perform dependent statistics, T2R, editing, saving, or visualization.
 
-If a clinically relevant pathway remains empty after the bounded tolerance retry
-procedure, report it as `unmappable` with tract count, seed limit, tolerance values, and
-attempts. Do not interpret zero yield as anatomical absence or zero lesion involvement.
+Follow the bounded tolerance-retry procedure in the Fiber Tracking skill. A zero-yield tract is `unmappable` after the bounded retry procedure; it is not proof of anatomical absence.
 
 ### Required checkpoint after Step 4
 
-Report:
-
-```text
-Findings
-- which requested left/right pathways completed successfully
-- total streamline count for each completed bundle
-- any pathway that was sparse, required tolerance retry, or remained unmappable
-
-Potential neurosurgical relevance
-- whether all clinically relevant systems can be assessed
-- which absent/sparse reconstruction limits confidence in planning
-- any major left/right asymmetry that deserves attention but has not yet been interpreted
-```
-
-Do not call a pathway preserved or disrupted at this stage; that requires Steps 5–6.
+Explain that AutoTrack reconstructs standardized named pathways so the lesion-side tract can be assessed against its contralateral homologue. Report successful/sparse/unmappable pathways, total streamline counts, retries, and which missing reconstruction limits the evaluation.
 
 ## 5. Quantify tract-to-lesion involvement with T2R
 
-Use **tract-to-region connectivity (T2R)** for quantitative tract-versus-lesion
-involvement. Do not convert each tract into a voxel region merely to calculate tumor or
-edema involvement.
-
-`show_t2r` operates on the currently checked/shown tract bundles and checked/shown
-regions. For each tract bundle it identifies streamlines that pass through each region and
-reports ordinary tract statistics for that passing subset. The `number of tracts` row
-under each lesion column is therefore the number of reconstructed streamlines from that
-bundle that intersect the lesion region.
-
-The lesion regions are mapped into the FIB diffusion grid internally. No `tract_to_region`,
-lesion copies, binary intersections, or disposable overlap masks are required.
-
-### 5.1 T2R command pattern
-
-After all selected AutoTrack bundles are complete:
+Use **tract-to-region connectivity (T2R)** rather than converting every tract into a binary voxel region.
 
 ```bash
 bash ./dsi.sh list_tract
 bash ./dsi.sh list_region
-bash ./dsi.sh show_only_tracts "<tract-index-1>&<tract-index-2>&..."
+bash ./dsi.sh show_only_tracts "<relevant-tract-indices>"
 bash ./dsi.sh show_only_regions "<enhancing-index>&<necrosis-index>&<edema-index>&<Tumor-Core-index>"
 bash ./dsi.sh show_t2r
 ```
 
-Omit unavailable regions. One `show_t2r` call can analyze several checked bundles; the
-output identifies each tract separately.
+`show_t2r` analyzes all checked tract bundles against all checked lesion regions. For a tract/region pair, the T2R `number of tracts` value is the number of streamlines from that bundle that pass through the region.
 
-### 5.2 Streamline involvement fraction
-
-For each tract bundle and each lesion compartment:
+Calculate:
 
 ```text
-intersecting streamline count = T2R "number of tracts" for that region
-
-total bundle streamline count = tract count from list_tract or show_tract_statistics
-
 lesion involvement fraction =
-    intersecting streamline count / total bundle streamline count
+    T2R intersecting streamline count /
+    total streamline count of that same completed bundle
 ```
 
-Use the total count from the **same completed bundle** as denominator. A streamline can
-pass through multiple lesion compartments, so fractions are not expected to sum to one.
-
-Do not call this an `overlap volume`. T2R answers: **what fraction of the reconstructed
-pathway intersects this lesion region?**
-
-For this workflow use the `number of tracts` row as numerator. Do **not** use the generic
-T2R `intersect ratio` as the bundle streamline fraction.
-
-A zero T2R count is valid only after confirming that the tract is nonempty, the lesion
-region is nonempty, both belong to the same subject/mapping context, and T2R completed
-successfully.
+Do not call this an overlap volume. Do not use T2R's generic `intersect ratio` as the bundle streamline fraction. A streamline can intersect several lesion compartments, so fractions do not need to sum to 100%.
 
 ### Required checkpoint after Step 5
 
-For each clinically important pathway, summarize only the lesion compartments with
-meaningful intersection plus important zeros:
+For each important pathway explain:
 
 ```text
+Purpose/method
+- T2R quantifies how much of the reconstructed pathway actually passes through each segmented lesion compartment
+
 Findings
-- pathway: total streamlines
-- Enhancing Tumor: intersecting count and fraction
-- Necrosis: intersecting count and fraction
-- Tumor Core: intersecting count and fraction
-- Peritumoral Edema: intersecting count and fraction
+- total bundle streamlines
+- Tumor Core / enhancing / necrosis / edema intersecting counts and fractions
 
 Potential neurosurgical relevance
-- direct reconstructed-pathway intersection with Tumor Core is more concerning for
-  margin/pathway conflict than edema-only intersection, but does not prove infiltration
-- edema-only intersection may indicate a pathway traversing tissue affected by mass effect
-  or altered diffusion without proving tract destruction
-- zero reconstructed intersection does not guarantee surgical separation, particularly
-  for incompletely reconstructed pathways
+- Tumor Core intersection indicates a closer pathway-lesion conflict than edema-only intersection, without proving infiltration
+- edema-only intersection may reflect pathway passage through tissue affected by edema/mass effect
+- zero reconstructed intersection does not guarantee true anatomical separation
 ```
 
-Do not create universal percentage thresholds for “high risk.” Interpret fractions with
-tract geometry, pathway type, segmentation quality, and clinical context.
+Do not create universal percentage thresholds for surgical risk.
 
-## 6. Evaluate tract morphology, laterality, and spatial relationship
+## 6. Evaluate tract morphology and 3D spatial relationship
 
-First obtain raw bilateral tract measurements:
+Obtain bilateral tract statistics:
 
 ```bash
 bash ./dsi.sh show_only_tracts "<left-tract>&<right-tract>"
 bash ./dsi.sh show_tract_statistics
 ```
 
-Record for each side:
+Record total tracts, volume, and surface area. Verify lesion laterality from structural anatomy and segmentation before labeling a tract ipsilesional/contralateral. Normal bilateral asymmetry can be substantial, especially for association tracts.
 
-```text
-total number of tracts
-total volume(mm^3)
-total surface area(mm^2)
-```
-
-Verify lesion laterality from structural anatomy and segmentation before labeling a tract
-ipsilesional/contralateral. `preview_screen roi` reports `R_side=left` or `R_side=right`,
-but its text thumbnail is coarse and is not definitive laterality evidence.
-
-When lesion side is clear anatomically, use orientation metadata to translate screen
-position into anatomical right/left. Atlas suffixes, known left/right AutoTrack identifiers,
-MNI-coordinate sign, and tract geometry may corroborate. If cues disagree, retain simple
-left/right labels and state uncertainty.
-
-Inspect the tract and lesion together:
+Show the lesion and relevant tract together:
 
 ```bash
-bash ./dsi.sh show_only_tracts "<relevant-left-tract>&<relevant-right-tract>"
-bash ./dsi.sh show_only_regions "<relevant-lesion-region-indices>"
+bash ./dsi.sh show_only_tracts "<relevant-tracts>"
+bash ./dsi.sh show_only_regions "<relevant-lesion-regions>"
 bash ./dsi.sh set_view 0 0
 bash ./dsi.sh preview_screen 3d
 ```
 
-For a clinically important small T2R intersection, also inspect all three slice planes
-with the relevant tract and lesion visible.
-
-Describe the reconstructed pathway in anatomically useful terms such as:
+Describe geometry using clinically useful terms:
 
 ```text
 displaced by lesion/edema
-compressed/narrowed in the lesion vicinity
+compressed or narrowed near lesion
 grossly maintained around lesion
 intersecting Tumor Core
 intersecting edema only
@@ -519,63 +380,29 @@ passing along a lesion margin
 incompletely reconstructed / uncertain
 ```
 
-When one side is meaningfully designated as lesion side, optional morphology ratios are:
-
-```text
-volume ratio = ipsilesional volume / contralateral volume
-surface-area ratio = ipsilesional surface area / contralateral surface area
-```
-
-Do not interpret ratios alone. Normal asymmetry can be substantial, particularly for the
-arcuate fasciculus.
+For a voice demo, this is the main 3D teaching stage. Rotate through a small number of meaningful perspectives and narrate the relative location of the tract and lesion at each view. Explain what spatial relationship becomes easier to see from that angle.
 
 ### Optic-radiation caution
 
-Interpret optic radiation more conservatively than the other core pathways. The anterior
-optic radiation, especially Meyer's loop, is difficult to reconstruct reliably and varies
-between individuals. Do not treat the most anterior reconstructed streamline as the true
-anatomical boundary. Positive tumor/edema intersection is meaningful structural evidence,
-but absence of reconstructed intersection near the anterior temporal lobe does not reliably
-exclude Meyer's-loop involvement.
+Interpret optic radiation conservatively. Meyer's loop is difficult to reconstruct reliably and varies between individuals. Positive tumor/edema intersection is meaningful structural evidence; absence of reconstructed intersection near the anterior temporal lobe does not reliably exclude involvement.
 
 ### Required checkpoint after Step 6
 
-Report the **surgical-anatomy synthesis** for each key pathway:
+For each key pathway report whether it is grossly reconstructed in the expected course; whether it intersects, borders, or appears spatially separated from Tumor Core/edema; whether it appears displaced/compressed/attenuated; and which functional system may be exposed during intervention. State where mapping or tractography uncertainty is important.
 
-```text
-Findings
-- side and pathway
-- whether it is grossly reconstructed in the expected course
-- relationship to Tumor Core, enhancing tumor, and edema
-- displacement/compression/marginal course/intersection
-- important bilateral asymmetry or reconstruction uncertainty
+## 7. Integrated presurgical neurosurgical summary
 
-Potential neurosurgical relevance
-- whether the reconstructed pathway lies within, at the margin of, or separated from the
-  lesion/edema
-- which functional system may be most exposed during intervention
-- where tractography uncertainty is high enough that functional mapping/anatomical
-  confirmation becomes especially important
-```
+Answer:
 
-Do not convert this into a statement that a particular surgical route is safe or unsafe.
+1. Where is the lesion and how large are the major compartments?
+2. Which anatomical parcels are substantially involved?
+3. Which eloquent pathways are relevant?
+4. Which reconstructed pathways intersect Tumor Core, enhancing tumor, necrosis, or edema?
+5. Are key pathways displaced, compressed, marginal, or incompletely reconstructed?
+6. Which findings may affect approach, margin, or functional-risk discussion?
+7. What cannot be concluded reliably from these data?
 
-## 7. Integrated presurgical neurosurgical report
-
-The final presurgical report should answer the questions a neurosurgeon is most likely to
-need:
-
-1. **Where is the lesion and how large are the surgically relevant compartments?**
-2. **Which cortical/anatomical regions are involved?**
-3. **Which eloquent pathways are relevant to this lesion?**
-4. **Which reconstructed pathways directly intersect Tumor Core, enhancing tumor,
-   necrosis, or edema?**
-5. **Are important pathways displaced, compressed, marginal, or incompletely
-   reconstructed?**
-6. **Which findings could materially constrain a surgical corridor or margin, and where
-   is uncertainty high enough to require additional functional/anatomical correlation?**
-
-Recommended concise structure:
+Recommended structure:
 
 ```text
 Presurgical neurosurgical summary
@@ -583,210 +410,143 @@ Presurgical neurosurgical summary
 Lesion
 - location/laterality
 - Enhancing Tumor, Necrosis, Tumor Core, edema volumes
-- major anatomical extent and QC limitations
+- major QC limitations
 
 Anatomical localization
 - dominant CHA regions
-- relevant Brodmann areas, if useful
+- relevant Brodmann areas
 
 Eloquent pathways
-- pathway — side — total streamlines
-- Tumor Core intersection count/fraction
-- enhancing-tumor intersection count/fraction
-- edema intersection count/fraction
-- spatial relationship: displaced/compressed/marginal/intersecting/uncertain
+- pathway / side / total streamlines
+- Tumor Core and edema T2R counts/fractions
+- spatial relationship
 
 Key intervention-relevant points
-- 3–6 prioritized findings most likely to affect approach, margin, or functional-risk
-  discussion
-- important pathway that could not be reconstructed
-- major atlas/segmentation/registration/tractography limitation
+- 3–6 prioritized findings
+- unmappable/sparse important pathway
+- major segmentation/registration/tractography limitation
 ```
-
-Prioritize clinically meaningful findings. Do not drown the final summary in all raw atlas
-rows or every tract statistic.
 
 # POSTSURGICAL EVALUATION
 
-## 8. Primary goal: assess preservation of eloquent pathways
+## 8. Primary goal: preservation of eloquent pathways
 
-The postoperative evaluation should be organized around a different central question:
+The central postoperative question is:
 
-> **Are the eloquent pathways that were relevant preoperatively still reconstructable in
-> their expected anatomical course after surgery/treatment, and how do they relate to the
-> cavity, residual abnormality, and postoperative edema?**
+> **Are the eloquent pathways that were relevant preoperatively still reconstructable in their expected anatomical course after surgery/treatment, and how do they relate to the cavity, residual abnormality, and postoperative edema?**
 
-Lesion-volume change remains useful, but it is secondary to the pathway-preservation
-assessment when the clinical question is postoperative functional anatomy.
+Lesion-volume change is secondary when the primary clinical question is functional-anatomical preservation.
 
 ### 8.1 Verify postoperative anatomy
 
-Define postoperative abnormalities conservatively: residual enhancing lesion, verified
-resection cavity, postoperative edema, hemorrhage/treatment-related change, or another
-verified abnormality.
+Identify residual enhancing lesion, verified cavity, postoperative edema, hemorrhage/treatment change, or other verified abnormalities conservatively. Do not assume the model's `Necrosis` label is a resection cavity. If a verified/user-supplied cavity mask exists, analyze it separately.
 
-Do not automatically construct presurgical Tumor Core after surgery. Analyze
-`Enhancing Tumor`, `Necrosis`, and `Peritumoral Edema` separately when present, and create
-a postoperative composite only when verified anatomy gives it a clear meaning. Do not
-interpret the model's `Necrosis` label as a resection cavity unless cavity identity is
-independently established.
+Use the same three-plane QC pattern. Center on, in order of preference:
 
-If a verified/user-supplied cavity mask exists, analyze it as a separate region.
-
-Use the same three-plane QC pattern as presurgical evaluation. Choose the centering target
-in this order when available:
-
-1. verified resection cavity or user-supplied postoperative target;
+1. verified cavity/user-supplied postoperative target;
 2. verified residual enhancing lesion;
 3. dominant anatomically plausible postoperative abnormality.
 
-### Required postoperative checkpoint A — anatomy
+### Postoperative checkpoint A
+
+Explain what postoperative anatomy can be identified reliably, which abnormalities are most relevant to nearby tracts, and whether distortion/artifact/registration limits the comparison.
+
+### 8.2 Reconstruct the same pathways
+
+Use the same clinically relevant bilateral pathways and comparable settings whenever possible. Launch all independent AutoTrack calls back-to-back, then poll `list_tract` about every 10 seconds until all requested bundles are complete.
+
+A postoperative-only pathway may be added when clinically necessary but should be labeled as such because it has no preoperative baseline.
+
+### Postoperative checkpoint B
+
+For each pathway report:
 
 ```text
-Findings
-- cavity/residual lesion/postoperative edema that can be identified reliably
-- postoperative lesion-compartment volumes when meaningful
-- major deformation, hemorrhage, susceptibility, or registration limitation
-
-Clinical relevance
-- which postoperative abnormality is most relevant to interpreting nearby tracts
-- whether image/segmentation quality is adequate for a tract-preservation comparison
+preoperative reconstruction available: yes/no
+postoperative reconstruction: successful / sparse / unmappable
+postoperative streamline count
+expected gross trajectory visible: yes/no/uncertain
 ```
 
-### 8.2 Reconstruct the same eloquent pathways
+Do not equate absent reconstruction with surgical transection.
 
-Use the same bilateral pathways that were clinically relevant preoperatively. Keep
-reconstruction and AutoTrack settings comparable whenever possible. Launch all independent
-`run_auto_track` calls back-to-back and poll `list_tract` about every 10 seconds until all
-requested bundles are `done`.
+### 8.3 Compare preservation
 
-If a pathway was not part of the presurgical study but postoperative anatomy makes it
-clinically relevant, it may be added, but clearly mark it as **postoperative-only** rather
-than pretending it has a pre/post baseline.
-
-### Required postoperative checkpoint B — tract reconstruction
-
-For each relevant pathway report:
+For each matched pathway compare:
 
 ```text
-- preoperative reconstruction available: yes/no
-- postoperative reconstruction: successful / sparse / unmappable
-- total postoperative streamline count
-- whether the expected gross trajectory is visible
-```
-
-The main clinical question at this stage is whether each eloquent pathway remains
-reconstructable. Do not yet equate an absent reconstruction with surgical transection.
-
-### 8.3 Compare pre/post tract preservation
-
-For each eloquent pathway, compare the same side and named tract using:
-
-```text
-reconstructability in expected anatomical course
-gross trajectory continuity around the operative site
-total streamline count
+reconstructability in expected course
+gross trajectory around operative site
+streamline count
 tract volume
 tract surface area
-spatial relationship to verified cavity/residual lesion/edema
-T2R intersecting streamline count/fraction for postoperative regions when useful
+relationship to cavity/residual lesion/edema
+T2R count/fraction for postoperative regions when useful
 ```
 
-Use identical `set_view 0 0` and the same rotations for comparable pre/post 3D captures.
+For comparable 3D views, use the same camera recipe in both sessions:
 
-Interpret pre/post tract count, volume, surface area, and T2R changes descriptively.
-Differences may reflect acquisition, reconstruction, registration, brain shift/deformation,
-diffusion signal, edema, susceptibility, tolerance, TIP, or tractability. A newly visible
-postoperative tract can reflect improved tractability rather than newly preserved fibers.
-An absent postoperative tract can reflect tractography failure rather than true pathway
-loss.
+```bash
+bash ./dsi.sh set_view 0 0
+bash ./dsi.sh rotate_view left 20
+bash ./dsi.sh rotate_view up 15
+```
 
-### 8.4 Preservation categories for reporting
+Use the same sequence pre- and post-op. In a voice demo, alternate between matching pre/post views and explicitly point out what is preserved, displaced, attenuated, or uncertain.
 
-Use the following **reconstruction-based** language. These are imaging descriptions, not
-functional diagnoses:
+Changes in tract count, volume, surface area, and T2R can reflect acquisition, registration, brain shift, edema, susceptibility, reconstruction settings, or tractability. A newly visible postoperative tract can reflect improved tractability; an absent tract can reflect tracking failure.
+
+### 8.4 Reconstruction-based preservation language
+
+Use these imaging descriptions:
 
 **Reconstruction preserved**
-- the pathway remains reconstructable in the expected gross anatomical course;
-- its trajectory can be followed around/adjacent to the operative site;
+- pathway remains reconstructable in the expected gross course;
+- trajectory can be followed around/adjacent to operative site;
 - no major new discontinuity is apparent in the reconstructed bundle.
 
 **Reconstruction partially preserved / altered**
-- a recognizable pathway remains but is substantially reduced, displaced, fragmented,
-  narrowed, or altered near the operative site;
-- interpretation should explicitly include acquisition/tracking uncertainty.
+- recognizable pathway remains but is substantially reduced, displaced, fragmented, narrowed, or otherwise altered near the operative site.
 
 **Preservation uncertain**
-- reconstruction is sparse, anatomically ambiguous, heavily affected by postoperative
-  distortion/artifact, or not directly comparable with preoperative data.
+- reconstruction is sparse, anatomically ambiguous, or heavily affected by postoperative distortion/artifact, or pre/post datasets are not directly comparable.
 
 **Not reconstructable postoperatively**
-- the pathway cannot be reconstructed despite the standard bounded retry procedure.
-- Do **not** translate this automatically to `transected` or `destroyed`; state that true
-  pathway disruption versus tractography failure cannot be distinguished from the
-  tractography result alone.
+- pathway cannot be reconstructed despite the bounded retry procedure.
+- Do **not** translate this automatically to `transected` or `destroyed`.
 
-### Required postoperative checkpoint C — preservation assessment
+### Postoperative checkpoint C
 
-After evaluating each clinically relevant tract, provide a short tract-by-tract summary:
+For each clinically relevant tract report the preservation category, the key pre/post change, relationship to cavity/residual lesion/edema, and the corresponding neurological system that warrants clinical correlation.
 
-```text
-CST L/R
-- preservation assessment: reconstruction preserved / partially preserved or altered /
-  uncertain / not reconstructable
-- key pre/post change
-- relationship to cavity/residual lesion/edema
-- motor-system implication for clinical correlation
-
-AF / SLF / FAT / ILF / OR as relevant
-- same fields
-```
-
-Then add:
+Then identify:
 
 ```text
-Key postoperative clinical points
-- which eloquent pathways are clearly still reconstructable
-- which pathway shows the greatest postoperative alteration or uncertainty
-- whether a pathway courses along the cavity or residual lesion margin
-- which findings warrant correlation with postoperative neurological function or other
-  functional assessment
+which eloquent pathways are clearly still reconstructable
+which pathway shows the greatest postoperative alteration or uncertainty
+which pathway courses along the cavity/residual-lesion margin
+which findings warrant correlation with postoperative neurological function
 ```
 
-### 8.5 Postoperative lesion-volume comparison
+### 8.5 Lesion-volume comparison
 
-When model labels are meaningfully comparable across sessions, report:
-
-```text
-label
-preoperative volume (mm^3)
-postoperative volume (mm^3)
-absolute change (mm^3)
-```
-
-Treat these as descriptive segmentation findings. Do not infer progression, residual tumor,
-cavity size, treatment effect, or biological response from volume change alone.
-
-Repeat CHA/Brodmann localization only when it answers a postoperative question; pathway
-preservation should remain the principal postoperative focus.
+When comparable, report pre/post volumes and absolute changes for the same segmentation labels. Treat these as descriptive findings only. Do not infer progression, residual tumor, cavity size, treatment effect, or biological response from segmentation volume change alone.
 
 ## 9. Final postoperative neurosurgical report
 
-Lead with eloquent-tract preservation rather than lesion statistics.
-
-Recommended structure:
+Lead with eloquent-tract preservation:
 
 ```text
 Postoperative neurosurgical summary
 
 Eloquent-tract preservation
-- pathway — side — preservation assessment
-- key pre/post morphology/reconstructability change
+- pathway / side / preservation assessment
+- key pre/post reconstruction or morphology change
 - relationship to cavity/residual lesion/edema
-- important uncertainty
+- uncertainty
 
-Most clinically important pathway findings
-- pathways grossly preserved around the operative site
+Most important pathway findings
+- pathways grossly preserved around operative site
 - pathways altered/attenuated/uncertain
 - pathways not reconstructable postoperatively
 
@@ -796,48 +556,38 @@ Postoperative anatomy
 
 Clinical correlation priorities
 - neurological domains corresponding to altered/uncertain pathways
-- areas where tractography cannot distinguish preserved function from structural injury
-- imaging/artifact/registration limitations affecting interpretation
+- findings tractography cannot resolve confidently
+- artifact/registration limitations
 ```
 
-Do not make the postoperative report primarily a tumor-volume report when the clinical
-question is tract preservation.
+For a postoperative voice demo, begin with the main preservation conclusion, then show the relevant pre/post 3D tract-tumor/cavity relationships. Explain the purpose and meaning of each comparison so a neurosurgeon unfamiliar with tractography metrics can follow the reasoning.
 
 ## 10. Reproducibility record
 
-Preserve or record:
+Record:
 
-- FIB source and reconstruction space;
-- structural-image source, selected slice, registration/QC status, and segmentation model;
-- original lesion labels and any derived Tumor Core;
-- CHA/Brodmann intersection statistics used for interpretation;
-- exact AutoTrack identifiers and relevant tracking settings;
-- each analyzed tract's total streamline count;
-- lesion regions checked for T2R;
-- T2R intersecting streamline counts and calculated bundle fractions;
-- left/right tract morphology statistics;
-- for postoperative work, the matched pre/post tract identity and preservation category;
-- exact `set_view`/rotation recipe used for comparable 3D captures;
-- interpretable segmentation/tract QC views;
-- manual segmentation corrections, exclusions, or accepted uncertainties.
+- FIB source/reconstruction space;
+- structural source/slice and registration/QC status;
+- segmentation model and original labels;
+- derived Tumor Core when used;
+- CHA/Brodmann statistics used for interpretation;
+- exact AutoTrack identifiers/settings;
+- tract streamline counts;
+- lesion regions used in T2R;
+- T2R counts and calculated bundle fractions;
+- bilateral tract morphology statistics;
+- matched pre/post tract identity and preservation category;
+- exact `set_view`/rotation recipe for comparable 3D views;
+- major QC limitations and accepted uncertainties.
 
-`preview_screen roi` and `preview_screen 3d` are valid recorded **coarse** agent-side
-inspection views but are not equivalent to full-resolution visual review. When the user
-requests saved images or supplies an output location, use documented
-`save_roi_screen`/`save_lr_screen` commands. Do not invent output paths solely for
-reproducibility.
+`preview_screen roi` and `preview_screen 3d` are coarse agent-side inspection tools, not full-resolution clinical review. When requested or when an output destination is supplied, use `save_roi_screen`/`save_lr_screen` for human review.
 
 Distinguish successful command execution from an anatomically accepted result.
 
 ## Interpretation references
 
-- Yeh FC, Irimia A, Bastos DCA, Golby AJ. Tractography methods and findings in brain
-  tumors and traumatic brain injury. NeuroImage. 2021;245:118651.
-- Yeh FC. Shape analysis of the human association pathways. NeuroImage.
-  2020;223:117329.
-- Essayed WI, Zhang F, Unadkat P, et al. White matter tractography for neurosurgical
-  planning: a topography-based review of the current state of the art. NeuroImage:
-  Clinical. 2017;15:659-672.
+- Yeh FC, Irimia A, Bastos DCA, Golby AJ. Tractography methods and findings in brain tumors and traumatic brain injury. NeuroImage. 2021;245:118651.
+- Yeh FC. Shape analysis of the human association pathways. NeuroImage. 2020;223:117329.
+- Essayed WI, Zhang F, Unadkat P, et al. White matter tractography for neurosurgical planning: a topography-based review of the current state of the art. NeuroImage: Clinical. 2017;15:659-672.
 
-Use current DSI Studio AI documentation and live command output as the authority for
-software behavior.
+Use current DSI Studio AI documentation and live command output as the authority for software behavior.
