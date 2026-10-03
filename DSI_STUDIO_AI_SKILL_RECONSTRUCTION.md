@@ -94,6 +94,14 @@ Decide from what data is available, not from habit:
   then EDDY for eddy currents and motion.
   (`--rev_pe=<rev_b0> --save_src=subject_preprocessed.sz`, then
   `--cmd="[Step T2][Corrections][EDDY]"`)
+
+  How to spot the reverse-phase series in a DICOM listing: it is usually a
+  second run of the same DWI protocol (e.g. `dir258_2` next to `dir258_1`),
+  often much smaller because TOPUP only needs a handful of b0 volumes with
+  opposite phase encoding — do not expect a full-direction dataset. SBRef
+  images paired with each run also hint at the run structure. When in doubt,
+  check the phase-encoding direction in the headers before assuming.
+
 - **No reverse-phase data** → EDDY alone for motion and eddy currents.
   Accept that susceptibility distortion cannot be fully corrected; do not
   claim otherwise.
