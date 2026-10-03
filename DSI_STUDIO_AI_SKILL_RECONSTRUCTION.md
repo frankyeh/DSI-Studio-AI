@@ -141,6 +141,9 @@ Rules:
 - Avoid repeated interpolation, registration, smoothing, or resampling.
 - Isotropic resampling is recommended for anisotropic data; see section 6.
   It does not create true spatial resolution.
+- Bias field correction is recommended. Coil sensitivity creates smooth
+  signal-intensity variation across the image that biases the final QA
+  values. Correct it before reconstruction.
 - Save corrected data as a new SZ file (`subject_preprocessed.sz`).
 - State which artifact each operation addresses.
 
