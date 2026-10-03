@@ -94,6 +94,21 @@ susceptibility information that was never acquired.
 
 ### 3. Apply only justified corrections
 
+Follow this order. The `--action=rec` CLI lays the steps out in this
+sequence; when using the GUI, do them in the same order manually:
+
+1. **b-table flips/swaps** — first, before any image rotation or resampling.
+   Spatial operations transform b-vectors along with the image; fixing the
+   b-table first keeps everything consistent.
+2. **Image orientation** (rotation, flips) — b-vectors transform with it.
+3. **TOPUP** — susceptibility distortion correction (needs reverse-phase data).
+4. **EDDY** — eddy-current and motion correction.
+5. **Bias field correction** — coil sensitivity creates smooth
+   signal-intensity variation across the image that biases the final QA
+   values. Correct it before reconstruction.
+6. **Resampling to isotropic** — see section 6 for resolution choice.
+7. **Mask** — generate or refine after all geometric changes.
+
 Decide from what data is available, not from habit:
 
 - **Reverse-phase b0 available** → run TOPUP for susceptibility distortion,
@@ -141,9 +156,6 @@ Rules:
 - Avoid repeated interpolation, registration, smoothing, or resampling.
 - Isotropic resampling is recommended for anisotropic data; see section 6.
   It does not create true spatial resolution.
-- Bias field correction is recommended. Coil sensitivity creates smooth
-  signal-intensity variation across the image that biases the final QA
-  values. Correct it before reconstruction.
 - Save corrected data as a new SZ file (`subject_preprocessed.sz`).
 - State which artifact each operation addresses.
 
