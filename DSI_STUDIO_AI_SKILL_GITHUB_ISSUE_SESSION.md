@@ -159,10 +159,9 @@ Starting a GitHub agent connection performs real GitHub API operations. DSI Stud
 
 1. Calls `GET /user` to identify the token owner.
 2. Reads the selected issue.
-3. Reads up to 100 issue comments.
-4. Reuses a result comment authored by the token owner and marked
-   `"dsi_session_result":true`, choosing the one with the highest `last_id` if
-   more than one exists.
+3. Reads the first 100 issue comments (oldest first).
+4. Reuses the first result comment authored by the token owner and marked
+   `"dsi_session_result":true`.
 5. Creates an initial result comment with
    `POST /issues/<number>/comments` if none exists.
 6. Updates that comment with `PATCH /issues/comments/<comment-id>` after each
@@ -182,8 +181,9 @@ DSI Studio also validates that:
 - the issue title starts exactly with `DSI Studio session`.
 
 Each GitHub request has a 15-second transfer timeout. Transient network failures
-are retried. Rate limits use GitHub's retry/reset information. Permanent HTTP
-failures such as authorization loss stop the channel.
+are retried. A rate-limited response (HTTP 429, or 403 mentioning a rate limit)
+is retried after a fixed one-minute wait. Permanent HTTP failures such as
+authorization loss stop the channel.
 
 ## Give the AI agent access to the private repository
 
@@ -327,16 +327,15 @@ prompt to review or edit it. Each chat remembers its own issue URL independently
 so resuming a different existing GitHub agent chat reconnects to *that* chat's
 URL, not whichever issue was connected most recently elsewhere.
 
-To review or change the issue URL instead of a plain resume, select the chat and
-click the `GitHub agent` agent label. Its caption already shows the bound issue
-(for example `GitHub agent · owner/repository/issues/12`), and clicking it opens
-**Change Issue Link**, locked to **GitHub agent** and prefilled with the current
-URL. Confirming disconnects any active channel first, then reconnects with
-whatever URL was entered. There is no separate reconnect command or button.
+One DSI Studio chat is bound to one issue for its lifetime; the agent label shows
+it (for example `GitHub agent · owner/repository/issues/12`). There is no way to
+change a chat's issue. If Resume fails -- the issue was closed or deleted, the
+token lost access, or the first connection never succeeded -- the chat simply
+stays failed; delete it and start a new chat for another issue.
 
 DSI Studio never reconnects a GitHub issue channel automatically on its own --
 not on startup, not in the background. Reconnecting always requires clicking
-**Resume** or confirming **Change Issue Link**.
+**Resume**.
 
 When resuming the same issue:
 
@@ -344,6 +343,13 @@ When resuming the same issue:
 - keep the same session UUID to continue the same DSI Studio chat;
 - use an ID greater than the existing `last_id`;
 - never resend an already acknowledged request.
+
+DSI Studio never executes a request that is already in the issue body when it
+connects. Such a request was posted while the channel was down, or DSI Studio
+stopped before publishing its result, so its outcome is unknown: DSI Studio
+publishes an `error` result for that ID saying so, without running it. Verify
+the current state (for example with `list_window` or `log`), then resend
+anything still needed with a higher ID.
 
 Using a different session UUID creates a different DSI Studio chat when the next
 request arrives.
