@@ -452,6 +452,11 @@ yield as proof that the anatomical pathway is absent. If many named pathways fai
 investigate data quality, b-table/orientation, reconstruction, and mapping rather than
 continuing to relax tolerance.
 
+To tell a registration failure from a tracking-parameter failure, run file-based
+AutoTrack with `--debug=1 --overwrite=1` (see "AutoTrack diagnostics" in
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`). It saves the warped template and atlas
+plus a per-attempt table without changing the tracking result.
+
 Larger tolerance accepts more variation and false positives; smaller tolerance may
 reject distorted or variable anatomy.
 
