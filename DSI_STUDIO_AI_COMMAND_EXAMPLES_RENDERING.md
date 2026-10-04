@@ -48,6 +48,8 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `add_surface_posterior` | `["add_surface_posterior",7,0.6]` | Create a surface after retaining the posterior portion relative to the current Y slice position. |
 | `add_surface_anterior` | `["add_surface_anterior",7,0.6]` | Create a surface after retaining the anterior portion relative to the current Y slice position. |
 | `clear_surface` | `["clear_surface"]` | Remove the current single surface, refresh the OpenGL view, and leave the `show_surface` rendering setting unchanged. |
+| `show_fib_protocol` | `["show_fib_protocol"]` | Return the FIB file's processing protocol (numbered steps from source to FIB) for methods/provenance. AI callers get the text directly in `output`; a local user sees it in a dialog. |
+| `save_fib_protocol` | `["save_fib_protocol","C:/output/sub01_fib_protocol.txt"]` | Same text as `show_fib_protocol`, always written to the given path, for any caller. The path is required. |
 
 ## Reading `preview_screen` output
 

@@ -21,6 +21,7 @@ This file contains the complete slice and segmentation inventory confirmed in th
 | `move_slice` | `["move_slice","80 100 80"]` | Move the shared crosshair to voxel coordinates in current slice space. The three coordinates remain one composite string. |
 | `enable_slice` | `["enable_slice","1 1 0"]` | Set sagittal, coronal, and axial visibility in that order. The three flags remain one composite string. |
 | `set_slice_contrast` | `["set_slice_contrast","0 1"]` | Set the current slice minimum and maximum display values. An optional third composite string sets packed Qt minimum and maximum colors. |
+| `load_color_map` | `["load_color_map","C:/data/color_map/hot.txt"]` | Load a color-map text file and apply it to the **current** slice view (select the slice first with `set_slice`). AI callers must supply the file; omitting it returns a usage error. A local user who omits it picks the file in a dialog (default folder `color_map/`), and the chosen path is recorded for replay. Fails with `invalid color map format` on an unreadable file. Same action as the GUI's Load Color Map. |
 | `set_slice_dir_color` | `["set_slice_dir_color",7,1]` | Enable or disable directional coloring for one slice index. |
 | `set_slice_overlay` | `["set_slice_overlay",7,1]` | Enable or disable overlay mode for one slice index. |
 | `set_slice_stay` | `["set_slice_stay",7,1]` | Add or remove one slice from the persistent display list. |

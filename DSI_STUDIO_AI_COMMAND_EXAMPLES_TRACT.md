@@ -233,7 +233,19 @@ Use live discovery rather than assuming resource defaults:
 ["list_param","fa_threshold"]
 ["set_param","fa_threshold",0.08]
 ["set_params","fa_threshold=0.08&min_length=20&turning_angle=60"]
+["get_parameter_id"]
+["load_parameter_id","<parameter id>"]
 ```
+
+`get_parameter_id` prints the compact parameter ID that encodes the current
+tracking settings (the same code DSI Studio records in its methods text).
+`command[1]` is `include_tip`, default `1`, which keeps `tip_iteration` in the code
+so a later `load_parameter_id` restores it; `0` gives the regular non-AutoTrack form
+(TIP still included when differential tracking is active). `load_parameter_id`
+applies a parameter ID to the tracking parameters in one step; it is the inverse
+of `get_parameter_id`, and a malformed ID is not validated. AI callers must supply
+the ID; omitting it returns a usage error. Use these to record or restore an exact
+tracking configuration, and `list_param tracking` to read individual values.
 
 `list_param tracking` returns current values from the basic, differential, and
 advanced tracking groups. Metric lists may depend on the loaded FIB.
