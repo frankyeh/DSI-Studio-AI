@@ -331,7 +331,8 @@ One DSI Studio chat is bound to one issue for its lifetime; the agent label show
 it (for example `GitHub agent · owner/repository/issues/12`). There is no way to
 change a chat's issue. If Resume fails -- the issue was closed or deleted, the
 token lost access, or the first connection never succeeded -- the chat simply
-stays failed; delete it and start a new chat for another issue.
+stays failed (or, if it never connected, stays new); delete it and start a new
+chat for another issue.
 
 DSI Studio never reconnects a GitHub issue channel automatically on its own --
 not on startup, not in the background. Reconnecting always requires clicking
