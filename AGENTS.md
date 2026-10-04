@@ -732,7 +732,7 @@ source data or running reconstruction.
 
 ## 12. Related documents
 
-- [Launcher selection and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
+- [Launcher selection, agent configuration, local Ollama models, and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
 - [Direct GitHub issue control](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
