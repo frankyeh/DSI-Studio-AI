@@ -68,6 +68,22 @@ bash ./dsi.sh run_cli "--action=atk --source=C:/data/subject.fz --track_id=Corti
 
 For `trk`, the overlap table is created from the source-derived pre-save tract filename and therefore may not follow a later `--output` tract filename. For `atk`, each completed named bundle gets its own `<bundle-tract-file>.overlap.txt` beside its normal AutoTrack output.
 
+### AutoTrack diagnostics (`--debug`)
+
+When an AutoTrack bundle is empty or implausible, `--debug` shows whether registration or tracking is responsible. It only saves diagnostic files; registration, tracking, and the final bundle and statistics are unchanged. Bundles that already have results are skipped as usual, so rerun them with `--overwrite=1`:
+
+```bash
+bash ./dsi.sh run_cli "--action=atk --source=C:/data/subject.fz --track_id=Arcuate --debug=1 --overwrite=1"
+```
+
+Outputs:
+
+- Once per FIB, in the output folder: `<fib>.debug.template_qa.nii.gz`, `<fib>.debug.template_iso.nii.gz` (when the template has an ISO image), and `<fib>.debug.atlas.tt.gz` with its cluster names in `<fib>.debug.atlas.tt.gz.txt`. These are the template and the tractography atlas warped into subject space by the run's own mapping.
+- Per bundle, beside its tract file: `<bundle>.debug.tsv`, one row per tolerance attempt with `attempt`, `tolerance`, `effective_tolerance`, `min_length`, `max_length`, `tip_iteration`, `seeds`, `generated`, `pre_tip`, `post_tip`, `tip_undone`, `selected`, and `outcome` (`low_yield`, `no_tracks`, `tip_undone`, or `selected`).
+- Per bundle and attempt: `<bundle>.debug<attempt>.<seed|limiting|not_end|roi|roa>.nii.gz`, the atlas-derived regions used by that attempt.
+
+Interpretation: if the warped template or atlas does not overlay the subject, the problem is registration. If it overlays well but the TSV shows `low_yield` or `no_tracks` for every attempt, inspect tracking parameters, tolerance, and data quality. `tip_undone` means TIP removed the whole bundle and AutoTrack kept the untrimmed result.
+
 When a tracking window is already open, prefer the direct nonmutating AI commands when they express the requested operation more simply:
 
 ```bash
