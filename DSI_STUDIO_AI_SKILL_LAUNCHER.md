@@ -236,6 +236,53 @@ UUID to tool subprocesses. DSI Studio does not synthesize or override this value
 Because Antigravity runs from the selected project directory, use the absolute
 `dsi.sh` path supplied in DSI Studio's startup prompt instead of `./dsi.sh`.
 
+### Local models through Ollama (Claude and Codex)
+
+Claude and Codex can run on a model served by Ollama, either on the same computer
+or on another machine on a trusted LAN. DSI Studio, the agent CLI, and `dsi.sh`
+stay on the client; only the model runs on the Ollama server. The client does not
+need an Ollama binary.
+
+Server setup (on the Ollama machine):
+
+- Bind Ollama to the LAN, e.g. `OLLAMA_HOST=0.0.0.0:11434`, and restart it.
+- Allow TCP 11434 only from the DSI Studio workstation or subnet. Ollama has no
+  authentication; never expose it to the Internet.
+- Use a tool-capable coding model (e.g. `qwen3-coder` or `gpt-oss` class) with a
+  64K context, e.g. `OLLAMA_CONTEXT_LENGTH=65536`. A short context truncates the
+  agent's system prompt and breaks tool use.
+- Optional: `OLLAMA_KEEP_ALIVE=30m` avoids reloading the model at each chat.
+- Codex needs an Ollama release that serves `/v1/responses`. If Codex reports a
+  404 for that path, update Ollama.
+
+Client setup (DSI Studio): AI Settings → Ollama connection → set Host/IP and Port,
+then Check connection.
+
+| Check connection message | Meaning |
+|---|---|
+| `Connected · N models` | Ollama reached and models listed |
+| `Connected · no models installed` | Ollama reached; pull a model on the server |
+| `Reachable, but not an Ollama server` | another service answers on that port |
+| `No response within 10 s ...` | server asleep, wrong address, or port blocked |
+| `Unavailable: <error>` | connection refused, DNS failure, or other network error |
+
+Ollama models then appear for Claude and Codex as `<model> (Ollama@<host>)` in New
+Chat. One Host/IP and Port setting is shared by both agents:
+
+- Claude connects to `http://<host>:<port>` (Anthropic-compatible API).
+- Codex connects to `http://<host>:<port>/v1` (Responses API) through a
+  DSI Studio-supplied `-c` provider override; the user's `~/.codex/config.toml` is
+  not changed.
+- Each chat keeps the server it was created with. Changing Host/IP affects only the
+  model list for new chats.
+- DSI Studio adds the Ollama host to `NO_PROXY` for the agent process, so a
+  system proxy does not intercept LAN traffic.
+
+Check connection proves connectivity and model discovery only, not that a model can
+handle the agent's system and tool protocol. Some models fail at that level; for
+example, `qwen3.8:27b` under Claude returns HTTP 500 "System message must be at the
+beginning". Choose another model when an error like this appears in the chat.
+
 ## Windows launcher smoke test
 
 `.github/scripts/test_launcher_windows.ps1` and the `Launcher smoke` workflow guard
