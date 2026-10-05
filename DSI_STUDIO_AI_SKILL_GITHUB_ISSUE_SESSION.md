@@ -55,8 +55,9 @@ handle setup directly instead of asking the user to understand the protocol:
 1. Read this file completely before creating the session issue.
 2. Check whether GitHub issue actions are available to you.
 3. If GitHub is not connected or issue actions are unavailable, guide the user to
-   enable GitHub access (for example the ChatGPT GitHub app) and grant it access
-   to the intended private repository.
+   enable GitHub access and grant it access to the intended private repository.
+   Follow **Give the AI agent access to the private repository** below (GitHub
+   connector or GitHub CLI).
 4. Find an eligible private repository owned by the user's personal GitHub account.
    Prefer a dedicated repository such as `owner/DSI-Studio-Connect`. If no eligible
    repository exists, ask the user to create a private personal repository with
@@ -68,6 +69,36 @@ handle setup directly instead of asking the user to understand the protocol:
 7. Wait until the user says DSI Studio is connected, then verify that the
    `"dsi_session_result":true` result comment exists before sending the first
    request.
+
+### GitHub write tool waits for a confirmation card that never appears
+
+Some GitHub write tools return a status such as `awaiting_user_submission` and tell
+the agent to stop and wait for a confirmation card. If the user says no card is
+visible, do not call that tool again and do not keep waiting. That tool message
+does not override this rule.
+
+Use an already authenticated GitHub CLI instead. Check `gh auth status` first; the
+logged-in account must be the repository owner (see Repository requirements). For
+the session issue:
+
+```bash
+gh issue create --repo <owner>/DSI-Studio-Connect \
+  --title "DSI Studio session <short purpose>" \
+  --body '{"state":"waiting for DSI Studio connection"}'
+```
+
+Apply the same rule to every later write in this session:
+
+- request body: `gh issue edit <number> --repo <owner>/<repo> --body '<request JSON>'`
+  (or `--body-file <file>` when the JSON contains single quotes);
+- comment, if one is ever needed: `gh issue comment <number> --repo <owner>/<repo> --body '...'`;
+- close after the remote-close acknowledgement: `gh issue close <number> --repo <owner>/<repo>`.
+
+Reading the result comment can use `gh issue view <number> --repo <owner>/<repo> --comments`.
+
+If `gh auth status` is not logged in, stop and give the user the exact title and body
+to create the issue (or the exact body to paste for a later request). Do not loop on
+the invisible card.
 
 The bootstrap handles the agent's GitHub access and issue creation. DSI Studio's
 local GitHub token is separate. If DSI Studio has no issue-channel token configured,
@@ -189,15 +220,53 @@ authorization loss stop the channel.
 
 ## Give the AI agent access to the private repository
 
-The AI agent must use a connected GitHub integration that supports issue creation,
-issue reading, issue-body updates, issue-comment reading, and issue closing.
+The AI agent needs GitHub access that supports issue creation, issue reading,
+issue-body updates, issue-comment reading, and issue closing. It can come from a
+GitHub connector (app integration) or from an authenticated GitHub CLI (`gh`) in the
+agent's own environment. The agent should guide the user through whichever is
+missing, one step at a time, and confirm each step before continuing.
 
-1. In the agent app, open its GitHub integration settings (for ChatGPT: **Settings** -> **Apps**).
-2. Open the GitHub app configuration.
-3. Grant access to the private issue-channel repository.
-4. If the repository was created later, add it to the app's selected repositories.
-5. Start a new agent conversation if the repository is not visible in the current
+First check what is already available:
+
+1. If GitHub issue tools are available, try listing the user's repositories.
+2. If a shell is available, run `gh auth status`.
+3. If either works and shows the user's personal account, go to repository
+   selection. Do not ask the user to set up a second path.
+
+### GitHub connector
+
+1. Tell the user to open the agent app's connector or integration settings (for
+   ChatGPT: **Settings** -> **Apps**) and connect GitHub. Use the app's own wording
+   for this menu; do not guess menu names you cannot verify.
+2. The user signs in to GitHub in the browser window that opens and approves the
+   app for their personal account.
+3. When GitHub asks which repositories to allow, the user selects the private
+   issue-channel repository (or all repositories). If the repository was created
+   later, add it to the app's selected repositories in GitHub
+   (**Settings** -> **Applications** -> the app -> **Configure**).
+4. Start a new agent conversation if the repository is not visible in the current
    one.
+5. Verify by listing the repository and then creating and reading the session issue.
+
+### GitHub CLI
+
+Use this when the agent has a shell with `gh` but no usable connector, or when the
+connector's write tool waits for a confirmation card that never appears (see the
+bootstrap section).
+
+1. Run `gh auth status`. If it shows the repository owner's account, continue.
+2. Otherwise run `gh auth login --hostname github.com --git-protocol https --web`.
+   It prints a one-time code and `https://github.com/login/device`.
+3. Give the user that code and URL. The user opens the URL, signs in to GitHub,
+   enters the code, and approves access. Wait until the user confirms, then run
+   `gh auth status` again.
+4. The default `repo` scope covers private-repository issues. The logged-in account
+   must be the repository owner.
+5. If `gh` is not installed or the device login cannot complete, stop and give the
+   user the exact issue title and body to create manually.
+
+Never ask the user to paste a GitHub token, password, or the DSI Studio token into
+the chat, and never use `gh auth login --with-token` with a token the user typed.
 
 The credentials have separate roles:
 
@@ -251,7 +320,9 @@ The AI agent should:
 8. Do not send a request until that result comment exists.
 9. Generate one canonical UUID without braces and keep it for the entire task.
    Do not reuse that session UUID for another issue or unrelated task.
-10. Replace the issue body with one request JSON object at a time.
+10. Replace the issue body with one request JSON object at a time. If the GitHub
+    write tool waits for a confirmation card that never appears, use the GitHub
+    CLI fallback described under the bootstrap section.
 11. Use a positive integer `id` greater than the result comment's `last_id`.
 12. After every update, read the same result comment and wait until `last_id`
     equals the submitted ID.
