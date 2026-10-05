@@ -24,27 +24,29 @@ An empty **Issue URL** is the normal first-run state for a user who has just sel
 **GitHub (ChatGPT, Muse, ...)**. The user is not expected to know how to create the
 GitHub issue or understand the issue-channel protocol before starting.
 
-DSI Studio offers **Ask ChatGPT...** and **Ask Muse...** helper buttons. Each opens
-the chosen agent in the default browser and copies a short bootstrap prompt naming
-that agent to the clipboard. The user pastes the prompt into a new conversation with
-that agent. The public `frankyeh/DSI-Studio-AI` repository can be read before the
+DSI Studio's New Chat dialog guides this in three steps: **Copy setup prompt** copies
+a short agent-neutral bootstrap prompt to the clipboard; helper buttons for supported
+web AI agents (**Open ChatGPT**, **Open Muse**, **Open Grok**) open that agent in the
+default browser, where the user pastes the prompt into a new conversation; the user
+then pastes the returned Issue URL back into DSI Studio. The public `frankyeh/DSI-Studio-AI` repository can be read before the
 private issue-channel repository has been selected.
 
-A suitable bootstrap prompt is (with the agent name filled in):
+The copied bootstrap prompt is:
 
 ```text
-I want to connect ChatGPT to DSI Studio.
+I want to connect an AI agent to DSI Studio.
 
-Read the public GitHub file:
+First read the public GitHub file:
+
 frankyeh/DSI-Studio-AI/DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md
 
-Follow its bootstrap instructions. Use the GitHub tools available to you. If
-GitHub issue access is not available, guide me through enabling it first. Find
-an eligible private personal repository for the DSI Studio issue channel,
-preferably DSI-Studio-Connect, create a new DSI Studio session issue, and give
+Follow its instructions for starting a new AI agent GitHub issue session. Use the
+GitHub tools available to you. If GitHub is unavailable, guide me through enabling
+it first. Create or select an appropriate private personal GitHub repository,
+preferably DSI-Studio-Connect, create the required session issue, and clearly give
 me the complete Issue URL to paste into DSI Studio.
 
-Do not send DSI Studio commands until I tell you that DSI Studio has connected.
+Do not send DSI Studio commands until I confirm that DSI Studio is connected to the issue.
 ```
 
 When an agent conversation arrives through this bootstrap path, the agent should
@@ -277,8 +279,8 @@ is created by the AI agent during bootstrap.
 First-time setup:
 
 1. Open DSI Studio's **AI Agent** window and click **New Chat**.
-2. In **Agent**, select **GitHub agent**.
-3. If **Issue URL** is empty, use DSI Studio's setup helper (**Ask ChatGPT...** / **Ask Muse...**). It opens the chosen agent and copies the bootstrap prompt shown above. Paste the prompt into that agent.
+2. In **Agent**, select **GitHub (ChatGPT, Muse, ...)**.
+3. If **Issue URL** is empty, click **Copy setup prompt**, then open a web AI agent with GitHub issue access (**Open ChatGPT**, **Open Muse**, **Open Grok**, or any other) and paste the prompt into a new conversation.
 4. Follow the agent's setup guidance. The agent will verify GitHub issue access, select
    an eligible private personal repository, and create the new session issue.
 5. Copy the complete issue URL returned by the AI agent, return to DSI Studio, and paste
