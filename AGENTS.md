@@ -1,13 +1,14 @@
 # DSI Studio
 
-These instructions are shared by Codex, Claude, Muse, and Antigravity agents. `AGENTS.md` is the
+These instructions are shared by Codex, Claude, Muse, Antigravity, and Grok agents. `AGENTS.md` is the
 authoritative operating manual for DSI Studio AI. Topic-specific command inventories
 remain in the related `DSI_STUDIO_AI_*.md` files and should be read only when needed.
 
 ## 1. Launcher and session
 
-DSI Studio starts Codex, Claude, and Muse in this DSI Studio AI directory and
-separately grants access to the user-selected project directory. Antigravity starts
+DSI Studio starts Codex, Claude, Muse, and Grok in this DSI Studio AI directory and
+separately grants access to (or, for Grok, names in the startup prompt) the user-selected
+project directory. Antigravity starts
 in the selected project directory; its startup prompt gives the absolute path to this
 AI directory and launcher. Do not copy the AI support files into the project directory.
 
@@ -19,12 +20,13 @@ Codex       -> CODEX_THREAD_ID
 Claude      -> CLAUDE_CODE_SESSION_ID
 Muse        -> MUSE_SESSION_ID
 Antigravity -> ANTIGRAVITY_CONVERSATION_ID
+Grok        -> GROK_SESSION_ID
 ```
 
 Do not search for, invent, replace, or pass the agent name or session value on the
 command line.
 
-Use the same launcher for Codex, Claude, Muse, and Antigravity:
+Use the same launcher for Codex, Claude, Muse, Antigravity, and Grok:
 
 ```bash
 bash ./dsi.sh <command> [values...]
