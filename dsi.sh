@@ -48,6 +48,7 @@ session_vars = {
     "Claude": "CLAUDE_CODE_SESSION_ID",
     "Muse": "MUSE_SESSION_ID",
     "Antigravity": "ANTIGRAVITY_CONVERSATION_ID",
+    "Grok": "GROK_SESSION_ID",
 }
 session_var = session_vars.get(agent)
 if not session_var:
