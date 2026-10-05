@@ -16,6 +16,7 @@ Codex       -> CODEX_THREAD_ID
 Claude      -> CLAUDE_CODE_SESSION_ID
 Muse        -> MUSE_SESSION_ID
 Antigravity -> ANTIGRAVITY_CONVERSATION_ID
+Grok        -> GROK_SESSION_ID
 ```
 
 The launcher does not infer the agent from whichever session variables happen to be
@@ -88,18 +89,22 @@ powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& '.
 | Claude | Windows | Yes | `bash ./dsi.sh ...` | Git Bash, Windows PowerShell, and Bash permission | Shared recommended route; Python is not required |
 | Muse | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
 | Antigravity | Windows | Yes | `bash <AI-dir>/dsi.sh ...` | Git Bash and Windows PowerShell | Antigravity runs from the selected project directory |
+| Grok | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
 | Codex | Windows | No | `./dsi ...` | `dsi.cmd`, `dsi.ps1`, and Windows PowerShell | Native wrapper uses the PowerShell call-operator route |
 | Claude | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1`, Windows PowerShell, and PowerShell permission | Native PowerShell route |
 | Muse | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Native PowerShell route |
 | Antigravity | Windows | No | `& <AI-dir>/dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Use the absolute AI directory from the startup prompt |
+| Grok | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Native PowerShell route |
 | Codex | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | macOS | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
 | Muse | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Antigravity | macOS | Yes | `bash <AI-dir>/dsi.sh ...` | Bash and Python 3 | Antigravity runs from the selected project directory |
+| Grok | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Codex | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Claude | Linux | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
 | Muse | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 | Antigravity | Linux | Yes | `bash <AI-dir>/dsi.sh ...` | Bash and Python 3 | Antigravity runs from the selected project directory |
+| Grok | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
 
 ## File roles
 
@@ -235,6 +240,18 @@ Antigravity itself exports `ANTIGRAVITY_CONVERSATION_ID` with its real conversat
 UUID to tool subprocesses. DSI Studio does not synthesize or override this value.
 Because Antigravity runs from the selected project directory, use the absolute
 `dsi.sh` path supplied in DSI Studio's startup prompt instead of `./dsi.sh`.
+
+### Grok
+
+DSI Studio launches `grok agent --always-approve stdio` (Grok Build ACP) in this AI
+directory and passes the chat's UUID as `session/new._meta.sessionId`. Grok exports
+that native session ID to its tool subprocesses as `GROK_SESSION_ID` (Grok Build
+1.0.4 or later). Sign in with `grok login`; usage is billed to the xAI account used
+for that sign-in. Grok runs with always-approve, like Muse.
+
+Grok stores sessions by working directory. A chat started from one DSI Studio install
+folder may not reopen from a different install folder; DSI Studio then reports the
+load failure instead of starting a new conversation.
 
 ### Local models through Ollama (Claude and Codex)
 
@@ -404,11 +421,13 @@ Codex       -> CODEX_THREAD_ID
 Claude      -> CLAUDE_CODE_SESSION_ID
 Muse        -> MUSE_SESSION_ID
 Antigravity -> ANTIGRAVITY_CONVERSATION_ID
+Grok        -> GROK_SESSION_ID
 ```
 
 DSI Studio supplies `DSI_STUDIO_AGENT`. Claude Code normally supplies
 `CLAUDE_CODE_SESSION_ID` to its Bash and PowerShell tool subprocesses; Codex
 supplies `CODEX_THREAD_ID`; DSI Studio supplies `MUSE_SESSION_ID` to Muse using
 the same UUID as its MSP session; Antigravity supplies
-`ANTIGRAVITY_CONVERSATION_ID` to its own tool subprocesses. The launchers
+`ANTIGRAVITY_CONVERSATION_ID` to its own tool subprocesses; Grok supplies
+`GROK_SESSION_ID` to its own tool subprocesses. The launchers
 intentionally do not accept any session value as a command-line argument.
