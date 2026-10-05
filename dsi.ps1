@@ -40,6 +40,7 @@ switch($Agent)
     'Claude'      { $Session = $env:CLAUDE_CODE_SESSION_ID }
     'Muse'        { $Session = $env:MUSE_SESSION_ID }
     'Antigravity' { $Session = $env:ANTIGRAVITY_CONVERSATION_ID }
+    'Grok'        { $Session = $env:GROK_SESSION_ID }
     default       { throw 'Missing or invalid DSI_STUDIO_AGENT.' }
 }
 
