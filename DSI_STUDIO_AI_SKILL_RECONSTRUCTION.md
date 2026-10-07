@@ -107,6 +107,9 @@ sequence; when using the GUI, do them in the same order manually:
 2. **Image orientation** (rotation, flips) — b-vectors transform with it.
 3. **TOPUP** — susceptibility distortion correction (needs reverse-phase data).
 4. **EDDY** — eddy-current and motion correction.
+   **T1w distortion correction** (`correct_by_t1w`) — the alternative to
+   TOPUP when there is no reverse-phase data; run it after EDDY or motion
+   correction (see below).
 5. **Bias field correction** — coil sensitivity creates smooth
    signal-intensity variation across the image that biases the final QA
    values. Correct it before reconstruction.
@@ -167,9 +170,27 @@ Decide from what data is available, not from habit:
   `<name>.topup.acqparams.txt`, and a `.topup_log`. Presence of these outputs
   means TOPUP already ran — do not run it again.
 
-- **No reverse-phase data** → EDDY alone for motion and eddy currents.
-  Accept that susceptibility distortion cannot be fully corrected; do not
-  claim otherwise.
+- **No reverse-phase data, T1w available** → EDDY (or motion correction)
+  first, then `correct_by_t1w=<T1w>|<mm>`
+  (GUI: **[Corrections][T1w Distortion Correction...]**). It uses only the
+  first b0 and converts it to T1-like contrast. It then brain-extracts and
+  bias-corrects the T1w, rigidly aligns the T1w to the b0, and estimates a
+  nonlinear warp restricted to the image y axis (AP–PA). All DWI volumes are
+  warped once from the native data with T1-guided interpolation and Jacobian
+  signal modulation, and the mask is rebuilt.
+  - Assumes the phase-encoding direction is along the image y axis (AP/PA).
+    Do not use it for LR/RL acquisitions.
+  - The same warp is applied to every volume, so volumes must already be
+    aligned to the first b0; that is why EDDY/motion correction comes first.
+  - The output resolution (`|1.5`, `|1.0`, or `|0` for native) replaces a
+    separate resampling step. Do not resample again afterward.
+  - It fails with an error when it finds folding in the deformation or
+    cannot extract the T1w brain. Report the error; do not retry blindly.
+  - Inspect the corrected b0 against the T1w (attach the T1w) before
+    reconstruction.
+- **No reverse-phase data and no T1w** → EDDY alone for motion and eddy
+  currents. Accept that susceptibility distortion cannot be fully corrected;
+  do not claim otherwise.
 - **Clean single-shell data, minimal motion** → EDDY is optional. Inspect
   first; do not preprocess by default.
 
