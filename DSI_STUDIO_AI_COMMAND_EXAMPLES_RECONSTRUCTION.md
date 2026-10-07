@@ -129,7 +129,7 @@ Both setters accept `name=value[&name=value...]`.
 | `eddy` | `bash ./dsi.sh eddy` | Run EDDY without an explicit TOPUP source. |
 | `motion_correction` | `bash ./dsi.sh motion_correction` | Run motion correction. |
 | `bias_field_correction` | `bash ./dsi.sh bias_field_correction` | Correct signal inhomogeneity. |
-| `correct_by_t2w` | `bash ./dsi.sh correct_by_t2w "C:/data/T2w.nii.gz"` | Correct distortion using a T2-weighted image. Omit the path for a local picker. |
+| `correct_by_t1w` | `bash ./dsi.sh correct_by_t1w "C:/data/T1w.nii.gz\|1.5"` | Correct AP–PA susceptibility distortion using the subject's T1w image. The optional `\|<mm>` suffix sets the isotropic output resolution (`0` or no suffix = native). Omit the path for a local picker. The legacy `correct_by_t2w` token is an alias that runs the same correction at native resolution. |
 | `orientation_correction` | `bash ./dsi.sh orientation_correction` | Apply automatic volume-orientation correction. |
 | `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. |
 
