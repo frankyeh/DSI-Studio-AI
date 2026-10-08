@@ -62,6 +62,11 @@ If the connector is missing or read-only:
 3. Ask them to come back to this chat (or start a new one and paste the connection prompt
    again) once it is connected, then retry reading the document.
 
+Known connectors:
+
+- **Claude:** use the **Google Docs** connector (`update_doc`) to write. The Google Drive
+  connector can only read the document.
+
 If your product has no connector that can edit a Google Doc, say so plainly and suggest
 another web-based agent. Do not ask the user to copy messages into the document by hand,
 and do not send commands any other way.
@@ -80,6 +85,21 @@ Google Docs API. Typing it in the editor can turn quotes into smart quotes.
 ```json
 {"dsi_bridge":true,"session":"<uuid>","id":1,"from":"agent","state":"request","command":{"cmd":"list_window"}}
 ```
+
+To replace the body, read the document first (`documents.get`), then send one
+`documents.batchUpdate`:
+
+```json
+{"requests":[
+  {"deleteContentRange":{"range":{"startIndex":1,"endIndex":<endIndex - 1>}}},
+  {"insertText":{"location":{"index":1},"text":"<compact JSON request>"}}],
+ "writeControl":{"requiredRevisionId":"<revisionId from the read>"}}
+```
+
+`endIndex` is that of the last element in `body.content`. Deleting only up to
+`endIndex - 1` keeps the final newline every Doc must have. If the body is already
+empty (`endIndex` is 2), send only `insertText`. If the update fails because the
+revision changed, read the document again before retrying.
 
 - `id` starts at 1 and increases by one for each request.
 - `command` is one `{"cmd":...,"param":...}` object or an ordered array of them. An
