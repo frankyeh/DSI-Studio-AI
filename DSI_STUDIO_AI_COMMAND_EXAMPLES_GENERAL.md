@@ -209,8 +209,13 @@ may use their full documented argument lists:
   index within the reported tag.
 - Offset and limit apply after combining matching files across tags. Omit the limit
   to return every remaining match; an explicit limit of `0` returns no rows.
-- `hub_open` obtains one file if needed and opens it; `hub_download` downloads or
-  caches files without opening them.
+- `hub_open` obtains one file if needed and opens it in a new window; `hub_download`
+  downloads or caches files without opening them. Never use `hub_open` to fetch a
+  cohort: a request with more than one `hub_open` is rejected with
+  `multiple hub_open commands are not allowed in one request; use hub_download for bulk files`.
+  Bulk example (session-01 QSDR files of one OpenNeuro dataset):
+  `["hub_download","data-openneuro/disease","^ds001378$","*_ses-01_dwi.qsdr.fz","C:/data/ds001378"]`.
+  Files already in the destination are skipped, so a rerun downloads only what is missing.
 - Before bulk-downloading subject `.fz` files, check whether the tag already
   provides a derived file that matches the analysis, such as a `.dz`/`.db.fz`
   connectometry database. Prefer the highest-level ready-made file over rebuilding
