@@ -450,6 +450,10 @@ corresponding GitHub releases without routing through DSI Studio. The direct-acc
 guide is maintained in `frankyeh/Brain-Data`:
 https://github.com/frankyeh/Brain-Data/blob/gh-pages/AGENTS.md
 
+Before bulk-downloading, inspect the dataset's available files and prefer an
+existing analysis-ready derivative (for example a connectometry `.dz`) when it
+directly satisfies the task.
+
 Use the DSI Studio route below when it is convenient or when the task needs DSI
 Studio to open, visualize, track, or analyze Hub data. If one route is unavailable,
 use the other when it can satisfy the same request. Do not force either route when
