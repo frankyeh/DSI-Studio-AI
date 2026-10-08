@@ -11,7 +11,7 @@ write a request, and DSI Studio replaces it with the result.
 The Web transport does not depend on the agent. Any web-based AI agent that can read and
 write a Google Doc can use it. It has been confirmed with ChatGPT, Claude, and Muse.
 
-To confirm a new agent, run the full workflow: connect, `set_title`, `chat`,
+To confirm a new agent, run the full workflow: connect, `set_title`, a `chat`-only request,
 `list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate fasciculus, and
 `list_tract` showing both bundles done.
 
