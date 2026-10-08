@@ -12,7 +12,7 @@ Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio comma
 bash ./dsi.sh run_cli "--action=vis --source=C:/data/subject.fz --cmd=list_tract"
 ```
 
-GitHub agent form:
+Web agent form:
 
 ```json
 {"command":{"cmd":"run_cli","param":"--action=vis --source=C:/data/subject.fz --cmd=list_tract"}}
@@ -116,7 +116,7 @@ bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
 bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
 ```
 
-GitHub agent form:
+Web agent form:
 
 ```json
 {"command":{"cmd":"run_shell","param":"dir \"*.fz\" /s /b"}}
@@ -161,7 +161,7 @@ bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zi
 
 The initial `log` may be empty; its purpose is to initialize the cursor. Poll `list_window` until the reported `curlN` entry disappears, then call `log` again.
 
-GitHub agent route: set `include_log:true` on the curl-start request, or send a separate `log` request before curl. The immediate `response.log` may be empty, but it initializes the cursor. After `curlN` disappears, send a later higher-ID `log` request to retrieve the transfer output or error.
+Web agent route: send a `{"cmd":"log"}` request before curl; its reply may be empty, but it initializes the cursor. After `curlN` disappears, send a later higher-ID `log` request to retrieve the transfer output or error.
 
 If the session had already called `log`, no extra initialization is needed.
 
@@ -198,4 +198,4 @@ Both commands are handled by MainWindow before fallback to the selected data win
 - Do not place a dependent open or processing command after `curl` in the same array.
 - Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 
-Never send a DSI Studio `--action=...` line through `run_shell`. Never send an operating-system command through `run_cli`.
+Never send a DSI Studio `--action=...` line through `run_shell`. Never send an operating-system command through `run_cli`.
