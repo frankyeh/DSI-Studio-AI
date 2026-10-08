@@ -169,8 +169,7 @@ everything else is passed to the operating system shell after local user approva
   the task was registered, not that the transfer completed.
 - Initialize the session log cursor before the first asynchronous curl. With the
   launcher, call `log` once before `run_shell curl`; the first log may be empty. With
-  GitHub agent: send a prior `log` request or set `include_log:true` on the curl-start
-  request.
+  a Web agent, send a `{"cmd":"log"}` request before the curl-start request.
 - While curl is active, `list_window` reports its synthetic `curlN` ID as `busy`.
   Poll until the entry disappears, then call `log` again to retrieve output or errors.
 - There is currently no AI command for cancelling a `curlN` task, and no completion
