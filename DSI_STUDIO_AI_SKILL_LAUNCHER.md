@@ -81,6 +81,22 @@ When starting Windows PowerShell explicitly, use the call operator rather than
 powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& './dsi.ps1' list_window"
 ```
 
+## External agent sessions
+
+An agent started outside DSI Studio has no DSI Studio chat, so its commands return
+`session not found`. Set `DSI_STUDIO_AGENT` to the agent name (DSI Studio sets it only for
+agents it launches), then run once, only when the user explicitly asks to connect this
+session to DSI Studio:
+
+```bash
+bash ./dsi.sh new_chat
+```
+
+This registers the agent's own session UUID as a new chat. Run it alone, without other
+commands, values, or `-Chat`. It fails with `session already exists` if the chat exists.
+Never run it automatically after `session not found`: a chat removed by the user must stay
+removed.
+
 ## Launcher selection
 
 | Agent | OS | Bash available | Recommended launcher | Requirements | Notes |
