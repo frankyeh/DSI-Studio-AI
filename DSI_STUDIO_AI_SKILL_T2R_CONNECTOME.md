@@ -206,11 +206,11 @@ or gain by itself.
 For atlas T2R figures, use the same tract definition, rendering scale, and camera
 recipe across sessions whenever possible.
 
-## 8. GitHub response-size and state-recovery cautions
+## 8. Response and state-recovery cautions
 
-AutoTrack and large atlas operations can generate verbose output. If a GitHub issue
-response is truncated, treat that as a transport/publication problem rather than proof
-that DSI Studio failed. Verify compact state with commands such as `list_window`,
+AutoTrack and large atlas operations can generate verbose output. If a Web response
+is missing or incomplete, treat that as a transport problem rather than proof that
+DSI Studio failed. Verify compact state with commands such as `list_window`,
 `list_tract`, or a narrow parameter query before repeating expensive work.
 
 If DSI Studio restarts or the tracking window disappears, a later tracking command may
