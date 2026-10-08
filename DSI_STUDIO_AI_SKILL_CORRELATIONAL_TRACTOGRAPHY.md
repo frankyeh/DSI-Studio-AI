@@ -514,7 +514,73 @@ after that.
   SCA2's already-low cross-sectional baseline there, not taken at face value
   as controls declining unusually fast.
 
-### 8. Save and, if needed, visualize
+### 8. Post-hoc anatomical characterization and tract volume
+
+After a statistically supported connectometry result is produced, characterize
+the significant tract set **post hoc** in the result tracking window rather
+than trying to infer pathway names from appearance alone. `show_result` opens
+or exposes the result tractogram in a `tracking<hex>` window; use `list_window`
+to identify that window and confirm which tract index corresponds to the
+reported increase/decrease finding before computing statistics.
+
+First quantify the result tractogram itself:
+
+```bash
+bash ./dsi.sh show_tract_statistics
+```
+
+`show_tract_statistics` reports the streamline count and spatial tract volume
+(in mm^3), along with length/surface statistics and, when a connectometry
+database is attached, the per-subject mean values for each stored metric.
+Treat this volume as the **spatial volume occupied by the significant group-level
+tractogram**. It is not a lesion volume, not a sum of subject-specific lesion
+volumes, and not a subject-average volume.
+
+Then identify the involved pathways by atlas overlap. For example:
+
+```text
+show_tract_overlap_statistics 0 HCP842_tractography
+show_tract_overlap_statistics 0 BrainSeg
+```
+
+`show_tract_overlap_statistics <tract-index> <atlas-name>` returns the atlas
+labels intersected by the selected tract set, including voxel counts, overlap
+volume (mm^3), centers/bounding boxes, and per-subject metric summaries.
+Use a tract atlas such as `HCP842_tractography` for named white-matter pathways
+and a broader anatomical atlas such as `BrainSeg` to summarize structures such
+as cerebellum, thalamus, red nucleus, and white matter.
+
+This overlap-based approach is preferred when automatic tract recognition
+fails or when a connectometry result is spatially distributed across several
+systems. Do not force a single tract label onto a distributed significant
+tractogram just because one named pathway appears visually dominant.
+
+Important interpretation rules:
+
+- Atlas-overlap volumes are **not mutually exclusive**. Atlas pathways overlap
+  each other spatially, so their reported volumes can sum to more than the
+  tractogram's own `show_tract_statistics` volume. Do not add them as if they
+  were disjoint components.
+- Report the tractogram's own volume separately from the atlas-overlap volumes.
+- Atlas overlap is descriptive post-hoc anatomy; it is not a second inferential
+  test and does not change the permutation/FDR significance of the original
+  connectometry result.
+- Perform this characterization only for the statistically supported result
+  side(s), and keep the original direction explicit (e.g. "higher DTI_FA in
+  CONTROL", hence lower DTI_FA in SCA2).
+- If the tract atlas gives many small labels, summarize the dominant systems
+  first and retain the detailed overlap table for reproducibility.
+
+A useful reporting pattern is:
+
+```text
+The significant tractogram occupied <V> mm^3. Post-hoc HCP842 overlap showed
+predominant involvement of <major pathways>, while BrainSeg overlap localized
+the finding mainly to <major structures>. Atlas-overlap volumes are
+non-additive because atlas labels overlap spatially.
+```
+
+### 9. Save and, if needed, visualize
 
 `--output` sets the result file-name prefix; if omitted, an
 automatically generated suffix is used. With `--no_tractogram=0` (GUI
@@ -538,6 +604,8 @@ HTML report alongside the tract files.
 | `set_voi` fails with "invalid variable" | Run `list_voi` first and use one of the exact `name` values (or its `index`), not a guessed demographics-file column name |
 | Result seems to ignore a covariate | `set_voi`'s variable list is a full replacement, not additive to whatever was selected before -- include every variable (covariates plus the variable of interest) in the same call |
 | `select_text`/cohort clause fails with "cannot parse selection text" for a categorical column | Same annotation gotcha as `set_voi` -- a categorical column's clause must use its full `list_voi`/`get_demo` name including the value encoding (e.g. `group(0=SCA2 1=CONTROL)=0`, not bare `group=0`) |
+| Automatic tract recognition fails on a distributed connectometry result | Use `show_tract_overlap_statistics` with a tract atlas (e.g. `HCP842_tractography`) and a structural atlas (e.g. `BrainSeg`) instead of forcing one tract label |
+| Atlas-overlap volumes sum to more than the tractogram volume | Expected: atlas labels overlap spatially. Use `show_tract_statistics` for total tractogram volume and treat overlap volumes as non-additive |
 | Report finding worded "less `<METRIC>` decline/increase in `<group>`" | This restates the other hypothesis's own finding ("more ... in the other group") rather than an independent result -- both hypotheses on a filtered-longitudinal categorical comparison must use the same comparative word ("more"), just naming different groups; if "less" appears, treat it as a regression of a known-fixed bug, not a real finding |
 
 ## Example Commands
@@ -602,6 +670,10 @@ sample-size-independent effect size explained in step 4.
 
 `run` starts the permutation asynchronously; poll `progress` until it
 reports `finished`, then `get_result` (and/or `show_result` to visualize).
+For a significant result, continue with the post-hoc workflow in step 8:
+identify the result `tracking<hex>` window, run `show_tract_statistics`, then
+use `show_tract_overlap_statistics` against a tract atlas and a structural
+atlas to characterize anatomy without changing the inferential result.
 
 Longitudinal/intercept-style database study:
 
@@ -631,4 +703,8 @@ Record:
 - `tip_iteration`, `region_pruning`, `normalize_iso`, `exclude_cb`;
 - ROI/seed constraints, if any;
 - permutation count;
-- increase and decrease tract counts and output file paths.
+- increase and decrease tract counts and output file paths;
+- for post-hoc characterization: result direction and tract index/window,
+  tractogram streamline count and total volume from `show_tract_statistics`,
+  atlas name(s), and the dominant non-additive overlap volumes/labels from
+  `show_tract_overlap_statistics`.
