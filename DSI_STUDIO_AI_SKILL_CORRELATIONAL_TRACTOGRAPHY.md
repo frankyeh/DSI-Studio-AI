@@ -89,10 +89,41 @@ dsi_studio --action=cnt --source=<database> --demo=<covariates> \
 
 ## Required Workflow
 
-### 1. Build the group database first
+### 1. Find or build the group database
 
 Correlational tractography runs on a connectometry database (`.dz`/`.db.fz`),
-not directly on subject FIB files. Build one with:
+not directly on subject FIB files. Do not rebuild a database that already exists.
+
+```text
+correlational tractography requested
+    ↓
+dataset from Fiber Data Hub?
+    ↓ yes
+search the same tag for *.dz / *.db.fz
+    ↓
+suitable database exists → download it and open it directly
+no suitable database     → download the QSDR cohort → build the database
+```
+
+When the data come from Fiber Data Hub, search the dataset's tag for a database
+before downloading any subject QSDR files:
+
+```bash
+bash ./dsi.sh hub_files "<exact repository>" "<exact tag>" "\.(dz|db\.fz)$"
+```
+
+If one exists, download it and open it as a correlational tractography window:
+
+```bash
+bash ./dsi.sh hub_download "<exact repository>" "<exact tag>" "<database file>" "C:/data"
+bash ./dsi.sh open_connectometry "C:/data/<database file>"
+```
+
+Use `hub_download` plus `open_connectometry` rather than `hub_open`: `hub_open`
+opens a database in the plain database viewer, not in a `connectometry<hex>`
+window. A database is suitable when `list_voi`/`get_demo` show the needed
+subjects and demographics and it holds the needed metric. Build a new one only
+when no database exists or it lacks those subjects, metrics, or demographics:
 
 ```bash
 dsi_studio --action=db --source=<glob of *.qsdr.fz files> --demo=<participants.tsv> --output=<group>.dz
@@ -600,4 +631,4 @@ Record:
 - `tip_iteration`, `region_pruning`, `normalize_iso`, `exclude_cb`;
 - ROI/seed constraints, if any;
 - permutation count;
-- increase and decrease tract counts and output file paths.
+- increase and decrease tract counts and output file paths.
