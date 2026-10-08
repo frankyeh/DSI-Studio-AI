@@ -59,6 +59,12 @@ Interpret `status` directly:
 
 The `current` column only identifies the selected slice (`1` or `0`); it does not indicate readiness. After `set_slice`, poll until that selected row reports `ready`.
 
+The selected (`current`) slice is the one displayed in the 2D view and on the 3D slice
+planes, and it is the default source for slice-based commands such as `add_surface`.
+`set_slice <index>` selects it; `enable_slice "1 1 1"` turns on the sagittal, coronal,
+and axial planes in the 3D view. For example, `set_slice 0` selects the first
+built-in metric (usually `qa`), and `enable_slice "1 1 1"` shows it on all three planes.
+
 ## `list_unet` availability
 
 The reply columns include:
