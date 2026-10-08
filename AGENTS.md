@@ -497,6 +497,9 @@ contains `tracking window created, id: tracking...`, use that exact ID. A
 network-backed open may finish after the immediate reply; if no ID is returned, use
 `list_window` to discover the newly opened window.
 
+`hub_open` opens one file in a new window. Never batch it to fetch many files; a
+request with more than one `hub_open` is rejected. Use `hub_download` below instead.
+
 To learn what a tag's dataset actually is, read its GitHub release note first:
 
 ```bash
