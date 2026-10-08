@@ -6,38 +6,65 @@ user's `DSI Studio AI` Google Drive folder. The document body is a single-slot m
 holding exactly one compact JSON message. DSI Studio reads it about every 500 ms; you
 write a request, and DSI Studio replaces it with the result.
 
-Common DSI Studio operating rules are in `AGENTS.md`; this file covers only the Web
-transport.
+## Web agents
 
-## Provider status
+The Web transport does not depend on the agent. Any web-based AI agent that can read and
+write a Google Doc can use it. It has been confirmed with ChatGPT, Claude, and Muse.
 
-| Web agent | Status |
-|---|---|
-| ChatGPT | supported |
-| Claude | to test |
-| Muse | to test |
-| Grok | to test |
+To confirm a new agent, run the full workflow: connect, `set_title`, `chat`,
+`list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate fasciculus, and
+`list_tract` showing both bundles done.
 
-A provider is advertised in DSI Studio only after it passes the full workflow:
-connect, `set_title`, `chat`, `list_recent_fib`, open a recent `.fz`, AutoTrack
-left/right arcuate fasciculus, and `list_tract` showing both bundles done.
+## Read the manuals first
+
+This file covers only the Web transport. Before sending commands, read `AGENTS.md` in the
+public repository `frankyeh/DSI-Studio-AI` for the common operating rules. Then read only
+the command examples and workflow skills it points to for the current task.
+
+Those manuals show commands in launcher form. Over Web, send the same command in the
+`command` field:
+
+```text
+bash ./dsi.sh open_fib "C:/data/subject.fz"   ->  {"cmd":"open_fib","param":"C:/data/subject.fz"}
+bash ./dsi.sh -Chat "Opening the file."       ->  "chat":"Opening the file."
+```
+
+Ignore launcher-only topics such as `dsi.sh` setup, session environment variables, and
+`new_chat`.
 
 ## Start
 
-1. The user picks **New Chat → Web · ChatGPT** in DSI Studio, which copies a
-   connection prompt with the session document link.
-2. Read the document. DSI Studio has written the first message:
+1. The user picks **New Chat → Web** in DSI Studio, which copies a connection prompt
+   with the session document link, and pastes it into a web-based AI agent.
+2. Check that you can read and write the session document (see the next section).
+3. Read the document. DSI Studio has written the first message:
 
 ```json
 {"dsi_bridge":true,"session":"<uuid>","from":"dsi","state":"ready"}
 ```
 
-3. Use that `session` value unchanged in every request. Never invent a session UUID,
+4. Use that `session` value unchanged in every request. Never invent a session UUID,
    and never create another session document yourself.
 
-You need write access to the document through the Google Docs API (your Google Drive
-or Docs tools). If you can't write to it, tell the user, and don't send commands
-any other way.
+## If you cannot write to the document
+
+You need a Google Drive or Google Docs connector (also called an app, integration, or
+tool) that can read **and edit** a Google Doc. Opening the link in a browser, or a
+read-only connector, is not enough.
+
+If the connector is missing or read-only:
+
+1. Tell the user that DSI Studio's Web chat needs Google Docs edit access.
+2. Walk them through enabling it in your own product: open the connector or app settings,
+   add Google Drive or Google Docs, sign in with the **same Google account** used in DSI
+   Studio's Settings, and allow edit access. Give the exact steps for your product if
+   you know them.
+3. Ask them to come back to this chat (or start a new one and paste the connection prompt
+   again) once it is connected, then retry reading the document.
+
+If your product has no connector that can edit a Google Doc, say so plainly and suggest
+another web-based agent. Do not ask the user to copy messages into the document by hand,
+and do not send commands any other way.
 
 ## Message lifecycle
 
@@ -100,6 +127,7 @@ command stays `processing` until it finishes.
   holds only the latest message.
 - If the user stops the chat in DSI Studio, requests wait unanswered until they press
   Resume.
-- If DSI Studio restarts while the body still says `processing`, the outcome is
-  unknown, and DSI Studio does not run that request again. Check the state with a
-  harmless command such as `list_window` before repeating any work.
+- If DSI Studio stopped while running a request, it does not run that request again.
+  When the chat is resumed, it replaces the stale `processing` with `state:"error"` and
+  `outcome unknown` for that `id`. Check the state with a harmless command such as
+  `list_window` before repeating any work.
