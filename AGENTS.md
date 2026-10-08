@@ -182,9 +182,7 @@ After any successful close, immediately select `main` or another valid current I
 the session still remembers the now-invalid closed target. Put `close` last in a
 multi-command request.
 
-For the GitHub agent, a command named `close` closes the selected DSI Studio window,
-while an issue-session `request:"close"` disconnects the GitHub issue channel. See
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` and `DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md`.
+See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window rules.
 
 ### 3.4 Read the log when state changed outside the agent
 
@@ -576,8 +574,7 @@ completion. Initialize the log cursor before the first asynchronous curl. Poll
 output or errors. Do not place a command that depends on the downloaded file after
 `curl` in the same command array.
 
-For the GitHub agent, initialize logging with a prior `log` request or
-`include_log:true` on the curl-start request.
+For a Web agent, send `{"cmd":"log"}` as a command before the curl-start request.
 
 Never send credentials, tokens, or other sensitive text in a `run_shell` command —
 the local user sees the exact text in the confirmation dialog either way. Never send
@@ -634,7 +631,7 @@ expected. For asynchronous work, narrate every subsequent status check before se
 it. Announce completion only after the returned result confirms it.
 
 Spoken narration must sound like the tutorial or presentation itself. Do not expose
-internal orchestration details such as cooldowns, polling mechanics, issue updates,
+internal orchestration details such as cooldowns, polling mechanics, mailbox updates,
 request IDs, command arrays, or transport behavior. Base every progress statement on
 verified state and never announce completion before results confirm it.
 
@@ -737,7 +734,7 @@ source data or running reconstruction.
 - [Launcher selection, agent configuration, local Ollama models, and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
-- [Direct GitHub issue control](DSI_STUDIO_AI_SKILL_GITHUB_ISSUE_SESSION.md)
+- [Web session (ChatGPT and other web agents)](DSI_STUDIO_AI_SKILL_WEB.md)
 - [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
@@ -751,4 +748,4 @@ source data or running reconstruction.
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 
 Read only the files relevant to the current task, then continue using
-`bash ./dsi.sh`.
+`bash ./dsi.sh`.
