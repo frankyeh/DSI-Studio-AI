@@ -125,8 +125,10 @@ command stays `processing` until it finishes.
 - Never overwrite a `processing` message.
 - Don't rename or move the document, add comments, or keep old messages. The body
   holds only the latest message.
-- If the user stops the chat in DSI Studio, requests wait unanswered until they press
-  Resume.
+- DSI Studio stops polling after 3 minutes without a request, and when the user presses
+  Stop. A request sent after that waits unanswered. If no `processing` appears within a
+  few seconds, ask the user to press **Resume** on the chat in DSI Studio. Resume copies
+  the connection prompt again, so the user can also paste it into a new agent chat.
 - If DSI Studio stopped while running a request, it does not run that request again.
   When the chat is resumed, it replaces the stale `processing` with `state:"error"` and
   `outcome unknown` for that `id`. Check the state with a harmless command such as
