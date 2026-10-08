@@ -39,8 +39,8 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `save_v3view_screen` | `["save_v3view_screen","C:/output/tracts_v3view.png","1920 1080"]` | Save four directional views in a vertical image. Optional third element resizes like `save_screen`. |
 | `save_rotation_video` | `["save_rotation_video","C:/output/rotation.avi"]` | Save a rotating MJPG AVI by rotating the 3D view around the Y axis in 0.2-degree steps through 360 degrees at 30 fps. If the path is omitted, open a save dialog. On non-macOS builds, the current writer temporarily renders at 1980×1080. On all platforms, the camera and widget size are restored on success, failure, or cancellation. JPEG-encoding and AVI-open failures return errors; cancellation is reported separately. A canceled or failed export may leave a partial file. |
 | `save_3d_model` | `["save_3d_model","C:/output/tumor.model.obj"]` | Export checked tracts, checked regions, and the visible surface as a 3D OBJ model (+ .mtl and slice texture JPGs). Requires at least one checked tract or region. If a tract has more than 3,000 visible tracks, `delete_repeated_tract` runs automatically first; if still over 3,000, the export fails. If the path is omitted, a save dialog opens. |
-| `add_surface` | `["add_surface",7,0.6]` | Create a surface from slice index 7 using threshold `0.6`; omission of the threshold opens a dialog. |
-| `add_surface` | `["add_surface",0,25]` | For a built-in slice, map the built-in ICBM152 white-matter image to subject space and create a whole-brain white-matter isosurface at threshold `25`. |
+| `add_surface` | `["add_surface",0,25]` | Recommended. For a built-in slice (such as `qa`), map the ICBM152 white-matter template to subject space and build a white-matter isosurface at threshold `25`. See "Brain surface" below. |
+| `add_surface` | `["add_surface",7,0.6]` | For a custom slice (an added image), build an isosurface of that image at threshold `0.6`. Always pass the threshold: omitting it opens a local dialog. |
 | `add_surface_left` | `["add_surface_left",7,0.6]` | Create a surface after retaining the source portion on the left side of the current X slice position. |
 | `add_surface_right` | `["add_surface_right",7,0.6]` | Create a surface after retaining the source portion on the right side of the current X slice position. |
 | `add_surface_upper` | `["add_surface_upper",7,0.6]` | Create a surface after retaining the source portion above the current Z slice position. |
@@ -50,6 +50,41 @@ This file contains rendering, camera, surface, and display commands confirmed in
 | `clear_surface` | `["clear_surface"]` | Remove the current single surface, refresh the OpenGL view, and leave the `show_surface` rendering setting unchanged. |
 | `show_fib_protocol` | `["show_fib_protocol"]` | Return the FIB file's processing protocol (numbered steps from source to FIB) for methods/provenance. AI callers get the text directly in `output`; a local user sees it in a dialog. |
 | `save_fib_protocol` | `["save_fib_protocol","C:/output/sub01_fib_protocol.txt"]` | Same text as `show_fib_protocol`, always written to the given path, for any caller. The path is required. |
+
+## Brain surface
+
+The recommended brain surface is the built-in MNI white-matter template warped to
+subject space. Select the first built-in slice (usually `qa`), then build the surface
+with threshold `25`, which is the threshold for the MNI white-matter map:
+
+```bash
+bash ./dsi.sh set_slice 0
+bash ./dsi.sh add_surface 0 25
+```
+
+Passing index `0` already selects that slice for `add_surface`. The `set_slice 0` step
+also makes it the displayed slice. Index `0` is always a built-in slice, because
+custom slices are listed after the built-in ones.
+
+How `add_surface` chooses its image:
+
+- **Built-in slice** (`qa`, `dti_fa`, and other metrics in the FIB): the slice's own
+  values are not used. DSI Studio warps the ICBM152 white-matter template to subject
+  space and thresholds that, so a small value such as `0.6` does not give a QA
+  isosurface. Use `25`.
+- **Custom slice** (added with `add_slice` or `add_mni_slice`): the template is never
+  used, even with `25`. The isosurface is built from that image, so choose a threshold
+  in that image's value range.
+- The slice index defaults to the current slice (`list_slice` `current` = 1). Omitting
+  the threshold opens a local dialog that waits for the user, so always pass it.
+
+The template warp needs the subject-to-MNI mapping. A QSDR (MNI-space) FIB maps
+directly. For a native-space FIB (such as GQI), the first `add_surface` reuses a saved
+mapping file when one exists, or runs the normalization, which can take a while. If
+no mapping can be made (for example, no template for the species), DSI Studio falls
+back to the slice's own image. `25` is then far above the `qa` range, and the
+surface comes out empty or wrong. This fallback is silent, so check the result with
+`preview_screen 3d`.
 
 ## Reading `preview_screen` output
 
