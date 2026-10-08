@@ -21,7 +21,7 @@ without needing a follow-up `set_window` call):
 bash ./dsi.sh set_window tracking7ff6ab123410
 ```
 
-The GitHub agent issue equivalent is:
+The Web agent equivalent is:
 
 ```json
 {"cmd":"set_window","param":"tracking7ff6ab123410"}
@@ -61,7 +61,7 @@ bash ./dsi.sh maximize
 bash ./dsi.sh close
 ```
 
-GitHub agent issue examples:
+Web agent examples:
 
 ```json
 {"command":{"cmd":"bring_to_front"}}
@@ -70,7 +70,7 @@ GitHub agent issue examples:
 {"command":{"cmd":"close"}}
 ```
 
-Each issue request still needs its normal higher `id` and session UUID.
+Each Web request still needs its normal higher `id` and session UUID.
 
 ## Closing a window safely
 
@@ -163,27 +163,6 @@ not imply that the shared control will be rejected.
 - Poll `list_window` to watch a long-running command (`run_cli`, DICOM conversion,
   NIfTI-to-SRC batches, etc.) without waiting for its final reply, the same way an
   active `curlN` task is already tracked in `windows`.
-
-## Window close versus GitHub-channel close
-
-These two operations use the word `close` but affect different things:
-
-```json
-{"command":{"cmd":"close"}}
-```
-
-closes the currently selected DSI Studio reconstruction, tracking, image, or
-connectometry window. It does not disconnect the GitHub agent.
-
-```json
-{"id":7,"request":"close"}
-```
-
-is the GitHub issue-channel remote-close envelope. It disconnects the issue channel
-after publishing `state:"closed"`. It does not close a DSI Studio data window, the
-main DSI Studio application, or the GitHub issue.
-
-Never substitute one form for the other.
 
 ## Routing order
 
