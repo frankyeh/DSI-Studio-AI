@@ -78,7 +78,8 @@ bash ./dsi.sh -Chat "<brief improvised message that you are reading the DSI Stud
 ```
 
 `-Chat` is user-facing communication. It does not retrieve action history; use
-`log` for that purpose.
+`log` for that purpose. `-Chat` is not a command: over Web it is the request's
+`chat` field (`{"chat":"..."}`), and `{"cmd":"chat"}` fails with `unknown command: chat`.
 
 ### 2.3 Learn a main-window command
 
