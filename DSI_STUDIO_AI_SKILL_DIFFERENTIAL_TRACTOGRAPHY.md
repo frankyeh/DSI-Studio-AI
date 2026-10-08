@@ -199,11 +199,14 @@ The current preferred direction is a direct control-average reference:
 
 1. Export the same scalar metric from control subjects in **QSDR space**.
 2. Average those already-aligned QSDR-space NIfTI maps using DSI Studio's `tmp`
-   command-line action, for example:
+   command-line action through `run_cli` (one string; the wildcard is expanded by
+   DSI Studio):
 
-   ```text
-   --action=tmp --source=*.nii.gz --output=<control>_avg.nii.gz
+   ```bash
+   bash ./dsi.sh run_cli "--action=tmp --source=<dir>/fa_*.nii.gz --output=<dir>/control_avg_fa.nii.gz"
    ```
+
+   Over Web: `{"cmd":"run_cli","param":"--action=tmp --source=<dir>/fa_*.nii.gz --output=<dir>/control_avg_fa.nii.gz"}`.
 
 3. The source NIfTI files must already be in QSDR/MNI space; otherwise voxelwise
    averaging is invalid because the images are not aligned.
@@ -216,9 +219,23 @@ The current preferred direction is a direct control-average reference:
    corresponding template space.
 
 This Type 3 control-average workflow has been validated in a live DSI Studio session.
-After inserting the MNI control average into a GQI patient FIB, use `list_slice` and
-`list_param dt_index1`/`dt_index2` to verify the runtime names and dT indices before
-setting the differential comparison.
+
+### 5.1 Type 3 checklist
+
+Run these steps in order and verify each one before the next:
+
+1. Build the control average with `run_cli` (step 2 above) and confirm the output file exists.
+2. Open the patient `.gqi.fz` with `open_fib`.
+3. Run `list_window` and confirm the tracking window title shows the **patient** file.
+   A window left over from another subject (for example a control's QSDR FIB) is a
+   common mistake. If the patient file came from the Fiber Data Hub, `hub_open` may
+   download it without opening it; in that case `open_fib` the cached path explicitly
+   (see the Hub notes in `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
+4. `add_mni_slice` the control average.
+5. Poll `list_slice` until the control-average row reports `ready`, and confirm its name.
+6. Run `list_param dt_index1` and `list_param dt_index2`, then set `m1` (control
+   average), `m2` (patient metric, for example `dti_fa`), the formula, and the threshold.
+7. Run `run_dif_tracking` and check the verification lines below before polling.
 
 ## 6. Type 4: cross-sectional comparison in template space
 
@@ -247,11 +264,28 @@ bash ./dsi.sh list_tract status
 bash ./dsi.sh list_tract
 ```
 
+Before polling, read the lines `run_dif_tracking` prints and confirm they match your
+intent:
+
+```text
+ set m1:<m1 name>
+ set m2:<m2 name>
+dt metrics:<expression>
+```
+
+A wrong name or a reversed expression means the metrics were set incorrectly; fix
+them before reading any result.
+
 `run_dif_tracking` (not `run_tracking`) is required here: it resolves the current
 `dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
 `run_tracking` call fails outright if `dt_index1`/`dt_index2` are nonzero but were
 never applied, and otherwise clears any leftover differential-tracking state instead
 of using it.
+
+Tracking stops at `max_tract_count`. If `list_tract` shows the bundle at exactly that
+count (for example 10,000), the true differential extent is larger. Raise
+`max_tract_count` and run again, or report the result as capped. A capped count also
+underestimates dT tract volume.
 
 Pay special attention to TIP pruning in differential tractography. A large
 `tip_iteration` can remove too many differential trajectories. A practical approach
@@ -320,4 +354,7 @@ Record at minimum:
 | Averaging native-space control NIfTI files voxelwise | Average only QSDR/MNI-aligned maps |
 | Loading an MNI control average as an ordinary native slice in GQI | Use `add_mni_slice` |
 | Using many TIP iterations by default for dT | Start with `tip_iteration=0` or very light pruning; use `trim_tract` incrementally and inspect tract/deleted counts |
+| Trusting `hub_open` to have opened the file | Confirm the window title with `list_window`; `open_fib` the cached path if needed |
+| Polling before checking `set m1:`/`set m2:`/`dt metrics:` | Verify those lines first |
+| Treating a bundle at `max_tract_count` as complete | Raise `max_tract_count` or report the result as capped |
 | Estimating FDR before completing the cohort | Process all controls and patients first; FDR uses group-averaged dT tract volumes |
