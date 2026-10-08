@@ -1,26 +1,15 @@
 # DSI Studio AI Web Session
 
-Use this skill when DSI Studio gives you a Web session UUID. Each Web chat has its own
-folder, `DSI Studio AI/<session-uuid>/`, in the user's Google Drive. You and DSI Studio
-exchange numbered, write-once JSON files in that folder:
-
-```text
-DSI Studio AI/<session-uuid>/
-  agent000001.json   your request 1
-  dsi000001.json     DSI Studio's reply to request 1
-  agent000002.json
-  dsi000002.json
-  ...
-```
-
-DSI Studio looks for the next `agentNNNNNN.json` about every 500 ms, runs it once, and
-creates the matching `dsiNNNNNN.json`.
+Use this skill when DSI Studio gives you a Web session document (a Google Doc titled
+`DSI Studio <session-uuid>`). DSI Studio creates one document per Web chat, in the
+user's `DSI Studio AI` Google Drive folder. The document body is a single-slot mailbox
+holding exactly one compact JSON message. DSI Studio reads it about every 500 ms; you
+write a request, and DSI Studio replaces it with the result.
 
 ## Web agents
 
-The Web transport does not depend on the agent. Any web-based AI agent that can create and
-read files in Google Drive can use it. Agents confirmed on the earlier Google Doc mailbox
-(ChatGPT, Claude, Muse) need to be confirmed again on this file protocol.
+The Web transport does not depend on the agent. Any web-based AI agent that can read and
+write a Google Doc can use it. It has been confirmed with ChatGPT, Claude, and Muse.
 
 To confirm a new agent, run the full workflow: connect, `set_title`, a `chat`-only request,
 `list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate fasciculus, and
@@ -46,44 +35,73 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 ## Start
 
 1. The user picks **New Chat → Web** in DSI Studio, which copies a connection prompt
-   with the session UUID, and pastes it into a web-based AI agent.
-2. Find the folder `DSI Studio AI/<session-uuid>` in Google Drive, and check that you
-   can create and read files in it (see the next section).
-3. Find the next number: check `agent000001.json`, `agent000002.json`, ... by exact
-   name until one does not exist. That is your next request number. A new session
-   starts at `agent000001.json`. If the last existing `agentNNNNNN.json` has no
-   `dsiNNNNNN.json` yet, wait for that reply first.
+   with the session document link, and pastes it into a web-based AI agent.
+2. Check that you can read and write the session document (see the next section).
+3. Read the document. DSI Studio has written the first message:
 
-## If you cannot create files
+```json
+{"dsi_bridge":true,"session":"<uuid>","from":"dsi","state":"ready"}
+```
 
-You need a Google Drive connector (also called an app, integration, or tool) that can
-create files and read them. A read-only connector is not enough.
+4. Use that `session` value unchanged in every request. Never invent a session UUID,
+   and never create another session document yourself.
+
+## If you cannot write to the document
+
+You need a Google Drive or Google Docs connector (also called an app, integration, or
+tool) that can read **and edit** a Google Doc. Opening the link in a browser, or a
+read-only connector, is not enough.
 
 If the connector is missing or read-only:
 
-1. Tell the user that DSI Studio's Web chat needs Google Drive access that can create files.
+1. Tell the user that DSI Studio's Web chat needs Google Docs edit access.
 2. Walk them through enabling it in your own product: open the connector or app settings,
-   add Google Drive, sign in with the **same Google account** used in DSI Studio's
-   Settings, and allow file creation. Give the exact steps for your product if you know them.
+   add Google Drive or Google Docs, sign in with the **same Google account** used in DSI
+   Studio's Settings, and allow edit access. Give the exact steps for your product if
+   you know them.
 3. Ask them to come back to this chat (or start a new one and paste the connection prompt
-   again) once it is connected.
+   again) once it is connected, then retry reading the document.
 
-If your product has no connector that can create Drive files, say so plainly and
-suggest another web-based agent. Do not ask the user to create files by hand, and do
-not send commands any other way.
+Known connectors:
+
+- **Claude:** use the **Google Docs** connector (`update_doc`) to write. The Google Drive
+  connector can only read the document.
+
+If your product has no connector that can edit a Google Doc, say so plainly and suggest
+another web-based agent. Do not ask the user to copy messages into the document by hand,
+and do not send commands any other way.
+
+## Message lifecycle
+
+```text
+ready -> request -> processing -> done | error -> next request -> ...
+```
 
 ## Sending a request
 
-Create **one new** file `agentNNNNNN.json` (six digits, zero-padded) in the session
-folder, containing one JSON request:
+Replace the **entire** document body with one line of compact JSON, written through the
+Google Docs API. Typing it in the editor can turn quotes into smart quotes.
 
 ```json
-{"command":{"cmd":"list_window"}}
+{"dsi_bridge":true,"session":"<uuid>","id":1,"from":"agent","state":"request","command":{"cmd":"list_window"}}
 ```
 
-Create it with its content in one step (a plain JSON file, not a Google Doc). Never
-overwrite or edit a file after creating it.
+To replace the body, read the document first (`documents.get`), then send one
+`documents.batchUpdate`:
 
+```json
+{"requests":[
+  {"deleteContentRange":{"range":{"startIndex":1,"endIndex":<endIndex - 1>}}},
+  {"insertText":{"location":{"index":1},"text":"<compact JSON request>"}}],
+ "writeControl":{"requiredRevisionId":"<revisionId from the read>"}}
+```
+
+`endIndex` is that of the last element in `body.content`. Deleting only up to
+`endIndex - 1` keeps the final newline every Doc must have. If the body is already
+empty (`endIndex` is 2), send only `insertText`. If the update fails because the
+revision changed, read the document again before retrying.
+
+- `id` starts at 1 and increases by one for each request.
 - `command` is one `{"cmd":...,"param":...}` object or an ordered array of them. An
   array runs in order and stops at the first error.
 - `chat` (optional) is user-facing text recorded in the DSI Studio chat, like `-Chat`.
@@ -94,7 +112,7 @@ A batch puts the array directly in `command`. Do not wrap it in `cmd`
 (`{"command":{"cmd":[...]}}` fails with `invalid cmd text`):
 
 ```json
-{"command":[{"cmd":"set_window","param":"tracking7ff6ab123410"},{"cmd":"list_tract","param":"status"}]}
+{"dsi_bridge":true,"session":"<uuid>","id":5,"from":"agent","state":"request","command":[{"cmd":"set_window","param":"tracking7ff6ab123410"},{"cmd":"list_tract","param":"status"}]}
 ```
 
 `param` is omitted, a single value, or an array for several values. DSI Studio does
@@ -112,31 +130,33 @@ command. The first `log` sets the cursor, and later calls return only new output
 Name the chat with `set_title` in the first request:
 
 ```json
-{"command":{"cmd":"set_title","param":"Arcuate fasciculus mapping"}}
+{"dsi_bridge":true,"session":"<uuid>","id":1,"from":"agent","state":"request","command":{"cmd":"set_title","param":"Arcuate fasciculus mapping"}}
 ```
 
 ## Reading the result
 
-Read `dsiNNNNNN.json` with the same number, by exact name, until it exists:
+Read the document body until it holds a message with `"from":"dsi"` and the same `id`:
 
 ```json
-{"status":"success","result":[...]}
+{"dsi_bridge":true,"session":"<uuid>","id":1,"from":"dsi","state":"processing"}
+{"dsi_bridge":true,"session":"<uuid>","id":1,"from":"dsi","state":"done","response":{...}}
 ```
 
-It is the same reply `dsi.sh` would print. A long command produces no reply file until
-it finishes.
+`state` is `done` or `error`. `response` is the same reply `dsi.sh` would print. A long
+command stays `processing` until it finishes.
 
 ## Rules
 
-- Send one request at a time: create `agent(N+1)` only after `dsiN` exists.
-- Look files up by exact name. Do not list the folder during normal operation.
-- Only you create `agent` files and only DSI Studio creates `dsi` files. Never modify,
-  rename, move, or delete either.
-- Never invent a session UUID or create another session folder.
+- Send one request at a time: write the next request only after `done` or `error` for
+  the current `id`.
+- Never overwrite a `processing` message.
+- Don't rename or move the document, add comments, or keep old messages. The body
+  holds only the latest message.
 - DSI Studio stops polling after 3 minutes without a request, and when the user presses
-  Stop. If no `dsiNNNNNN.json` appears for a request, ask the user to press **Resume**
-  on the chat in DSI Studio. Resume continues the same numbering and copies the
-  connection prompt again, so the user can also paste it into a new agent chat.
-- If DSI Studio stopped while running a request, it does not run it again: the reply
-  file holds `outcome unknown`. Check the state with a harmless command such as
+  Stop. A request sent after that waits unanswered. If no `processing` appears within a
+  few seconds, ask the user to press **Resume** on the chat in DSI Studio. Resume copies
+  the connection prompt again, so the user can also paste it into a new agent chat.
+- If DSI Studio stopped while running a request, it does not run that request again.
+  When the chat is resumed, it replaces the stale `processing` with `state:"error"` and
+  `outcome unknown` for that `id`. Check the state with a harmless command such as
   `list_window` before repeating any work.
