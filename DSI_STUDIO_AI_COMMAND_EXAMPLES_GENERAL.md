@@ -209,6 +209,12 @@ may use their full documented argument lists:
   index within the reported tag.
 - Offset and limit apply after combining matching files across tags. Omit the limit
   to return every remaining match; an explicit limit of `0` returns no rows.
+- `hub_open` obtains one file if needed and opens it; `hub_download` downloads or
+  caches files without opening them.
+- Before bulk-downloading subject `.fz` files, check whether the tag already
+  provides a derived file that matches the analysis, such as a `.dz`/`.db.fz`
+  connectometry database. Prefer the highest-level ready-made file over rebuilding
+  it from subject files.
 - `hub_open` requires one exact tag and accepts the exact filename or returned row
   index. When the file must be downloaded first, the open happens after the command
   returns and may not happen at all, so a success reply does not prove the file is
