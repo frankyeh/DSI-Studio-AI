@@ -210,7 +210,10 @@ may use their full documented argument lists:
 - Offset and limit apply after combining matching files across tags. Omit the limit
   to return every remaining match; an explicit limit of `0` returns no rows.
 - `hub_open` requires one exact tag and accepts the exact filename or returned row
-  index.
+  index. When the file must be downloaded first, the open happens after the command
+  returns and may not happen at all, so a success reply does not prove the file is
+  open. Confirm with `list_window` that a window title shows the intended file. If
+  not, `open_fib` the cached path, which the log reports as `download file to <path>`.
 - `hub_show <repo> <tag>` (no file) returns that tag's GitHub release note --
   read this first to learn what a dataset actually contains before browsing or
   downloading its files.
@@ -231,6 +234,15 @@ may use their full documented argument lists:
 - `hub_download` requires its documented destination-directory parameter and creates
   the directory when needed.
 - Verify the created window or destination file after GUI-backed network work.
+
+### Finding a dataset
+
+OpenNeuro datasets are in the `data-openneuro/*` repositories, and the tag is the
+OpenNeuro dataset ID (for example `ds001378`). Filenames use BIDS subject IDs, not
+diagnoses, so searching filenames for a condition such as `sca2` or `patient` finds
+nothing. Read the group labels from the dataset's `participants.tsv` with
+`hub_show <repo> <tag> participants.tsv` (here `sub-SCA2xx` versus `sub-controlxx`),
+then select files by subject ID.
 
 ## Important routing and response notes
 
