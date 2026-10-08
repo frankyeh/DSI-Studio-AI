@@ -59,7 +59,7 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `delete_branch` | `["delete_branch","0&2"]` | Delete branch-like portions from tract bundles 0 and 2. Omit the index list to edit every checked bundle. |
 | `undo_tract` | `["undo_tract","0&2"]` | Undo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
 | `redo_tract` | `["redo_tract","0&2"]` | Redo the latest supported tract edit in tract bundles 0 and 2. Omit the index list to use checked bundles. |
-| `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0. Omit the index to use every checked bundle. Use for a sufficiently populated visually coherent bundle, including a loaded bundle; do not use as generic whole-brain cleanup. |
+| `trim_tract` | `["trim_tract",0]` | Apply one TIP iteration to tract bundle 0, whether or not it is checked. Omit the index to use the currently selected bundle. Use for a sufficiently populated visually coherent bundle, including a loaded bundle; do not use as generic whole-brain cleanup. |
 | `cut_tract_end_portion` | `["cut_tract_end_portion",0]` | Apply `cut_end_portion(0.25,0.75)` to tract bundle 0; the target bundle must be checked. |
 | `cut_tract_lps_end` | `["cut_tract_lps_end",0]` | Apply `cut_end_portion(0.25,1.0)` to tract bundle 0; the target bundle must be checked. |
 | `cut_tract_rai_end` | `["cut_tract_rai_end",0]` | Apply `cut_end_portion(0.0,0.75)` to tract bundle 0; the target bundle must be checked. |
@@ -146,8 +146,9 @@ one numeric index or one `&`-separated index list:
 ["trim_tract","0&2&5"]
 ```
 
-With no index, `delete_tract` uses the current row; the other commands operate on
-checked bundles. `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`,
+With no index, `delete_tract` and `trim_tract` use the current row; the other
+commands operate on checked bundles. An explicit index applies to that bundle whether
+or not it is checked. `cut_tract_by_*`, `filter_tract`, `delete_repeated_tract`,
 `resample_tract`, and `delete_tract_by_length` use their second element for
 another parameter and accept an optional third element containing one tract index or
 an `&`-separated tract-index list; omit it to operate on checked bundles.
