@@ -108,6 +108,13 @@ revision changed, read the document again before retrying.
 - `reasoning` (optional) is a brief reasoning summary recorded in the chat history.
 - A request needs at least one of `command`, `chat`, or `reasoning`.
 
+A batch puts the array directly in `command`. Do not wrap it in `cmd`
+(`{"command":{"cmd":[...]}}` fails with `invalid cmd text`):
+
+```json
+{"dsi_bridge":true,"session":"<uuid>","id":5,"from":"agent","state":"request","command":[{"cmd":"set_window","param":"tracking7ff6ab123410"},{"cmd":"list_tract","param":"status"}]}
+```
+
 `param` is omitted, a single value, or an array for several values. DSI Studio does
 not split a string on spaces:
 
