@@ -734,7 +734,7 @@ source data or running reconstruction.
 - [Launcher selection, agent configuration, local Ollama models, and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
 - [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
-- [Web session (ChatGPT and other web agents)](DSI_STUDIO_AI_SKILL_WEB.md)
+- [Web session (any web-based AI agent)](DSI_STUDIO_AI_SKILL_WEB.md)
 - [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
 - [Main window and Fiber Data Hub](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
