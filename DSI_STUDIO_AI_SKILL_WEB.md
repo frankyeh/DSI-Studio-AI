@@ -81,6 +81,12 @@ ready -> request -> processing -> done | error -> next request -> ...
 
 Replace the **entire** document body with one line of compact JSON, written through the
 Google Docs API. Typing it in the editor can turn quotes into smart quotes.
+Write the JSON as plain text, never Markdown: `dsi\_bridge` or a stray `}` makes it invalid.
+
+With `documents.batchUpdate`, read `E`, the `endIndex` of the last element in `body.content`,
+then send `deleteContentRange` for `startIndex` 1 to `endIndex` `E-1` (keeps only the final
+newline; skip it when `E` is 2) followed by `insertText` at index 1. A smaller range leaves the
+end of the previous message behind, which DSI Studio reports as invalid JSON.
 
 ```json
 {"dsi_bridge":true,"session":"<uuid>","id":1,"from":"agent","state":"request","command":{"cmd":"list_window"}}
@@ -143,7 +149,9 @@ Read the document body until it holds a message with `"from":"dsi"` and the same
 ```
 
 `state` is `done` or `error`. `response` is the same reply `dsi.sh` would print. A long
-command stays `processing` until it finishes.
+command stays `processing` until it finishes. A request DSI Studio cannot accept (invalid JSON, wrong
+session, or a reused `id`) gets `state:"error"` with the reason; nothing was run, so fix
+it and resend.
 
 ## Rules
 
