@@ -1175,7 +1175,8 @@ morphology wording.
 
 ### 11.1 The final report must be complete, not a slide export
 
-- Produce a real PDF report; do not substitute a PowerPoint or a slide-deck export.
+- Produce a real PDF report; do not substitute a PowerPoint or a slide-deck export. §11.14
+  gives the accepted layout and a ReportLab script that builds it.
 - The report must contain both a **tumor report** and a **tract-tumor report**.
 - **Every page must contain at least one figure that is directly relevant to that page.**
   A table-only or prose-only page is incomplete.
@@ -1787,3 +1788,403 @@ P7 integrated synthesis
 
 More clinically important tracts add more tract pages; they are not collapsed into P4.
 
+### 11.13 Worked example: figure generation for UPenn-GBM sub-003
+
+This is the accepted figure set for a right-hemisphere case with CST and SLF tract pages.
+Use it as a template: replace the row indices with the ones `list_region` / `list_tract`
+report for the current case, and the numbers with the case's frozen manifest (§11.9).
+
+#### DSI Studio commands for the 3D figures
+
+```bash
+dsi() { bash ./dsi.sh "$@"; }
+dsi set_window <tracking-window-id>
+
+# Rows after human_tumor: 0 White_Matter, 1 Gray_Matter, 2 Cerebellar_Cortex,
+# 3 Basal_Ganglia, 4 Others, 5 Necrosis, 6 Peritumoral Edema, 7 Enhancing Tumor
+dsi list_region
+dsi region_action_defragment 0
+
+# Alpha only on the subject's own RGB (#AARRGGBB as an unsigned integer)
+dsi set_region_color 0 182970350    # 0x0AE7E7EE White_Matter      alpha 10
+dsi set_region_color 5 3361425486   # 0xC85B484E Necrosis          alpha 200
+dsi set_region_color 6 1350801323   # 0x508397AB Peritumoral Edema alpha 80
+dsi set_region_color 7 1690070641   # 0x64BC6E71 Enhancing Tumor   alpha 100
+
+# White_Matter to the last row (it moves 0 -> 7); the tumor rows become 4, 5, 6
+for row in 0 1 2 3 4 5 6; do dsi move_down_region $row; done
+dsi list_region
+
+dsi show_only_regions "4&5&6&7"
+dsi set_param show_region 1
+dsi set_param show_surface 0
+dsi set_param show_slice 0
+dsi set_param bkg_color 16777215
+dsi set_zoom 0.8
+
+# Tumor only: axial and coronal
+dsi check_uncheck_all_tract 0
+dsi set_param show_tract 0
+dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_tumor_WM_axial3D.png "1920 1080"
+dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_tumor_WM_coronal3D.png "1920 1080"
+
+# The accepted bilateral tract set; poll list_tract until all eight are done,
+# then resolve each row by name (here 0/1 CST L/R, 2/3 SLF L/R, 4/5 AF L/R, 6/7 FAT L/R)
+for t in ProjectionBrainstem_CorticospinalTract Association_SuperiorLongitudinalFasciculus \
+         Association_ArcuateFasciculus Association_FrontalAslantTract; do
+    dsi run_auto_track ${t}L; dsi run_auto_track ${t}R
+done
+dsi list_tract
+
+dsi set_param tract_color_style 1
+dsi color_all_cluster
+dsi set_param show_tract 1
+
+# All tracts + tumor
+dsi show_only_tracts "0&1&2&3&4&5&6&7"
+dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_alltracts_tumor_WM_axial3D.png "1920 1080"
+dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_alltracts_tumor_WM_coronal3D.png "1920 1080"
+
+# Right CST (row 1): axial + sagittal
+dsi show_only_tracts "1"
+dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_CST_R_tumor_WM_axial3D.png "1920 1080"
+dsi set_view 0 0; dsi get_camera; dsi save_screen sub003_CST_R_tumor_WM_sagittal3D.png "1920 1080"
+
+# Right SLF (row 3): axial + coronal
+dsi show_only_tracts "3"
+dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_SLF_R_tumor_WM_axial3D.png "1920 1080"
+dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_SLF_R_tumor_WM_coronal3D.png "1920 1080"
+```
+
+Inspect each PNG after saving (or `preview_screen 3d` before it). The orientation labels
+come from `get_camera`, as in §11.4.
+
+#### DSI Studio commands for the 2D figures
+
+```bash
+# Representative tumor MRI (repeat with the FLAIR slice name for the FLAIR panel)
+dsi set_slice_by_name "<exact ceT1w / T1w-gd slice name>"
+dsi set_roi_view 2
+dsi move_slice_to_region <Tumor-Core-index>
+dsi check_uncheck_all_tract 0
+dsi save_roi_screen sub003_ceT1w_corecenter.png
+
+# Tract on FLAIR: tumor compartments only, no White_Matter in 2D
+dsi set_slice_by_name "<exact FLAIR slice name>"
+dsi set_roi_view 2
+dsi move_slice_to_region <Tumor-Core-index>
+dsi show_only_regions "4&5&6"
+dsi show_only_tracts "1"; dsi save_roi_screen sub003_CST_R_FLAIR_axial.png
+dsi show_only_tracts "3"; dsi save_roi_screen sub003_SLF_R_FLAIR_axial.png
+```
+
+Tract names, arrows and R/L/A/P labels are added afterwards (§11.10, code in §11.14); DSI Studio
+does not draw them.
+
+#### Frozen quantitative inputs
+
+When reproducing an accepted report, use its recorded values. Re-running AutoTrack changes
+the streamline counts: one reproduction attempt reported SLF 587/5271 instead of the
+accepted 619/5315 and was rejected.
+
+```text
+Necrosis 11.961 mL   Enhancing 6.702 mL   Tumor Core 18.663 mL
+Edema 60.477 mL      Whole lesion 79.140 mL
+
+Right tract   streamlines   edema-intersecting   edema intersect volume   Tumor Core
+CST           8595          8595 (100%)          1424 mm^3                0
+SLF           5315          619 (11.6%)          556 mm^3                 0
+Arcuate       7255          0                    -                        0
+FAT           5812          0                    -                        0
+```
+
+#### Python for the quantitative charts
+
+Matplotlib defaults (blue/orange/green); the figure sizes match the accepted report.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({"font.size":18,"axes.titlesize":20,"axes.labelsize":18,
+                     "xtick.labelsize":18,"ytick.labelsize":18,"legend.fontsize":16})
+
+necrosis,enhancing,edema = 11.961,6.702,60.477
+core = necrosis+enhancing
+whole = core+edema
+cha = [("Posterior cingulate",5.501),("Precentral",1.250),("Postcentral",0.768),
+       ("Premotor",0.445),("Precuneus",0.127)]
+brodmann = [("BA31 right",2.493),("BA4 right",1.756),("BA23 right",1.046),("BA23 left",0.460),
+            ("BA24 right",0.458),("BA5 right",0.371),("BA6 right",0.337),("BA24 left",0.157),
+            ("BA31 left",0.111)]
+tracts = ["CST","SLF","Arcuate","FAT"]
+edema_pct = np.array([8595,619,0,0])/np.array([8595,5315,7255,5812])*100
+curl_left = [1.120708,1.692461,1.236686,1.192565]
+curl_right = [1.253219,1.347196,2.282737,1.223556]
+
+def composition(parts,total,title,file):  # stacked bar: volume and % of the stated total
+    fig,ax = plt.subplots(figsize=(12.00,2.29),dpi=100)
+    start = 0.0
+    for name,value in parts:
+        ax.barh([0],[value],left=[start])
+        ax.text(start+value/2,0,f"{name}\n{value:.3f} mL\n{value/total*100:.1f}%",
+                ha="center",va="center",fontsize=16)
+        start += value
+    ax.set_title(f"{title} = {total:.3f} mL")
+    ax.set_xlim(0,total)
+    ax.set_yticks([])
+    fig.tight_layout(pad=0.25)
+    fig.savefig(file,dpi=100)
+    plt.close(fig)
+
+def atlas(rows,title,size,xmax,unit,file):  # one atlas per chart; % is of Tumor Core
+    names,volumes = zip(*rows[::-1])       # largest at the top
+    fig,ax = plt.subplots(figsize=size,dpi=100)
+    for bar,value in zip(ax.barh(names,volumes),volumes):
+        ax.text(value+xmax*0.008,bar.get_y()+bar.get_height()/2,
+                f"{value:.3f}{unit} ({value/core*100:.1f}%)",va="center",fontsize=14)
+    ax.set_title(title)
+    ax.set_xlabel("Overlap volume (mL)")
+    ax.set_xlim(0,xmax)
+    fig.tight_layout()
+    fig.savefig(file,dpi=100)
+    plt.close(fig)
+
+composition([("Necrosis",necrosis),("Enhancing",enhancing),("Edema",edema)],whole,
+            "Whole segmented lesion","whole_lesion_composition.png")
+composition([("Necrosis",necrosis),("Enhancing",enhancing)],core,
+            "Tumor core","tumor_core_composition.png")
+atlas(cha,"CHA atlas: tumor-core overlap",(9.86,4.74),7.6," mL","CHA_tumor_core_overlap.png")
+atlas(brodmann,"Brodmann area atlas: tumor-core overlap",(9.85,6.10),3.55,"",
+      "Brodmann_tumor_core_overlap.png")
+
+fig,ax = plt.subplots(figsize=(9.69,4.06),dpi=100)
+for bar,value in zip(ax.bar(tracts,edema_pct),edema_pct):
+    ax.text(bar.get_x()+bar.get_width()/2,value+1,f"{value:.1f}%",ha="center",va="bottom",fontsize=15)
+ax.set_title("Right tract-to-edema relationship")
+ax.set_ylabel("Edema-intersecting\nstreamlines (%)")
+ax.set_ylim(0,115)
+fig.tight_layout()
+fig.savefig("right_tract_to_edema.png",dpi=100)
+plt.close(fig)
+
+x = np.arange(len(tracts))
+fig,ax = plt.subplots(figsize=(9.69,4.06),dpi=100)
+ax.bar(x-0.18,curl_left,0.36,label="Left")
+ax.bar(x+0.18,curl_right,0.36,label="Right")
+ax.set_xticks(x)
+ax.set_xticklabels(tracts)
+ax.set_ylabel("Curl")
+ax.set_title("Bilateral tract morphology")
+ax.set_ylim(0,2.4)
+ax.legend()
+fig.tight_layout()
+fig.savefig("bilateral_tract_morphology.png",dpi=100)
+plt.close(fig)
+```
+
+The y-axis label of the edema chart is a reconstructed-streamline fraction (§11.6), not an
+axon or infiltration fraction.
+
+### 11.14 Report assembly: the accepted sub-003 PDF layout
+
+The accepted sub-003 report was built with ReportLab from the 11.13 PNGs and charts. The
+script below reproduces its seven pages: header and summary box, two-panel figure rows with a
+caption strip, navy-header tables, side-by-side figure and text blocks, and a footer with the
+case name and page number. For a new case, keep the structure and replace the values, text and
+file names with the case manifest (11.9). Add or remove tract pages by editing the tract list
+(11.5).
+
+Orientation labels are written into a 48-pixel margin, never over the anatomy. 3D labels come
+from `get_camera` for that save; 2D labels come from `R_side` (radiological here). A tract
+callout needs the tract's pixel position in the saved slice: open the PNG, find the tract, and
+place the label box in empty space so the leader line does not cross the lesion.
+
+```python
+from PIL import Image as PILImage, ImageDraw, ImageFont
+
+def font(size):
+    try:
+        return ImageFont.truetype("DejaVuSans-Bold.ttf",size)
+    except OSError:
+        return ImageFont.load_default(size)
+
+def orient(src,dst,left,right,top,bottom,dark=False,note=None,callout=None):
+    """Pad a DSI export and write R/L/A/P/S/I labels (from get_camera or R_side) in the margin.
+    callout = (text,(x,y) of the tract in source pixels,(x,y) of the label box)."""
+    im = PILImage.open(src).convert("RGB")
+    m = 48
+    out = PILImage.new("RGB",(im.width+2*m,im.height+2*m),"black" if dark else "white")
+    out.paste(im,(m,m))
+    d,fg = ImageDraw.Draw(out),"white" if dark else "black"
+    W,H = out.size
+    for text,xy in ((top,(W/2,m/2)),(bottom,(W/2,H-m/2)),(left,(m/2,H/2)),(right,(W-m/2,H/2))):
+        d.text(xy,text,fill=fg,font=font(28),anchor="mm")
+    if note:
+        d.text((12,H-12),note,fill=fg,font=font(16),anchor="ld")
+    if callout:
+        text,(tx,ty),(lx,ly) = callout
+        box = d.textbbox((lx+m,ly+m),text,font=font(20),anchor="mm")
+        d.line([(lx+m,ly+m),(tx+m,ty+m)],fill="white",width=2)
+        d.rounded_rectangle([box[0]-6,box[1]-4,box[2]+6,box[3]+4],radius=5,fill="black",outline="white",width=2)
+        d.text((lx+m,ly+m),text,fill="white",font=font(20),anchor="mm")
+    out.save(dst)
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import (SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,Image,PageBreak,KeepTogether)
+
+CASE = "UPenn-GBM sub-003"
+NAVY,PALE,GRID = colors.HexColor("#1f3a5f"),colors.HexColor("#e8eef6"),colors.HexColor("#c8d0da")
+WIDTH = letter[0]-1.5*inch
+H1 = ParagraphStyle("h1",fontName="Helvetica-Bold",fontSize=24,leading=30,textColor=NAVY,alignment=1)
+H2 = ParagraphStyle("h2",fontName="Helvetica-Bold",fontSize=17,leading=22,textColor=NAVY,spaceBefore=6,spaceAfter=4)
+SUB = ParagraphStyle("sub",fontName="Helvetica",fontSize=10,leading=13,textColor=colors.grey)
+BODY = ParagraphStyle("body",fontName="Helvetica",fontSize=10,leading=13.5)
+CAP = ParagraphStyle("cap",parent=BODY,fontSize=8.5,leading=11)
+
+def img(file,width):
+    w,h = PILImage.open(file).size
+    return Image(file,width,width*h/w)
+
+def grid(cells,widths=None,caption_row=False):  # side-by-side figures/flowables, optional caption row
+    widths = widths or [WIDTH/len(cells[0])]*len(cells[0])
+    t = Table(cells,colWidths=widths)
+    style = [("VALIGN",(0,0),(-1,-1),"TOP"),("BOX",(0,0),(-1,-1),0.5,GRID),("LEFTPADDING",(0,0),(-1,-1),3),("RIGHTPADDING",(0,0),(-1,-1),3)]
+    if caption_row:
+        style.append(("BACKGROUND",(0,-1),(-1,-1),colors.HexColor("#f4f6f8")))
+    t.setStyle(TableStyle(style))
+    return t
+
+def figures(*pairs):  # (file,caption) pairs in one row
+    w = WIDTH/len(pairs)-6
+    return grid([[img(f,w) for f,_ in pairs],[Paragraph(c,CAP) for _,c in pairs]],caption_row=True)
+
+def table(header,rows,widths=None):
+    t = Table([[Paragraph(f"<b>{h}</b>",ParagraphStyle("th",parent=BODY,textColor=colors.white)) for h in header]]+
+              [[Paragraph(str(c),BODY) for c in r] for r in rows],colWidths=widths,repeatRows=1)
+    t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),NAVY),("GRID",(0,0),(-1,-1),0.5,GRID),("VALIGN",(0,0),(-1,-1),"MIDDLE")]))
+    return t
+
+def box(html):
+    t = Table([[Paragraph(html,BODY)]],colWidths=[WIDTH])
+    t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),PALE),("BOX",(0,0),(-1,-1),0.5,GRID),("PADDING",(0,0),(-1,-1),8)]))
+    return t
+
+def footer(canvas,doc):
+    canvas.saveState()
+    canvas.setStrokeColor(GRID)
+    canvas.line(0.75*inch,0.6*inch,letter[0]-0.75*inch,0.6*inch)
+    canvas.setFont("Helvetica",8)
+    canvas.setFillColor(colors.grey)
+    canvas.drawString(0.75*inch,0.42*inch,f"{CASE} | Tumor and tract-tumor report")
+    canvas.drawRightString(letter[0]-0.75*inch,0.42*inch,f"Page {doc.page}")
+    canvas.restoreState()
+
+# ---- orientation labels: values from get_camera (3D) and R_side (2D) ----
+AXIAL3D,CORONAL3D,SAGITTAL3D = ("R","L","A","P"),("R","L","S","I"),("A","P","S","I")
+for f,o in [("sub003_tumor_WM_axial3D",AXIAL3D),("sub003_tumor_WM_coronal3D",CORONAL3D),
+            ("sub003_alltracts_tumor_WM_axial3D",AXIAL3D),("sub003_alltracts_tumor_WM_coronal3D",CORONAL3D),
+            ("sub003_CST_R_tumor_WM_axial3D",AXIAL3D),("sub003_CST_R_tumor_WM_sagittal3D",SAGITTAL3D),
+            ("sub003_SLF_R_tumor_WM_axial3D",AXIAL3D),("sub003_SLF_R_tumor_WM_coronal3D",CORONAL3D)]:
+    orient(f+".png",f+"_lab.png",*o)
+RADIOLOGICAL = dict(left="R",right="L",top="A",bottom="P",dark=True,note="Radiological convention")
+for f in ["sub003_ceT1w_corecenter","sub003_FLAIR_corecenter"]:
+    orient(f+".png",f+"_lab.png",**RADIOLOGICAL)
+orient("sub003_CST_R_FLAIR_axial.png","sub003_CST_R_FLAIR_axial_lab.png",callout=("Right CST",(530,560),(260,650)),**RADIOLOGICAL)
+orient("sub003_SLF_R_FLAIR_axial.png","sub003_SLF_R_FLAIR_axial_lab.png",callout=("Right SLF",(330,490),(220,350)),**RADIOLOGICAL)
+
+# ---- pages ----
+s = [Paragraph(CASE,H1),
+     Paragraph("Complete tumor and tract-tumor relationship report | Fresh direct DSI Studio 3D exports",ParagraphStyle("c",parent=SUB,alignment=1)),
+     Spacer(1,10),
+     box("<b>Summary.</b> Right posterior-medial/perirolandic lesion with 18.663 mL tumor core and 60.477 mL peritumoral edema. "
+         "No reconstructed CST, SLF, arcuate, or FAT streamlines enter necrosis or enhancing tumor. The right CST shows complete "
+         "edema-field contact; right SLF shows limited edema contact."),
+     Paragraph("Representative tumor imaging",H2),
+     figures(("sub003_ceT1w_corecenter_lab.png","Contrast-enhanced T1w-gd"),("sub003_FLAIR_corecenter_lab.png","FLAIR")),
+     PageBreak(),
+
+     Paragraph("Tumor segmentation, composition, and 3D location",H2),
+     Paragraph("Fresh direct DSI Studio 3D saves on white background with the defragmented White_Matter brain envelope.",SUB),
+     figures(("whole_lesion_composition.png","Whole segmented lesion"),("tumor_core_composition.png","Tumor core")),
+     Spacer(1,6),
+     table(["Compartment","Volume","% whole lesion","% tumor core"],
+           [["Necrosis","11.961 mL","15.11%","64.09%"],["Enhancing tumor","6.702 mL","8.47%","35.91%"],
+            ["Peritumoral edema","60.477 mL","76.42%","-"],["Tumor core","18.663 mL","23.58%","100.00%"],
+            ["Whole segmented lesion","79.140 mL","100.00%","-"]],[WIDTH*0.34]+[WIDTH*0.22]*3),
+     Spacer(1,6),
+     figures(("sub003_tumor_WM_axial3D_lab.png","Axial 3D tumor + White_Matter envelope"),
+             ("sub003_tumor_WM_coronal3D_lab.png","Coronal 3D tumor + White_Matter envelope")),
+     PageBreak(),
+
+     Paragraph("Tumor-atlas overlap",H2),
+     Paragraph("CHA and Brodmann overlaps are reported separately. Percentages use the 18.663 mL tumor core as denominator.",SUB),
+     grid([[img("CHA_tumor_core_overlap.png",WIDTH/2-6),img("Brodmann_tumor_core_overlap.png",WIDTH/2-6)],
+           [table(["CHA region","Overlap","% core"],[["Posterior cingulate","5.501 mL","29.48%"],["Precentral","1.250 mL","6.70%"],
+                   ["Postcentral","0.768 mL","4.12%"],["Premotor","0.445 mL","2.38%"],["Precuneus","0.127 mL","0.68%"]]),
+            table(["Brodmann area","Overlap","% core"],[["BA31 right","2.493 mL","13.36%"],["BA4 right","1.756 mL","9.41%"],
+                   ["BA23 right","1.046 mL","5.60%"],["BA23 left","0.460 mL","2.46%"],["BA24 right","0.458 mL","2.45%"],
+                   ["BA5 right","0.371 mL","1.99%"],["BA6 right","0.337 mL","1.81%"],["BA24 left","0.157 mL","0.84%"],
+                   ["BA31 left","0.111 mL","0.59%"]])]]),
+     Spacer(1,6),
+     grid([[img("sub003_tumor_WM_coronal3D_lab.png",WIDTH*0.45),
+            Paragraph("<b>Representative anatomy.</b> CHA shows the largest overlap in posterior cingulate (29.48% of core). "
+                      "The Brodmann atlas shows the largest overlap in right BA31 (13.36%) and right BA4 (9.41%).",BODY)]],
+          [WIDTH*0.47,WIDTH*0.53]),
+     PageBreak(),
+
+     Paragraph("Tract-tumor report: all reconstructed pathways",H2),
+     figures(("sub003_alltracts_tumor_WM_axial3D_lab.png","Axial all-tract overview"),
+             ("sub003_alltracts_tumor_WM_coronal3D_lab.png","Coronal all-tract overview")),
+     Spacer(1,6),
+     table(["Right tract","Total","Edema-intersecting","Edema fraction","Core intersection"],
+           [["CST","8,595","8,595","100.0%","0"],["SLF","5,315","619","11.6%","0"],
+            ["Arcuate","7,255","0","0%","0"],["FAT","5,812","0","0%","0"]]),
+     Spacer(1,6),
+     grid([[img("right_tract_to_edema.png",WIDTH*0.5),
+            Paragraph("<b>Key finding.</b> No reconstructed named pathway enters necrosis or enhancing tumor. The dominant "
+                      "relationship is the right CST within the edema field; right SLF has limited edema contact.",BODY)]],
+          [WIDTH*0.52,WIDTH*0.48])]
+
+for name,short,views,t2r,interpretation in [
+    ("right corticospinal tract (CST)","CST_R",[("axial3D","Axial"),("sagittal3D","Sagittal")],
+     ["8,595 / 8,595 right-CST streamlines intersect edema (100%).","0 intersect necrosis.","0 intersect enhancing tumor.",
+      "Edema-intersecting tract volume: 1,424 mm<super>3</super>."],
+     "the reconstructed motor pathway is embedded in the edema environment but does not enter the reconstructed tumor core."),
+    ("right superior longitudinal fasciculus (SLF)","SLF_R",[("axial3D","Axial"),("coronal3D","Coronal")],
+     ["619 / 5,315 right-SLF streamlines intersect edema (11.6%).","0 intersect necrosis.","0 intersect enhancing tumor.",
+      "Edema-intersecting tract volume: 556 mm<super>3</super>."],
+     "a minority of reconstructed right-SLF streamlines contact edema; the reconstructed tumor core remains separate.")]:
+    tract = short.split("_")[0]
+    s += [PageBreak(),Paragraph(f"Affected tract: {name}",H2),
+          figures(*[(f"sub003_{short}_tumor_WM_{v}_lab.png",f"{label} 3D right {tract} + tumor + White_Matter envelope") for v,label in views]),
+          Spacer(1,6),
+          grid([[img(f"sub003_{short}_FLAIR_axial_lab.png",WIDTH*0.5),
+                 Paragraph(f"<b>FLAIR axial slice.</b> Radiological convention: image left = patient right. The tumor/edema "
+                           f"mask is delineated and the right {tract} is labeled.<br/><br/><b>T2R</b><br/>"+
+                           "<br/>".join("&bull; "+x for x in t2r)+f"<br/><br/><b>Interpretation:</b> {interpretation}",BODY)]],
+               [WIDTH*0.52,WIDTH*0.48])]
+
+s += [PageBreak(),Paragraph("Integrated interpretation and bilateral context",H2),
+      figures(("right_tract_to_edema.png","Right tract-to-edema relationship"),("bilateral_tract_morphology.png","Bilateral tract morphology (curl)")),
+      Spacer(1,6),
+      figures(("sub003_alltracts_tumor_WM_axial3D_lab.png","All tracts + tumor, axial"),("sub003_FLAIR_corecenter_lab.png","FLAIR through tumor core")),
+      Spacer(1,8),
+      box("<b>Integrated conclusion</b><br/><br/>"
+          "1. Tumor core volume is 18.663 mL; peritumoral edema is 60.477 mL.<br/><br/>"
+          "2. CHA and Brodmann overlaps are presented independently. Largest CHA overlap is posterior cingulate (29.48% of core); "
+          "largest Brodmann overlaps are right BA31 (13.36%) and right BA4 (9.41%).<br/><br/>"
+          "3. No reconstructed CST, SLF, arcuate, or FAT streamline enters necrosis or enhancing tumor. Right CST shows 100% edema "
+          "contact; right SLF 11.6%; right arcuate and FAT 0%.<br/><br/>"
+          "4. Right arcuate curl is markedly higher than left, but without lesion intersection this remains a descriptive "
+          "reconstruction asymmetry.<br/><br/>"
+          "5. Edema-mask intersection is a geometric tractography relationship, not proof of histologic invasion or a surgical corridor.")]
+
+SimpleDocTemplate("sub003_tumor_report.pdf",pagesize=letter,leftMargin=0.75*inch,rightMargin=0.75*inch,
+                  topMargin=0.6*inch,bottomMargin=0.8*inch).build(s,onFirstPage=footer,onLaterPages=footer)
+```
+
+After `build`, render every page to an image and inspect it (11.8) before delivering.
