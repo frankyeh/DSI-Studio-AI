@@ -1082,3 +1082,311 @@ Distinguish successful command execution from an anatomically accepted result.
 
 Use current DSI Studio AI documentation and live command output as the authority for
 software behavior.
+
+## 11. Required full PDF tumor and tract-tumor report protocol
+
+When the user requests a complete brain-tumor report or PDF, this section is mandatory.
+It captures the figure-generation and report-layout requirements needed to produce a
+neurosurgeon-readable result. Where these report-specific requirements differ from generic
+screenshot defaults elsewhere, follow this section for the final report.
+
+### 11.1 The final report must be complete, not a slide export
+
+- Produce a real PDF report; do not substitute a PowerPoint or a slide-deck export.
+- The report must contain both a **tumor report** and a **tract-tumor report**.
+- **Every page must contain at least one figure that is directly relevant to that page.**
+  A table-only or prose-only page is incomplete.
+- A figure may be structural MRI, a quantitative chart, a direct DSI Studio 3D rendering,
+  or a tract-on-slice image, but it must help the reader interpret the material on that page.
+- Render the finished PDF and inspect every page before delivery. Check for clipping,
+  unreadable labels, wrong orientation, missing surfaces, corrupted 3D views, and pages
+  without a relevant figure. Do not call the report finished until this visual QC passes.
+
+### 11.2 3D figures: direct DSI Studio exports, white background, visible brain surface
+
+The report's 3D figures must be **fresh direct DSI Studio saves**. Do not create the final
+3D figure by inverting a black screenshot, replacing its background, hue-filtering an
+all-tract image, or otherwise trying to reconstruct a missing surface in post-processing.
+Those operations can erase or corrupt translucent isosurfaces.
+
+For report 3D captures:
+
+1. Use a **white background**. The verified DSI Studio rendering value is:
+
+```bash
+bash ./dsi.sh set_param bkg_color 16777215
+```
+
+2. Keep the background white until **all required 3D figures have been saved and visually
+   verified**. Do not restore black between 3D scenes.
+3. Use a true brain surface/isosurface as the spatial anchor. Prefer the appropriate
+   skull-stripped `White_Matter` surface described in Step 1. If a separate DSI surface is
+   needed, use the rendering manual's subject-space brain-surface method (for example,
+   built-in slice 0 with `add_surface 0 25`), never a raw T1w skull isosurface.
+4. Ensure the brain surface, tumor compartments, and requested tracts are all actually
+   visible before saving. `preview_screen 3d` is useful for coarse checking, but inspect the
+   saved full-resolution PNG itself before accepting it.
+5. Use `save_screen` for the report's specified single orthogonal view. Do not use a
+   left/right stereo-pair as a substitute when the requested figure is axial, coronal, or
+   sagittal.
+
+Typical direct-export sequence:
+
+```bash
+bash ./dsi.sh set_param bkg_color 16777215
+bash ./dsi.sh set_param show_slice 0
+# Ensure the correct brain surface/isosurface is visible.
+# Select the tumor regions and tract(s) for this scene.
+
+bash ./dsi.sh set_view 2 0
+bash ./dsi.sh get_camera
+bash ./dsi.sh save_screen "<case>_axial3D.png" "1920 1080"
+
+bash ./dsi.sh set_view 1 0
+bash ./dsi.sh get_camera
+bash ./dsi.sh save_screen "<case>_coronal3D.png" "1920 1080"
+```
+
+For tract-specific figures, call `show_only_tracts` so the 3D image contains **one named
+tract at a time**, plus the tumor and the brain surface. The all-tract overview is not a
+substitute for a single-tract figure.
+
+If a direct DSI Studio 3D export is missing its brain surface, tumor isosurface, or tract,
+or looks corrupted, **debug the DSI scene and regenerate it**. Do not repair the figure by
+post-hoc color masking or background inversion.
+
+### 11.3 2D slice figures stay on the standard black background
+
+2D structural/slice figures should retain the standard DSI Studio **black background**.
+Do not convert them to white to match the 3D figures. The intended report convention is:
+
+```text
+3D rendering -> white background
+2D structural/slice view -> black background
+```
+
+Choose the structural background that best demonstrates the relationship:
+
+- contrast-enhanced T1w for enhancing tumor / tumor-core anatomy;
+- FLAIR for edema and tract-to-edema relationships;
+- another structural modality only when it better answers the anatomical question.
+
+For each tract-specific slice figure:
+
+- delineate the tumor/edema location with the segmentation overlay or boundary;
+- display the tract in the slice;
+- label the tract by name and side directly on the figure;
+- choose the axial, coronal, or sagittal slice that actually demonstrates the relative
+  position; do not use an arbitrary plane merely for consistency.
+
+### 11.4 Orientation labels are mandatory
+
+Every final report image must make its anatomical orientation understandable. Never assume
+that the reader can infer the view from tract shape alone.
+
+For **3D figures**, obtain `get_camera` immediately after setting the view and use its
+`view_direction`, `image_left`, and `image_up` output to assign labels. Do not guess from
+screen position. For the standard unflipped DSI views, the currently verified camera output
+is:
+
+```text
+set_view 2 0 (axial):
+  viewed from Inferior toward Superior
+  image_left = subject Right
+  image_up   = subject Anterior
+  labels: image left R, image right L, top A, bottom P
+
+set_view 1 0 (coronal):
+  viewed from Anterior toward Posterior
+  image_left = subject Right
+  image_up   = subject Superior
+  labels: image left R, image right L, top S, bottom I
+
+set_view 0 0 (sagittal):
+  viewed from Left toward Right
+  image_left = subject Anterior
+  image_up   = subject Superior
+  labels: image left A, image right P, top S, bottom I
+```
+
+Still call `get_camera` and verify these for the actual scene, especially after flipping,
+rotation, or oblique viewing. For an oblique view, either derive correct labels from camera
+metadata or avoid adding misleading cardinal labels.
+
+For **2D ROI/slice figures**, use DSI Studio's orientation metadata / `R_side` and the actual
+slice convention. When the slice uses radiological convention, image left is patient right;
+label it accordingly. Do not silently switch between radiological and neurological
+convention.
+
+The side of a tract and the camera viewing side are different concepts. A figure containing
+`Right CST` is not automatically a "right sagittal view." Label the tract separately from
+the view orientation.
+
+Do not put raw voxel x/y/z coordinates in the clinical report as an orientation aid.
+Neurosurgeons need recognizable anatomy and explicit R/L/A/P/S/I labels, not internal voxel
+numbers.
+
+### 11.5 Required report page sequence
+
+A complete presurgical tumor/tract report should normally use the following narrative
+sequence. Additional pages are allowed, but do not omit the required content.
+
+#### Page 1 — representative tumor MRI
+
+- Representative contrast-enhanced T1w and/or FLAIR centered through the tumor core.
+- 2D images remain black background.
+- Add correct orientation labels.
+- Briefly describe enhancement, necrosis, edema, and the anatomical location visible on
+  the images.
+
+#### Page 2 — tumor burden, composition, and 3D location
+
+Show **both** composition summaries; one does not replace the other:
+
+```text
+Whole segmented lesion = Necrosis + Enhancing Tumor + Peritumoral Edema
+Tumor Core             = Necrosis + Enhancing Tumor
+```
+
+For the whole lesion, report each compartment's volume and percentage of the whole lesion.
+For Tumor Core, report necrosis and enhancing-tumor volumes and their percentage of Tumor
+Core. A "Tumor Core composition" bar with only necrosis and enhancing tumor is correct but
+is incomplete if the report does not also show the whole-lesion composition including edema.
+
+On the same page include direct DSI Studio **tumor + brain-surface 3D views**, preferably
+axial and coronal, on a white background. The brain surface is required because it provides
+the spatial anchor for tumor location.
+
+#### Page 3 — tumor-atlas localization
+
+Keep `CHA` and `Brodmann` completely separate. They are different atlases and must not be
+mixed in one atlas-overlap list, table, or chart.
+
+For every reported nonzero atlas intersection show:
+
+```text
+overlap volume (mL or mm^3)
+percentage of Tumor Core = overlap volume / Tumor Core volume * 100
+```
+
+The percentage is **the percentage of the Tumor Core lying in that atlas region**, not the
+percentage of the atlas region occupied by tumor. Because these are different atlas
+parcellations and the lesion may include white matter, percentages are not expected to sum
+to 100%.
+
+This atlas page must also contain a representative anatomical figure, such as a direct DSI
+3D tumor + brain-surface view or a structural tumor slice. A chart/table alone is not enough.
+
+#### Next page — all-tract tumor overview
+
+The tract-tumor section starts with an **all selected tracts + tumor + brain surface** 3D
+overview. Use fresh direct DSI Studio white-background exports and include orientation
+labels. This overview establishes the global spatial context before showing individual
+pathways.
+
+#### Following pages — one tract at a time
+
+After the all-tract overview, show each clinically selected ipsilesional pathway separately.
+At minimum, every tract with nonzero lesion/edema intersection or a clinically important
+adjacency/displacement requires its own page. If the user explicitly asks for "each tract,"
+generate a page for every selected tract, including zero-contact tracts; do not silently
+collapse them into one overview.
+
+Each tract page should include:
+
+1. **Direct DSI 3D figure with one tract only**, plus tumor compartments and brain surface.
+2. Two useful orthogonal 3D views chosen to show the relationship. Examples:
+   - CST: axial + sagittal is often useful;
+   - SLF: axial + coronal is often useful;
+   but choose the planes from the actual anatomy rather than following these mechanically.
+3. At least one **black-background structural slice** (T1w-gd or FLAIR) with tumor location
+   delineated and the tract location labeled.
+4. T2R/spatial metrics and a concise interpretation of whether the tract intersects Tumor
+   Core, enhancing tumor, necrosis, edema, or only approaches the lesion.
+
+Never use an all-tract image as the tract-specific figure. Never create a tract-specific
+figure by hue filtering or masking an all-tract screenshot.
+
+#### Final page — integrated interpretation
+
+Include at least one relevant figure or quantitative chart. Summarize bilateral morphology,
+important T2R findings, spatial relationships, and the major interpretation caveats. Keep
+this page visually anchored rather than ending with prose alone.
+
+### 11.6 T2R quantities in the final report
+
+`intersect volume(mm^3)` and reconstructed-streamline fraction answer different questions
+and must not be mislabeled.
+
+For a tract and lesion compartment, when both are useful report:
+
+```text
+intersection volume = T2R intersect volume(mm^3)
+reconstructed-streamline fraction = T2R number of tracts / total bundle streamlines
+```
+
+The streamline fraction is a property of the reconstruction, not an axon fraction or a
+biological infiltration fraction. The raw streamline count is seeding-dependent; use it to
+calculate/describe the reconstruction fraction, not as a biological cell/axon measure.
+
+Do **not** use the generic T2R `intersect ratio` as the streamline fraction. Do not call a
+streamline fraction an "overlap volume."
+
+Preferred language includes:
+
+```text
+No reconstructed [tract] streamlines entered the Tumor Core.
+[X]% of reconstructed [tract] streamlines intersect the segmented edema field.
+```
+
+Edema intersection is a geometric tractography relationship and does not establish
+histologic invasion. Zero reconstructed Tumor-Core intersection does not prove a safe
+surgical plane.
+
+### 11.7 Figure-generation order and state discipline
+
+To avoid accidentally losing surfaces or saving a 3D figure with the wrong background:
+
+1. Finish segmentation, tracking, T2R, and morphology measurements first.
+2. Build/verify the brain surface and tumor scene.
+3. Set `bkg_color` to white (`16777215`).
+4. Generate **all** required 3D figures in one pass while the background remains white:
+   tumor only, all-tract overview, then each single-tract scene.
+5. For every scene, set an explicit view (`set_view <0|1|2> 0`), call `get_camera`, save with
+   `save_screen`, and visually inspect the saved PNG.
+6. Only after every 3D export has passed visual QC may the live display be restored to a
+   black background if desired for slice work.
+7. Generate/retain the 2D slice figures on black background.
+8. Assemble the PDF from these direct DSI exports; do not replace missing 3D content by
+   editing old screenshots.
+
+### 11.8 Final report QC checklist
+
+Before delivering the PDF verify all of the following:
+
+```text
+[ ] every page has a relevant figure
+[ ] 3D figures are fresh direct DSI Studio saves, not inverted/recolored substitutes
+[ ] all 3D figures use white background
+[ ] all 2D slice figures retain black background
+[ ] tumor/brain isosurfaces are visibly present in each required 3D scene
+[ ] every image has correct anatomical orientation labels or unambiguous orientation metadata
+[ ] radiological vs neurological convention is handled correctly for 2D slices
+[ ] no raw voxel x/y/z coordinates are presented as clinical localization
+[ ] whole-lesion and Tumor-Core composition are both reported
+[ ] CHA and Brodmann results are separated
+[ ] atlas overlap reports both volume and percentage of Tumor Core
+[ ] atlas page has a representative anatomical figure
+[ ] tract section starts with all-tract + tumor overview
+[ ] tract-specific pages use one tract at a time
+[ ] each tract page has a structural slice showing tumor/tract relative position
+[ ] tumor is delineated and tract is labeled on the slice
+[ ] T2R intersect volume and reconstructed-streamline fraction are not confused
+[ ] edema intersection is not called histologic invasion
+[ ] no figure is visibly corrupted, missing its surface, or generated by post-hoc hue masking
+[ ] the rendered PDF has been inspected page by page
+```
+
+Record the filenames of the accepted direct DSI exports, their `set_view`/camera metadata,
+background convention, and any rotations used so another agent can reproduce the same
+report later.
