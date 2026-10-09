@@ -1,0 +1,29 @@
+name: apply-brain-tumor-rendering-cleanup
+on:
+  push:
+    branches: [brain-tumor-rendering-cleanup-temp]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          path: repo
+      - name: Apply cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cd repo && git rev-parse HEAD)" = "ba2282311e7fd28ac4c05d8c75141b6ff0355654"
+          python3 .github/scripts/cleanup_brain_tumor_rendering_doc.py repo/DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md
+          cd repo
+          test "$(git diff --name-only)" = "DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md"
+          git diff --check
+          git config user.name "Fang-Cheng (Frank) Yeh"
+          git config user.email "frank.yeh@gmail.com"
+          git add DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md
+          git commit -m "Finish White_Matter rendering documentation cleanup"
+          git push origin HEAD:main
