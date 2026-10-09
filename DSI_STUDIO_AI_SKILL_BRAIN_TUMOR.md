@@ -607,9 +607,11 @@ region from `human_tumor`; do not use `add_surface` or a separate isosurface.
 7. Once the final tract set is loaded, `set_param tract_color_style 1` (Assigned) and
    `color_all_cluster`; repeat after any tract is added or reloaded. Do not use directional
    color.
-8. Save one explicit view per PNG: `set_view`, `get_camera`, `save_screen`. Do not use
+8. Save one explicit view per image: `set_view`, `get_camera`, `save_screen`. If a PNG looks
+   washed out compared with the screen, the DSI Studio build predates the opaque-framebuffer
+   fix; save as `.jpg` instead. Do not use
    `save_lr_screen` or other stereo pairs; place two separate views side by side instead.
-9. Open each PNG. The background must already be white as saved. If it is black or
+9. Open each image. The background must already be white as saved. If it is black or
    transparent, set `bkg_color -1` and save again; never invert or recolor the background
    afterwards, because that destroys the translucent `White_Matter` envelope and the tumor
    colors. Likewise, if the envelope, a tumor compartment, or the requested tract is missing,
@@ -626,12 +628,25 @@ enhancing tumor and core, and FLAIR for edema and tract-to-edema relationships. 
   including the page 1 MRI and the tract-page slices;
 - hide fiber-orientation glyphs (`set_param roi_fiber 0`), crosshairs, and unrelated
   tracts, regions, and labels;
-- show only the tumor compartments (no `White_Matter` or Tumor Core copy in 2D);
-- for a tract figure, show only that tract and choose the plane that shows the relationship.
+- show only the tumor compartments (no `White_Matter` or Tumor Core copy in 2D), resolved by
+  name from a fresh `list_region`: rows shift when `White_Matter` moves to the last row;
+- place the slice through the lesion: `move_slice_to_region` on the Tumor Core row (or
+  Necrosis when there is no Tumor Core), again resolved by name. Moving to a wrong row such
+  as `White_Matter` lands at its center, the ventricle level, far from a superior tumor;
+- for a tract figure, show only that tract. A slice shows only the streamline points that
+  lie in it (one voxel thick), so a tract crossing the plane appears as a few dots. Use the
+  axial slice through the tumor center when the tract runs beside the lesion in that plane
+  (it shows as a line, as in the sub-003 report); otherwise use the plane along its course
+  through the same center: coronal for CST, sagittal or axial for SLF and AF;
+- open the saved image: the tumor outlines and the tract must both be visible next to each
+  other. If the slice shows no tumor, or the tract is only dots, fix the row or the plane and
+  save again.
 
 ### 7.5 Orientation labels
 
-Every image carries anatomical orientation labels. For 3D, read `image_left` and `image_up`
+Every image carries anatomical orientation labels, large enough to read in the PDF: about
+1/16 of the image width (roughly 10 pt or more as printed), bold, in a margin outside the
+anatomy. This applies whatever tool assembles the report. For 3D, read `image_left` and `image_up`
 from `get_camera` after each `set_view`. For the standard unflipped views:
 
 ```text
@@ -746,28 +761,30 @@ dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_SLF_R_tumor_WM_axial3D.
 dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_SLF_R_tumor_WM_coronal3D.png "1920 1080"
 ```
 
-Inspect each PNG after saving (or `preview_screen 3d` before it). The orientation labels
+Inspect each image after saving (or `preview_screen 3d` before it). The orientation labels
 come from `get_camera`, as in §7.5.
 
 #### DSI Studio commands for the 2D figures
 
 ```bash
-# Tumor compartments as outlines on every 2D figure; no fiber glyphs
+# Tumor compartments as outlines on every 2D figure; no fiber glyphs.
+# Rows after the White_Matter move: 4 Necrosis, 5 Peritumoral Edema, 6 Enhancing Tumor.
 dsi set_params "roi_draw_edge=1&roi_edge_width=2"
 dsi set_param roi_fiber 0
+dsi list_region
 dsi show_only_regions "4&5&6"
 
 # Representative tumor MRI (repeat with the FLAIR slice name for the FLAIR panel)
 dsi set_slice_by_name "<exact ceT1w / T1w-gd slice name>"
 dsi set_roi_view 2
-dsi move_slice_to_region <Tumor-Core-index>
+dsi move_slice_to_region 4    # Necrosis (or Tumor Core): the lesion center, not White_Matter
 dsi check_uncheck_all_tract 0
 dsi save_roi_screen sub003_ceT1w_corecenter.png
 
-# Tract on FLAIR, tumor outlines kept
+# Tract on FLAIR at the same lesion-center slice, tumor outlines kept
 dsi set_slice_by_name "<exact FLAIR slice name>"
 dsi set_roi_view 2
-dsi move_slice_to_region <Tumor-Core-index>
+dsi move_slice_to_region 4
 dsi show_only_tracts "1"; dsi save_roi_screen sub003_CST_R_FLAIR_axial.png
 dsi show_only_tracts "3"; dsi save_roi_screen sub003_SLF_R_FLAIR_axial.png
 ```
@@ -882,16 +899,17 @@ axon or infiltration fraction.
 
 ### 7.9 Assembling the PDF
 
-The accepted sub-003 report was built with ReportLab from the §7.8 PNGs and charts. The
+The accepted sub-003 report was built with ReportLab from the §7.8 images and charts. The
 script below reproduces its seven pages: header and summary box, two-panel figure rows with a
 caption strip, navy-header tables, side-by-side figure and text blocks, and a footer with the
 case name and page number. For a new case, keep the structure and replace the values, text and
 file names with the case inputs (§7.2). Add or remove tract pages by editing the tract list
 (§7.1).
 
-Orientation labels are written into a 48-pixel margin, never over the anatomy. 3D labels come
+Orientation labels are written into a margin, never over the anatomy, and scale with the image
+(about 1/16 of its width) so they stay readable at half-page width. 3D labels come
 from `get_camera` for that save; 2D labels come from `R_side` (radiological here). A tract
-callout needs the tract's pixel position in the saved slice: open the PNG, find the tract, and
+callout needs the tract's pixel position in the saved slice: open the image, find the tract, and
 place the label box in empty space so the leader line does not cross the lesion.
 
 ```python
@@ -907,21 +925,22 @@ def orient(src,dst,left,right,top,bottom,dark=False,note=None,callout=None):
     """Pad a DSI export and write R/L/A/P/S/I labels (from get_camera or R_side) in the margin.
     callout = (text,(x,y) of the tract in source pixels,(x,y) of the label box)."""
     im = PILImage.open(src).convert("RGB")
-    m = 48
+    s = max(im.size)//16                  # label size: readable when the panel is half a page wide
+    m = s*3//2
     out = PILImage.new("RGB",(im.width+2*m,im.height+2*m),"black" if dark else "white")
     out.paste(im,(m,m))
     d,fg = ImageDraw.Draw(out),"white" if dark else "black"
     W,H = out.size
     for text,xy in ((top,(W/2,m/2)),(bottom,(W/2,H-m/2)),(left,(m/2,H/2)),(right,(W-m/2,H/2))):
-        d.text(xy,text,fill=fg,font=font(28),anchor="mm")
+        d.text(xy,text,fill=fg,font=font(s),anchor="mm")
     if note:
-        d.text((12,H-12),note,fill=fg,font=font(16),anchor="ld")
+        d.text((m//4,H-m//4),note,fill=fg,font=font(s//2),anchor="ld")
     if callout:
         text,(tx,ty),(lx,ly) = callout
-        box = d.textbbox((lx+m,ly+m),text,font=font(20),anchor="mm")
-        d.line([(lx+m,ly+m),(tx+m,ty+m)],fill="white",width=2)
+        box = d.textbbox((lx+m,ly+m),text,font=font(s*3//4),anchor="mm")
+        d.line([(lx+m,ly+m),(tx+m,ty+m)],fill="white",width=max(2,s//20))
         d.rounded_rectangle([box[0]-6,box[1]-4,box[2]+6,box[3]+4],radius=5,fill="black",outline="white",width=2)
-        d.text((lx+m,ly+m),text,fill="white",font=font(20),anchor="mm")
+        d.text((lx+m,ly+m),text,fill="white",font=font(s*3//4),anchor="mm")
     out.save(dst)
 
 from reportlab.lib import colors
