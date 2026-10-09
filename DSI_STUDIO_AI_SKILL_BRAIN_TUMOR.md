@@ -357,16 +357,59 @@ prefrontal 17%, premotor 9%.
 
 ### Brain surface for tumor location visualization
 
-To visualize the tumor on the brain surface, show the `White_Matter` region
-from the tumor segmentation — it is already a skull-stripped brain mask. Do
-not use `add_surface` on raw T1w (it includes the skull), and do not merge
-tissue regions.
+For tumor-report 3D rendering, use the **`White_Matter` region produced by the
+`human_tumor` segmentation as the brain envelope / spatial anchor**.
 
-Turn off `Gray_Matter` and `Others`; show `White_Matter` plus the tumor
-compartments (Necrosis, Peritumoral Edema, Enhancing Tumor). `Basal_Ganglia`
-may stay visible. Show `Cerebellar_Cortex` only if the tumor is near the
-cerebellum. Gray matter and other tissue labels clutter the surface and hide
-the tumor.
+Do **not** use `add_surface`, a separate DSI surface object, or a separately generated
+isosurface for the tumor report. Set `show_surface=0`; the checked `White_Matter` region
+itself provides the translucent brain envelope.
+
+The U-Net `White_Matter` output can contain disconnected fragments. Before final 3D
+rendering, **defragment `White_Matter`** and visually verify that it forms a coherent brain
+envelope. This cleanup is for `White_Matter` visualization only; do not defragment the tumor
+compartments unless the user explicitly requests a segmentation edit.
+
+Resolve the current row by name, then run:
+
+```bash
+bash ./dsi.sh region_action_defragment <white-matter-index>
+bash ./dsi.sh list_region
+```
+
+Keep DSI Studio's **original RGB** for the segmentation regions and change **alpha only**.
+`list_region` reports color as `#AARRGGBB`; preserve `RRGGBB` and replace `AA`:
+
+```text
+White_Matter       alpha 10  = 0x0A
+Necrosis           alpha 200 = 0xC8
+Peritumoral Edema  alpha 80  = 0x50
+Enhancing Tumor    alpha 100 = 0x64
+```
+
+Use `set_region_color` with the resulting unsigned ARGB value. Do not copy RGB values from
+another subject. The verified sub-003 example produced:
+
+```text
+Necrosis           #c85b484e
+Peritumoral Edema  #508397ab
+Enhancing Tumor    #64bc6e71
+White_Matter       #0ae7e7ee
+```
+
+After setting alpha, **move `White_Matter` to the bottom of the Region table so it renders
+last**. Re-resolve indices as rows move:
+
+```bash
+bash ./dsi.sh list_region
+bash ./dsi.sh move_down_region <current-white-matter-index>
+# repeat until White_Matter is the final row
+bash ./dsi.sh list_region
+```
+
+For final tumor 3D scenes, normally show only `Necrosis`, `Peritumoral Edema`,
+`Enhancing Tumor`, and `White_Matter`. Hide the other tissue labels unless specifically
+needed. The cleaned `White_Matter` region is a visualization anchor and is not part of
+Tumor Core.
 
 ### Required checkpoint after Step 1
 
@@ -1107,69 +1150,70 @@ morphology wording.
   unreadable labels, wrong orientation, missing surfaces, corrupted 3D views, and pages
   without a relevant figure. Do not call the report finished until this visual QC passes.
 
-### 11.2 3D figures: direct DSI Studio exports, white background, visible brain surface
+### 11.2 3D figures: direct DSI Studio exports with the segmentation-derived White_Matter brain envelope
 
-The report's 3D figures must be **fresh direct DSI Studio saves**. Do not create the final
-3D figure by inverting a black screenshot, replacing its background, hue-filtering an
-all-tract image, or otherwise trying to reconstruct a missing surface in post-processing.
-Those operations can erase or corrupt translucent isosurfaces.
+Final 3D figures must be **fresh direct DSI Studio saves**. Do not invert a black screenshot,
+replace its background, hue-filter an all-tract image, or synthesize missing anatomy.
 
-For report 3D captures:
+The canonical brain envelope is the **defragmented `White_Matter` region from
+`human_tumor` segmentation**. Do not use `add_surface`, a separate `surface` object, or a
+separate isosurface.
 
-1. Use a **white background**. The verified DSI Studio rendering value is:
+#### Canonical tumor + brain-envelope rendering preset
+
+1. Resolve current region rows by name with `list_region`.
+2. Defragment `White_Matter`:
 
 ```bash
-bash ./dsi.sh set_param bkg_color 16777215
+bash ./dsi.sh region_action_defragment <white-matter-index>
+bash ./dsi.sh list_region
 ```
 
-2. Keep the background white until **all required 3D figures have been saved and visually
-   verified**. Do not restore black between 3D scenes.
-3. Use a true brain surface/isosurface as the spatial anchor. Prefer the appropriate
-   skull-stripped `White_Matter` surface described in Step 1. If a separate DSI surface is
-   needed, use the rendering manual's subject-space brain-surface method (for example,
-   built-in slice 0 with `add_surface 0 25`), never a raw T1w skull isosurface.
-4. If a DSI surface object is being used, explicitly ensure it is enabled before saving:
+3. Preserve DSI-assigned RGB and change alpha only:
 
-```bash
-bash ./dsi.sh set_param show_surface 1
+```text
+Necrosis           alpha = 200
+Peritumoral Edema  alpha = 80
+Enhancing Tumor    alpha = 100
+White_Matter       alpha = 10
 ```
 
-   If the brain anchor is instead the `White_Matter` region rendered as a translucent region,
-   verify that this region is checked and visibly rendered. The important requirement is that
-   the saved 3D PNG contains a recognizable brain-surface anchor around the tumor/tracts.
-5. Ensure the brain surface, tumor compartments, and requested tracts are all actually
-   visible before saving. `preview_screen 3d` is useful for coarse checking, but inspect the
-   saved full-resolution PNG itself before accepting it.
-6. Use `save_screen` for the report's specified single orthogonal view. Do not use a
-   left/right stereo-pair as a substitute when the requested figure is axial, coronal, or
-   sagittal.
-
-Typical direct-export sequence:
+4. Move `White_Matter` to the **last Region-table row**, rechecking indices as it moves.
+5. Show only the three tumor compartments plus `White_Matter` unless extra tissue anatomy
+   is specifically required.
+6. Disable separate surface and slice objects:
 
 ```bash
-bash ./dsi.sh set_param bkg_color 16777215
+bash ./dsi.sh set_param show_surface 0
 bash ./dsi.sh set_param show_slice 0
-bash ./dsi.sh set_param show_surface 1   # when using a DSI surface object
-# Ensure the correct brain surface/isosurface is visible.
-# Select the tumor regions and tract(s) for this scene.
-
-bash ./dsi.sh set_view 2 0
-bash ./dsi.sh get_camera
-bash ./dsi.sh save_screen "<case>_axial3D.png" "1920 1080"
-
-bash ./dsi.sh set_view 1 0
-bash ./dsi.sh get_camera
-bash ./dsi.sh save_screen "<case>_coronal3D.png" "1920 1080"
 ```
 
-For tract-specific figures, call `show_only_tracts` so the 3D image contains **one named
-tract at a time**, plus the tumor and the brain surface. The all-tract overview is not a
-substitute for a single-tract figure.
+7. Use a white 3D background:
 
-If a direct DSI Studio 3D export is missing its brain surface, tumor isosurface, or tract,
-or looks corrupted, **debug the DSI scene and regenerate it**. Do not repair the figure by
-post-hoc color masking or background inversion. Do not silently substitute an older saved
-image from an earlier render state.
+```bash
+bash ./dsi.sh set_param bkg_color 16777215
+```
+
+The cleaned `White_Matter` region should appear as a very translucent brain envelope around
+the more opaque tumor compartments.
+
+#### Tract coloring in tumor + tract figures
+
+Do **not** use directional tract coloring in final report figures. Use assigned colors and
+cluster-color the tract bundles:
+
+```bash
+bash ./dsi.sh set_param tract_color_style 1
+bash ./dsi.sh color_all_cluster
+```
+
+`tract_color_style=1` is **Assigned** color. Use `show_only_tracts` for one-tract report
+figures; preserve the bundle's assigned cluster color. Keep distinct assigned cluster colors
+in the all-tract overview.
+
+For every final 3D scene, set an explicit view, call `get_camera`, save with `save_screen`,
+and inspect the saved PNG. If the image is missing the `White_Matter` envelope, a tumor
+compartment, or the requested tract, return to DSI Studio and regenerate it.
 
 ### 11.3 2D slice figures stay on the standard black background
 
@@ -1276,9 +1320,10 @@ Include a compact volume/composition table so the exact numbers are readable eve
 composition chart is small. When reliable orthogonal diameters are available from Step 1,
 include them in the lesion description as well.
 
-On the same page include direct DSI Studio **tumor + brain-surface 3D views**, preferably
-axial and coronal, on a white background. The brain surface is required because it provides
-the spatial anchor for tumor location.
+On the same page include direct DSI Studio **tumor + cleaned `White_Matter` brain-envelope
+3D views**, preferably axial and coronal, on a white background. The segmentation-derived
+`White_Matter` region is the required spatial anchor; do not substitute `add_surface` or a
+separate isosurface.
 
 #### Page 3 — tumor-atlas localization
 
@@ -1303,8 +1348,8 @@ slice. A chart/table alone is not enough.
 
 #### Next page — all-tract tumor overview
 
-The tract-tumor section starts with an **all selected tracts + tumor + brain surface** 3D
-overview. Use fresh direct DSI Studio white-background exports and include orientation
+The tract-tumor section starts with an **all selected tracts + tumor + cleaned `White_Matter`
+brain envelope** 3D overview. Use fresh direct DSI Studio white-background exports and include orientation
 labels. This overview establishes the global spatial context before showing individual
 pathways.
 
@@ -1335,7 +1380,7 @@ tracts; do not silently collapse them into one overview.
 
 Each tract page should include:
 
-1. **Direct DSI 3D figure with one tract only**, plus tumor compartments and brain surface.
+1. **Direct DSI 3D figure with one tract only**, plus tumor compartments and the cleaned `White_Matter` brain envelope.
 2. Two useful orthogonal 3D views chosen to show the relationship. Examples:
    - CST: axial + sagittal is often useful;
    - SLF: axial + coronal is often useful;
@@ -1389,20 +1434,23 @@ surgical plane.
 
 ### 11.7 Figure-generation order and state discipline
 
-To avoid accidentally losing surfaces or saving a 3D figure with the wrong background:
-
 1. Finish segmentation, tracking, T2R, and morphology measurements first.
-2. Build/verify the brain surface and tumor scene.
-3. Set `bkg_color` to white (`16777215`).
-4. Generate **all** required 3D figures in one pass while the background remains white:
-   tumor only, all-tract overview, then each single-tract scene.
-5. For every scene, set an explicit view (`set_view <0|1|2> 0`), call `get_camera`, save with
-   `save_screen`, and visually inspect the saved PNG.
-6. Only after every 3D export has passed visual QC may the live display be restored to a
-   black background if desired for slice work.
-7. Generate/retain the 2D slice figures on black background.
-8. Assemble the PDF from these direct DSI exports; do not replace missing 3D content by
-   editing old screenshots.
+2. Resolve region indices by name with `list_region`.
+3. Defragment `White_Matter` and verify a coherent brain envelope.
+4. Preserve DSI RGB and set alpha only: Necrosis 200, Edema 80, Enhancing Tumor 100,
+   White_Matter 10.
+5. Move `White_Matter` to the final Region-table row so it renders last.
+6. Show the three tumor compartments plus `White_Matter`; hide unnecessary tissue labels.
+7. Set `show_surface=0` and `show_slice=0`. Do not call `add_surface`; no separate isosurface
+   is required.
+8. Set `bkg_color=16777215` for white-background 3D rendering.
+9. For tract figures, set `tract_color_style=1` and run `color_all_cluster`; do not use
+   directional tract color in the final report.
+10. Generate all required tumor-only, all-tract, and single-tract 3D figures while this
+    preset remains active.
+11. For each view, call `get_camera`, save with `save_screen`, and visually inspect the PNG.
+12. Keep 2D structural/slice figures on black background.
+13. Assemble the PDF only from accepted direct DSI exports.
 
 ### 11.8 Final report QC checklist
 
@@ -1413,8 +1461,14 @@ Before delivering the PDF verify all of the following:
 [ ] page 1 identifies the case and contains a concise executive summary
 [ ] 3D figures are fresh direct DSI Studio saves, not inverted/recolored substitutes
 [ ] all 3D figures use white background
+[ ] White_Matter comes from human_tumor segmentation, not add_surface or a separate isosurface
+[ ] White_Matter was defragmented/cleaned before final 3D rendering
+[ ] White_Matter alpha is 10 and White_Matter is the final Region-table row
+[ ] Necrosis / Peritumoral Edema / Enhancing Tumor alpha values are 200 / 80 / 100
+[ ] tumor-region RGB values are the original DSI-assigned RGB values
+[ ] final tract figures use Assigned cluster colors, not directional colors
 [ ] all 2D slice figures retain black background
-[ ] tumor/brain isosurfaces are visibly present in each required 3D scene
+[ ] defragmented White_Matter region is visibly present as the brain envelope in each required 3D scene
 [ ] every image has correct anatomical orientation labels or unambiguous orientation metadata
 [ ] radiological vs neurological convention is handled correctly for 2D slices
 [ ] no raw voxel x/y/z coordinates are presented as clinical localization
@@ -1433,7 +1487,7 @@ Before delivering the PDF verify all of the following:
 [ ] raw streamline counts are not interpreted biologically
 [ ] curl/morphology asymmetry is not automatically attributed to tumor displacement
 [ ] edema intersection is not called histologic invasion
-[ ] no figure is visibly corrupted, missing its surface, or generated by post-hoc hue masking
+[ ] no figure is visibly corrupted, missing its White_Matter brain envelope, or generated by post-hoc hue masking
 [ ] the rendered PDF has been inspected page by page
 ```
 
@@ -1480,13 +1534,13 @@ Tracts
 - one appropriate tumor/tract structural slice for each tract-specific page
 
 Fresh direct DSI 3D white-background images
-- tumor only + brain surface: at least axial and coronal
-- all selected tracts + tumor + brain surface: at least one overview, preferably two views
-- each affected/clinically important tract + tumor + brain surface: two useful orthogonal views
+- tumor only + cleaned White_Matter brain envelope: at least axial and coronal
+- all selected tracts + tumor + cleaned White_Matter brain envelope: at least one overview, preferably two views
+- each affected/clinically important tract + tumor + cleaned White_Matter brain envelope: two useful orthogonal views
 ```
 
 For every accepted 3D file record the scene contents, view, `get_camera` orientation,
-background state, and whether the brain surface/tumor/tract are visibly present. If a required
+background state, and whether the White_Matter brain envelope/tumor/tract are visibly present. If a required
 figure is missing, regenerate it in DSI Studio rather than substituting an older or edited
 image.
 
@@ -1505,7 +1559,7 @@ Do **not** use post-processing to:
 - invert or replace the 3D background;
 - recolor/hue-filter an all-tract image to simulate a single tract;
 - remove structures from a 3D image;
-- synthesize a missing tumor or brain surface;
+- synthesize a missing tumor or White_Matter brain envelope;
 - mirror/flip a figure without recalculating and relabeling orientation.
 
 If the direct DSI export does not contain the desired scene, return to DSI Studio and save
@@ -1519,9 +1573,9 @@ report from the manifest using this default composition:
 | Page | Required content | Minimum figure content |
 |---|---|---|
 | 1 | Case ID/title, short executive summary, representative tumor MRI | Black-background oriented T1w-gd and/or FLAIR through tumor core |
-| 2 | Lesion volume table, whole-lesion composition, Tumor-Core composition, lesion description | Fresh direct white-background axial + coronal tumor/brain-surface 3D |
+| 2 | Lesion volume table, whole-lesion composition, Tumor-Core composition, lesion description | Fresh direct white-background axial + coronal tumor + cleaned White_Matter brain-envelope 3D |
 | 3 | CHA table/chart and Brodmann table/chart, kept separate; anatomical interpretation | Representative tumor anatomy figure with orientation |
-| 4 | All-tract tumor overview plus compact tract-to-lesion quantitative summary | Fresh direct white-background all-tract + tumor + brain-surface 3D |
+| 4 | All-tract tumor overview plus compact tract-to-lesion quantitative summary | Fresh direct white-background all-tract + tumor + cleaned White_Matter brain-envelope 3D |
 | 5..N | One affected/clinically important tract per page; T2R and spatial interpretation | Two direct white-background single-tract 3D views + one black-background tract/tumor slice |
 | Final | Integrated tumor + tract interpretation, morphology context, limitations, prioritized clinical points | At least one relevant quantitative chart or overview figure |
 
