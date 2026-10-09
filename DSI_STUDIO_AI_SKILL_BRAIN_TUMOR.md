@@ -1147,7 +1147,7 @@ morphology wording.
 - Page 1 should identify the case/study and include a short executive summary in addition to
   representative imaging.
 - Render the finished PDF and inspect every page before delivery. Check for clipping,
-  unreadable labels, wrong orientation, missing surfaces, corrupted 3D views, and pages
+  unreadable labels, wrong orientation, missing White_Matter brain envelopes, corrupted 3D views, and pages
   without a relevant figure. Do not call the report finished until this visual QC passes.
 
 ### 11.2 3D figures: direct DSI Studio exports with the segmentation-derived White_Matter brain envelope
@@ -1343,7 +1343,7 @@ parcellations and the lesion may include white matter, percentages are not expec
 to 100%.
 
 Use separate CHA and Brodmann charts/tables. This atlas page must also contain a representative
-anatomical figure, such as a direct DSI 3D tumor + brain-surface view or a structural tumor
+anatomical figure, such as a direct DSI 3D tumor + cleaned `White_Matter` brain-envelope view or a structural tumor
 slice. A chart/table alone is not enough.
 
 #### Next page — all-tract tumor overview
@@ -1552,7 +1552,7 @@ following are acceptable when they preserve the underlying image:
 - adding R/L/A/P/S/I orientation labels derived from camera/slice metadata;
 - adding a tract name/side label and an explanatory arrow;
 - adding captions, borders, or page-layout whitespace;
-- cropping unused outer margin when no anatomy, surface, tract, or orientation context is removed.
+- cropping unused outer margin when no anatomy, brain-envelope, tract, or orientation context is removed.
 
 Do **not** use post-processing to:
 
