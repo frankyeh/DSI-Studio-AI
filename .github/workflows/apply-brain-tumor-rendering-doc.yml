@@ -1,0 +1,29 @@
+name: apply-brain-tumor-rendering-doc
+on:
+  push:
+    branches: [brain-tumor-rendering-doc-temp]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          path: repo
+      - name: Apply brain tumor rendering skill patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cd repo && git rev-parse HEAD)" = "786d10ccaadf46e47ccbe5b52e6f3d3bf70ddfce"
+          python3 .github/scripts/patch_brain_tumor_rendering.py repo/DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md
+          cd repo
+          test "$(git diff --name-only)" = "DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md"
+          git diff --check
+          git config user.name "Fang-Cheng (Frank) Yeh"
+          git config user.email "frank.yeh@gmail.com"
+          git add DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md
+          git commit -m "Use canonical White_Matter tumor rendering preset"
+          git push origin HEAD:main
