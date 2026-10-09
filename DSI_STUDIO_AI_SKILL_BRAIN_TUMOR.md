@@ -468,9 +468,9 @@ Use the parent SLF entry rather than mapping SLF II/III separately for routine t
 planning.
 
 Reconstruct the ipsilateral (lesion-side) pathways and their contralateral
-homologs. The contralateral side serves as a control: a displaced tract shows
-increased curl (large route/distance ratio) compared to its healthy homolog,
-so left-right comparison is useful for detecting tumor-induced displacement.
+homologs. The contralateral side serves as a control for descriptive bilateral comparison.
+Curl (route/distance ratio) may help identify asymmetry, but curl alone does not prove that
+a tumor caused displacement; spatial geometry must also support that interpretation.
 
 Practical selection:
 
@@ -503,8 +503,8 @@ Before launching tracking, state:
 ```text
 Selected pathways
 - pathway names and why each is relevant to this lesion location
-- bilateral homologs reconstructed; contralateral side is the control for
-  curl (route/distance ratio) comparison to detect displacement
+- bilateral homologs reconstructed; contralateral side provides descriptive comparison
+  for morphology and tractability
 
 Potential neurosurgical relevance
 - which functional domains are being evaluated (motor, language, visual, semantic, etc.)
@@ -608,27 +608,25 @@ bundles routinely show headers without data.
 Report only the ipsilesional (tumor-side) tracts. The contralateral side has no
 lesion intersection by definition — do not report its zero rows.
 
-### 5.2 Lesion involvement by volume
+### 5.2 Lesion involvement: volume and reconstructed-streamline fraction
 
-Do not report streamline counts — the count is artificial, determined by
-seeding parameters rather than biology. Instead, use `intersect volume(mm^3)`
-from the T2R output, which estimates the volume of tract-lesion overlap.
-
-For each tract bundle and each lesion compartment, report:
+Do not interpret raw streamline counts biologically. Streamline counts are determined by
+seeding and reconstruction settings and are not axon counts. Use `intersect volume(mm^3)`
+as the spatial overlap measurement. When a fraction helps communicate how much of a
+reconstructed bundle contacts a lesion compartment, use the T2R `number of tracts` only as
+the numerator of a reconstruction fraction:
 
 ```text
-intersect volume (mm^3) = T2R "intersect volume(mm^3)" for that region
+intersection volume (mm^3) = T2R "intersect volume(mm^3)" for that region
+reconstructed-streamline fraction = T2R "number of tracts" / total bundle streamlines
 ```
 
-A streamline can pass through multiple lesion compartments, so volumes are not
-expected to sum to the total lesion volume.
+A streamline can pass through multiple lesion compartments, so volumes and fractions are
+not expected to sum across compartments.
 
-T2R answers: **what volume of the reconstructed pathway intersects this lesion
-region?** It measures geometric intersection of streamlines with segmented
-regions, not histological invasion.
-
-For this workflow use the `number of tracts` row as numerator. Do **not** use the generic
-T2R `intersect ratio` as the bundle streamline fraction.
+T2R measures geometric intersection of reconstructed streamlines with segmented regions;
+it does not measure histological invasion. Do **not** use the generic T2R `intersect ratio`
+as the bundle streamline fraction.
 
 A zero T2R count is valid only after confirming that the tract is nonempty, the lesion
 region is nonempty, both belong to the same subject/mapping context, and T2R completed
@@ -641,11 +639,11 @@ meaningful intersection plus important zeros:
 
 ```text
 Findings
-- pathway: total streamlines
-- Enhancing Tumor: intersecting count and fraction
-- Necrosis: intersecting count and fraction
-- Tumor Core: intersecting count and fraction
-- Peritumoral Edema: intersecting count and fraction
+- pathway: total reconstructed streamlines
+- Enhancing Tumor: intersection volume; reconstructed-streamline fraction when useful
+- Necrosis: intersection volume; reconstructed-streamline fraction when useful
+- Tumor Core: intersection volume; reconstructed-streamline fraction when useful
+- Peritumoral Edema: intersection volume; reconstructed-streamline fraction when useful
 
 Potential neurosurgical relevance
 - direct reconstructed-pathway intersection with Tumor Core is more concerning for
@@ -677,11 +675,14 @@ total surface area(mm^2)
 curl (route/distance ratio)
 ```
 
-Compare ipsilesional vs contralateral curl: a displaced tract shows increased
-curl compared to its healthy homolog. A substantially higher curl on the lesion
-side (e.g. 20%+) indicates tumor-induced displacement — the tract is being
-pushed aside and taking a longer, more winding route. Similar curl on both
-sides suggests the pathway is not significantly displaced.
+Compare ipsilesional and contralateral morphology descriptively. Higher ipsilesional curl
+can be consistent with a longer or more winding reconstructed route, but curl alone does
+not establish tumor-induced displacement. Attribute displacement to the lesion only when
+the live/saved 3D geometry also shows the pathway being pushed around the lesion or edema
+and the overall anatomical context supports that interpretation. If a pathway has no lesion
+contact/intersection, report a large curl asymmetry as a descriptive reconstruction
+asymmetry rather than claiming that the tumor caused it. Do not use a universal percentage
+threshold such as 20% to diagnose displacement.
 
 Verify lesion laterality from structural anatomy and segmentation before labeling a tract
 ipsilesional/contralateral. `preview_screen roi` reports `R_side=left` or `R_side=right`,
@@ -796,10 +797,10 @@ Anatomical localization
 - relevant Brodmann areas, if useful
 
 Eloquent pathways
-- pathway — side — total streamlines
-- Tumor Core intersection count/fraction
-- enhancing-tumor intersection count/fraction
-- edema intersection count/fraction
+- pathway — side — total reconstructed streamlines (reconstruction denominator only)
+- Tumor Core intersection volume and reconstructed-streamline fraction when useful
+- enhancing-tumor intersection volume and reconstructed-streamline fraction when useful
+- edema intersection volume and reconstructed-streamline fraction when useful
 - spatial relationship: displaced/compressed/marginal/intersecting/uncertain
 
 Key intervention-relevant points
@@ -1088,7 +1089,9 @@ software behavior.
 When the user requests a complete brain-tumor report or PDF, this section is mandatory.
 It captures the figure-generation and report-layout requirements needed to produce a
 neurosurgeon-readable result. Where these report-specific requirements differ from generic
-screenshot defaults elsewhere, follow this section for the final report.
+screenshot defaults elsewhere, follow this section for the final report. For the final PDF,
+this section also resolves any earlier ambiguity about figure style, T2R presentation, and
+morphology wording.
 
 ### 11.1 The final report must be complete, not a slide export
 
@@ -1098,6 +1101,8 @@ screenshot defaults elsewhere, follow this section for the final report.
   A table-only or prose-only page is incomplete.
 - A figure may be structural MRI, a quantitative chart, a direct DSI Studio 3D rendering,
   or a tract-on-slice image, but it must help the reader interpret the material on that page.
+- Page 1 should identify the case/study and include a short executive summary in addition to
+  representative imaging.
 - Render the finished PDF and inspect every page before delivery. Check for clipping,
   unreadable labels, wrong orientation, missing surfaces, corrupted 3D views, and pages
   without a relevant figure. Do not call the report finished until this visual QC passes.
@@ -1123,10 +1128,19 @@ bash ./dsi.sh set_param bkg_color 16777215
    skull-stripped `White_Matter` surface described in Step 1. If a separate DSI surface is
    needed, use the rendering manual's subject-space brain-surface method (for example,
    built-in slice 0 with `add_surface 0 25`), never a raw T1w skull isosurface.
-4. Ensure the brain surface, tumor compartments, and requested tracts are all actually
+4. If a DSI surface object is being used, explicitly ensure it is enabled before saving:
+
+```bash
+bash ./dsi.sh set_param show_surface 1
+```
+
+   If the brain anchor is instead the `White_Matter` region rendered as a translucent region,
+   verify that this region is checked and visibly rendered. The important requirement is that
+   the saved 3D PNG contains a recognizable brain-surface anchor around the tumor/tracts.
+5. Ensure the brain surface, tumor compartments, and requested tracts are all actually
    visible before saving. `preview_screen 3d` is useful for coarse checking, but inspect the
    saved full-resolution PNG itself before accepting it.
-5. Use `save_screen` for the report's specified single orthogonal view. Do not use a
+6. Use `save_screen` for the report's specified single orthogonal view. Do not use a
    left/right stereo-pair as a substitute when the requested figure is axial, coronal, or
    sagittal.
 
@@ -1135,6 +1149,7 @@ Typical direct-export sequence:
 ```bash
 bash ./dsi.sh set_param bkg_color 16777215
 bash ./dsi.sh set_param show_slice 0
+bash ./dsi.sh set_param show_surface 1   # when using a DSI surface object
 # Ensure the correct brain surface/isosurface is visible.
 # Select the tumor regions and tract(s) for this scene.
 
@@ -1153,7 +1168,8 @@ substitute for a single-tract figure.
 
 If a direct DSI Studio 3D export is missing its brain surface, tumor isosurface, or tract,
 or looks corrupted, **debug the DSI scene and regenerate it**. Do not repair the figure by
-post-hoc color masking or background inversion.
+post-hoc color masking or background inversion. Do not silently substitute an older saved
+image from an earlier render state.
 
 ### 11.3 2D slice figures stay on the standard black background
 
@@ -1231,9 +1247,12 @@ numbers.
 A complete presurgical tumor/tract report should normally use the following narrative
 sequence. Additional pages are allowed, but do not omit the required content.
 
-#### Page 1 — representative tumor MRI
+#### Page 1 — case identification, executive summary, and representative tumor MRI
 
-- Representative contrast-enhanced T1w and/or FLAIR centered through the tumor core.
+- Identify the case/study/subject at the top of the report.
+- Give a short 2–5 sentence executive summary of lesion location, tumor-core/edema burden,
+  and the main tract relationship; keep the detailed interpretation for later pages.
+- Show representative contrast-enhanced T1w and/or FLAIR centered through the tumor core.
 - 2D images remain black background.
 - Add correct orientation labels.
 - Briefly describe enhancement, necrosis, edema, and the anatomical location visible on
@@ -1252,6 +1271,10 @@ For the whole lesion, report each compartment's volume and percentage of the who
 For Tumor Core, report necrosis and enhancing-tumor volumes and their percentage of Tumor
 Core. A "Tumor Core composition" bar with only necrosis and enhancing tumor is correct but
 is incomplete if the report does not also show the whole-lesion composition including edema.
+
+Include a compact volume/composition table so the exact numbers are readable even if the
+composition chart is small. When reliable orthogonal diameters are available from Step 1,
+include them in the lesion description as well.
 
 On the same page include direct DSI Studio **tumor + brain-surface 3D views**, preferably
 axial and coronal, on a white background. The brain surface is required because it provides
@@ -1274,8 +1297,9 @@ percentage of the atlas region occupied by tumor. Because these are different at
 parcellations and the lesion may include white matter, percentages are not expected to sum
 to 100%.
 
-This atlas page must also contain a representative anatomical figure, such as a direct DSI
-3D tumor + brain-surface view or a structural tumor slice. A chart/table alone is not enough.
+Use separate CHA and Brodmann charts/tables. This atlas page must also contain a representative
+anatomical figure, such as a direct DSI 3D tumor + brain-surface view or a structural tumor
+slice. A chart/table alone is not enough.
 
 #### Next page — all-tract tumor overview
 
@@ -1284,13 +1308,30 @@ overview. Use fresh direct DSI Studio white-background exports and include orien
 labels. This overview establishes the global spatial context before showing individual
 pathways.
 
-#### Following pages — one tract at a time
+Also include a compact quantitative overview identifying which ipsilesional pathways are
+actually affected. For each selected ipsilesional tract, show the most useful combination
+of:
+
+```text
+tract name and side
+total reconstructed streamlines (reconstruction denominator only)
+Tumor Core intersection volume / fraction
+Enhancing Tumor intersection volume / fraction
+Necrosis intersection volume / fraction
+Edema intersection volume / fraction
+```
+
+A small bar chart of reconstructed-streamline fraction or intersection volume may accompany
+the table. Highlight the pathways that will receive their own pages.
+
+#### Following pages — one affected/clinically important tract at a time
 
 After the all-tract overview, show each clinically selected ipsilesional pathway separately.
-At minimum, every tract with nonzero lesion/edema intersection or a clinically important
-adjacency/displacement requires its own page. If the user explicitly asks for "each tract,"
-generate a page for every selected tract, including zero-contact tracts; do not silently
-collapse them into one overview.
+By default, a tract gets its own page if it has a nonzero intersection with any lesion
+compartment, or if the 3D review shows clinically important adjacency, marginal course,
+compression, or displacement even when voxel intersection is zero. If the user explicitly
+asks for "each tract," generate a page for every selected tract, including zero-contact
+tracts; do not silently collapse them into one overview.
 
 Each tract page should include:
 
@@ -1303,6 +1344,8 @@ Each tract page should include:
    delineated and the tract location labeled.
 4. T2R/spatial metrics and a concise interpretation of whether the tract intersects Tumor
    Core, enhancing tumor, necrosis, edema, or only approaches the lesion.
+5. When useful, a short bilateral morphology comparison, but do not attribute morphology
+   asymmetry to the tumor unless the 3D geometry supports that conclusion.
 
 Never use an all-tract image as the tract-specific figure. Never create a tract-specific
 figure by hue filtering or masking an all-tract screenshot.
@@ -1310,8 +1353,9 @@ figure by hue filtering or masking an all-tract screenshot.
 #### Final page — integrated interpretation
 
 Include at least one relevant figure or quantitative chart. Summarize bilateral morphology,
-important T2R findings, spatial relationships, and the major interpretation caveats. Keep
-this page visually anchored rather than ending with prose alone.
+important T2R findings, spatial relationships, and the major interpretation caveats. End
+with 3–6 prioritized intervention-relevant points. Keep this page visually anchored rather
+than ending with prose alone.
 
 ### 11.6 T2R quantities in the final report
 
@@ -1366,6 +1410,7 @@ Before delivering the PDF verify all of the following:
 
 ```text
 [ ] every page has a relevant figure
+[ ] page 1 identifies the case and contains a concise executive summary
 [ ] 3D figures are fresh direct DSI Studio saves, not inverted/recolored substitutes
 [ ] all 3D figures use white background
 [ ] all 2D slice figures retain black background
@@ -1374,14 +1419,19 @@ Before delivering the PDF verify all of the following:
 [ ] radiological vs neurological convention is handled correctly for 2D slices
 [ ] no raw voxel x/y/z coordinates are presented as clinical localization
 [ ] whole-lesion and Tumor-Core composition are both reported
+[ ] exact compartment volumes and percentages are readable in a table/chart
 [ ] CHA and Brodmann results are separated
 [ ] atlas overlap reports both volume and percentage of Tumor Core
 [ ] atlas page has a representative anatomical figure
 [ ] tract section starts with all-tract + tumor overview
+[ ] all-tract overview contains a compact quantitative tract/lesion summary
 [ ] tract-specific pages use one tract at a time
+[ ] each affected/clinically important tract gets its own page unless the user requests otherwise
 [ ] each tract page has a structural slice showing tumor/tract relative position
 [ ] tumor is delineated and tract is labeled on the slice
 [ ] T2R intersect volume and reconstructed-streamline fraction are not confused
+[ ] raw streamline counts are not interpreted biologically
+[ ] curl/morphology asymmetry is not automatically attributed to tumor displacement
 [ ] edema intersection is not called histologic invasion
 [ ] no figure is visibly corrupted, missing its surface, or generated by post-hoc hue masking
 [ ] the rendered PDF has been inspected page by page
@@ -1390,3 +1440,95 @@ Before delivering the PDF verify all of the following:
 Record the filenames of the accepted direct DSI exports, their `set_view`/camera metadata,
 background convention, and any rotations used so another agent can reproduce the same
 report later.
+
+### 11.9 Pre-assembly data and figure manifest
+
+Before building the PDF, create a case-specific manifest and do not start final assembly
+until the required entries are present or explicitly marked unavailable.
+
+**Quantitative data manifest**
+
+```text
+Lesion
+- Enhancing Tumor volume
+- Necrosis volume
+- Tumor Core volume
+- Peritumoral Edema volume
+- Whole segmented lesion volume
+- whole-lesion percentages
+- Tumor-Core percentages
+- orthogonal diameters when reliable
+
+Atlas localization
+- CHA: each reported nonzero region, overlap volume, % Tumor Core
+- Brodmann: each reported nonzero area, overlap volume, % Tumor Core
+
+Tracts
+- selected bilateral tract names and side
+- total reconstructed streamline count for each bundle
+- T2R intersection volume by lesion compartment
+- T2R reconstructed-streamline numerator/denominator/fraction when useful
+- bilateral morphology statistics needed for interpretation
+- explicit list of affected/clinically important ipsilesional tracts that require pages
+```
+
+**Figure manifest**
+
+```text
+2D black-background images
+- representative tumor T1w-gd and/or FLAIR with orientation labels
+- one appropriate tumor/tract structural slice for each tract-specific page
+
+Fresh direct DSI 3D white-background images
+- tumor only + brain surface: at least axial and coronal
+- all selected tracts + tumor + brain surface: at least one overview, preferably two views
+- each affected/clinically important tract + tumor + brain surface: two useful orthogonal views
+```
+
+For every accepted 3D file record the scene contents, view, `get_camera` orientation,
+background state, and whether the brain surface/tumor/tract are visibly present. If a required
+figure is missing, regenerate it in DSI Studio rather than substituting an older or edited
+image.
+
+### 11.10 Allowed post-processing and annotation
+
+Post-processing must not change the anatomical content of a DSI Studio 3D render. The
+following are acceptable when they preserve the underlying image:
+
+- adding R/L/A/P/S/I orientation labels derived from camera/slice metadata;
+- adding a tract name/side label and an explanatory arrow;
+- adding captions, borders, or page-layout whitespace;
+- cropping unused outer margin when no anatomy, surface, tract, or orientation context is removed.
+
+Do **not** use post-processing to:
+
+- invert or replace the 3D background;
+- recolor/hue-filter an all-tract image to simulate a single tract;
+- remove structures from a 3D image;
+- synthesize a missing tumor or brain surface;
+- mirror/flip a figure without recalculating and relabeling orientation.
+
+If the direct DSI export does not contain the desired scene, return to DSI Studio and save
+the scene again.
+
+### 11.11 Canonical report composition for a new agent
+
+Unless the user requests a different structure, a new agent should be able to generate the
+report from the manifest using this default composition:
+
+| Page | Required content | Minimum figure content |
+|---|---|---|
+| 1 | Case ID/title, short executive summary, representative tumor MRI | Black-background oriented T1w-gd and/or FLAIR through tumor core |
+| 2 | Lesion volume table, whole-lesion composition, Tumor-Core composition, lesion description | Fresh direct white-background axial + coronal tumor/brain-surface 3D |
+| 3 | CHA table/chart and Brodmann table/chart, kept separate; anatomical interpretation | Representative tumor anatomy figure with orientation |
+| 4 | All-tract tumor overview plus compact tract-to-lesion quantitative summary | Fresh direct white-background all-tract + tumor + brain-surface 3D |
+| 5..N | One affected/clinically important tract per page; T2R and spatial interpretation | Two direct white-background single-tract 3D views + one black-background tract/tumor slice |
+| Final | Integrated tumor + tract interpretation, morphology context, limitations, prioritized clinical points | At least one relevant quantitative chart or overview figure |
+
+The number of tract pages is dynamic. Do not force a fixed seven-page report when more
+tracts are clinically important, and do not invent tract pages for pathways that were not
+analyzed. Conversely, do not omit an affected tract merely to keep the report short.
+
+A new agent should not declare the report complete until the quantitative manifest, figure
+manifest, canonical page composition, and QC checklist have all been satisfied or any
+missing item has been explicitly disclosed as unavailable.
