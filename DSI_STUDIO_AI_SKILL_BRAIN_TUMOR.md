@@ -538,7 +538,7 @@ below as separate pages; the number of tract pages follows the case. §7.9 build
 
 | Page | Content | Figures |
 |---|---|---|
-| 1 | Case ID; 2–5 sentence summary of lesion location, Tumor Core/edema burden, and the main tract relationship | Contrast-enhanced T1w and FLAIR through the tumor core |
+| 1 | Case ID; 2–5 sentence summary of lesion location, Tumor Core/edema burden, and the main tract relationship | Contrast-enhanced T1w and FLAIR through the tumor core, tumor compartments as outlines |
 | 2 | Compartment table (volume, % whole lesion, % Tumor Core); whole-lesion and Tumor-Core composition charts; orthogonal diameters when reliable | Axial and coronal 3D tumor + `White_Matter` envelope |
 | 3 | CHA and Brodmann overlap, each with its own chart and table (volume and % Tumor Core); short anatomical note | One representative 3D view or tumor slice |
 | 4 | All-tract overview: per ipsilesional tract, total streamlines, edema-intersecting streamlines, edema fraction, Tumor-Core intersection; tract-to-edema chart; key finding | Axial and coronal all-tract + tumor 3D |
@@ -601,14 +601,18 @@ region from `human_tumor`; do not use `add_surface` or a separate isosurface.
 4. Move `White_Matter` to the last Region-table row so it renders last, re-resolving
    indices as it moves.
 5. Show only the three tumor compartments and `White_Matter`.
-6. `set_param show_surface 0`, `set_param show_slice 0`, `set_param bkg_color 16777215`
-   (white).
+6. `set_param show_surface 0`, `set_param show_slice 0`, `set_param bkg_color -1` (white).
+   Tract-style presets also set the background (the "Tube 2" style sets it to black), so set
+   `bkg_color` after any style change and keep it white for every 3D save.
 7. Once the final tract set is loaded, `set_param tract_color_style 1` (Assigned) and
    `color_all_cluster`; repeat after any tract is added or reloaded. Do not use directional
    color.
 8. Save one explicit view per PNG: `set_view`, `get_camera`, `save_screen`. Do not use
    `save_lr_screen` or other stereo pairs; place two separate views side by side instead.
-9. Open each PNG. If the envelope, a tumor compartment, or the requested tract is missing,
+9. Open each PNG. The background must already be white as saved. If it is black or
+   transparent, set `bkg_color -1` and save again; never invert or recolor the background
+   afterwards, because that destroys the translucent `White_Matter` envelope and the tumor
+   colors. Likewise, if the envelope, a tumor compartment, or the requested tract is missing,
    fix the scene and save again.
 
 ### 7.4 2D figures
@@ -617,8 +621,12 @@ region from `human_tumor`; do not use `add_surface` or a separate isosurface.
 enhancing tumor and core, and FLAIR for edema and tract-to-edema relationships. Before
 `save_roi_screen`:
 
-- hide fiber-orientation glyphs, crosshairs, and unrelated tracts, regions, and labels;
-- show only the relevant tumor/edema regions (no `White_Matter` in 2D);
+- draw the tumor compartments as outlines, never filled, so the tumor signal stays visible:
+  `set_params "roi_draw_edge=1&roi_edge_width=2"`; this applies to every 2D figure,
+  including the page 1 MRI and the tract-page slices;
+- hide fiber-orientation glyphs (`set_param roi_fiber 0`), crosshairs, and unrelated
+  tracts, regions, and labels;
+- show only the tumor compartments (no `White_Matter` or Tumor Core copy in 2D);
 - for a tract figure, show only that tract and choose the plane that shows the relationship.
 
 ### 7.5 Orientation labels
@@ -701,7 +709,7 @@ dsi show_only_regions "4&5&6&7"
 dsi set_param show_region 1
 dsi set_param show_surface 0
 dsi set_param show_slice 0
-dsi set_param bkg_color 16777215
+dsi set_param bkg_color -1    # white; set again after any tract-style change
 dsi set_zoom 0.8
 
 # Tumor only: axial and coronal
@@ -744,6 +752,11 @@ come from `get_camera`, as in §7.5.
 #### DSI Studio commands for the 2D figures
 
 ```bash
+# Tumor compartments as outlines on every 2D figure; no fiber glyphs
+dsi set_params "roi_draw_edge=1&roi_edge_width=2"
+dsi set_param roi_fiber 0
+dsi show_only_regions "4&5&6"
+
 # Representative tumor MRI (repeat with the FLAIR slice name for the FLAIR panel)
 dsi set_slice_by_name "<exact ceT1w / T1w-gd slice name>"
 dsi set_roi_view 2
@@ -751,11 +764,10 @@ dsi move_slice_to_region <Tumor-Core-index>
 dsi check_uncheck_all_tract 0
 dsi save_roi_screen sub003_ceT1w_corecenter.png
 
-# Tract on FLAIR: tumor compartments only, no White_Matter in 2D
+# Tract on FLAIR, tumor outlines kept
 dsi set_slice_by_name "<exact FLAIR slice name>"
 dsi set_roi_view 2
 dsi move_slice_to_region <Tumor-Core-index>
-dsi show_only_regions "4&5&6"
 dsi show_only_tracts "1"; dsi save_roi_screen sub003_CST_R_FLAIR_axial.png
 dsi show_only_tracts "3"; dsi save_roi_screen sub003_SLF_R_FLAIR_axial.png
 ```
