@@ -153,6 +153,28 @@ command stays `processing` until it finishes. A request DSI Studio cannot accept
 session, or a reused `id`) gets `state:"error"` with the reason; nothing was run, so fix
 it and resend.
 
+## Getting files from DSI Studio
+
+`web_upload <local file>` copies one file from the user's computer to a private file in
+their `DSI Studio AI` Google Drive folder, named `<session>_<file name>`. It is never made public.
+A relative path is resolved against the chat's working directory. Save first, then upload:
+
+```json
+"command":[{"cmd":"save_lr_screen","param":"result.png"},{"cmd":"web_upload","param":"result.png"}]
+```
+
+The `web_upload` entry in `response.result[]` carries the file:
+
+```json
+{"cmd":"web_upload","status":"success","attachment":{"name":"result.png","drive_id":"1abc...","mime_type":"image/png","size":823417,"url":"https://drive.google.com/file/d/1abc.../view"}}
+```
+
+Open it with your Google Drive tools by `drive_id` (the `url` is the same file and needs the
+user's sign-in). Don't ask the user to download and re-upload it. PNG, JPEG, TXT, CSV/TSV, JSON
+and PDF are directly usable; DSI Studio formats (`.fz`, `.tt.gz`, `.nii.gz`, `.sz`) transfer, but
+reading them depends on your tools. Upload only what the task needs: the file leaves the user's
+computer.
+
 ## Rules
 
 - Send one request at a time: write the next request only after `done` or `error` for
