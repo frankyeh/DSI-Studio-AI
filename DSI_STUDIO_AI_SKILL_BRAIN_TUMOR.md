@@ -11,6 +11,41 @@ can be sacrificed. Interpret findings together with the neurological examination
 functional imaging when available, cortical/subcortical mapping, operative anatomy, and
 other clinical information.
 
+
+## HARD GATE FOR COMPLETE PDF REPORTS
+
+When the user requests a **complete brain-tumor PDF/report**, the report-generation contract
+in §11 is mandatory and **takes priority over brevity or page-count reduction**. Do not
+assemble or deliver the PDF until the report gate in §11.12 passes.
+
+A complete report is a multi-page neurosurgical imaging report, not a compressed summary.
+Required page roles are **non-mergeable by default**. Do not combine the tumor MRI page,
+tumor composition/3D page, atlas page, all-tract overview, individual clinically important
+tract pages, and final synthesis merely to make the report shorter. If two clinically
+important tracts require individual pages, the report must contain two individual tract
+pages.
+
+Before PDF assembly:
+
+1. finish and accept the quantitative analysis;
+2. freeze the accepted case state: selected tract list, completed tract reconstructions,
+   tract counts, T2R results, morphology measurements, segmentation labels, and accepted
+   region cleanup;
+3. create every required 2D and 3D figure from that accepted state;
+4. populate the machine-checkable `REPORT_GATE` in §11.12;
+5. assemble the PDF only when every mandatory gate item is `PASS` or is explicitly marked
+   unavailable with a reason that the user can see.
+
+When reproducing or revising an already analyzed case, **reuse the previously accepted tract
+set and results**. Do not silently re-select pathways or re-run AutoTrack merely because a
+new agent is generating the PDF. Re-track only when required by missing/corrupt data, an
+explicit user request, or a documented QC failure, and disclose that the reconstruction
+changed.
+
+For final report figures, presentation quality is part of correctness. A technically valid
+DSI screenshot is insufficient if it contains the wrong scene, stereo/lateral duplication,
+missing orientation, irrelevant glyphs/crosshairs, or excessive unused page space.
+
 ## Mandatory reporting behavior
 
 Do not wait until the end to report everything. **After each major step is completed,
@@ -648,8 +683,10 @@ A tract that shows a header with no data rows has zero reconstructed intersectio
 all checked regions — this is a valid result, not a command failure. Contralateral
 bundles routinely show headers without data.
 
-Report only the ipsilesional (tumor-side) tracts. The contralateral side has no
-lesion intersection by definition — do not report its zero rows.
+For a clearly unilateral lesion, prioritize ipsilesional tract intersections in the
+clinical summary. Contralateral zero rows may be omitted only after confirming zero
+intersection. Do not assume the contralateral side has zero intersection "by definition";
+a crossing, bilateral, or midline lesion can involve either side.
 
 ### 5.2 Lesion involvement: volume and reconstructed-streamline fraction
 
@@ -1215,6 +1252,25 @@ For every final 3D scene, set an explicit view, call `get_camera`, save with `sa
 and inspect the saved PNG. If the image is missing the `White_Matter` envelope, a tumor
 compartment, or the requested tract, return to DSI Studio and regenerate it.
 
+#### One direct view per saved 3D image — no stereo report figures
+
+For final PDF figures, **do not use stereo/lateral-pair rendering such as `save_lr_screen`**
+to represent two viewpoints in one image. A stereo pair is not a substitute for two
+anatomically specified orthogonal views and often obscures orientation and tumor–tract
+relationships.
+
+When two viewpoints are required:
+
+1. set the first explicit view (for example axial), call `get_camera`, and save it with
+   `save_screen`;
+2. set the second explicit view (for example coronal or sagittal), call `get_camera`, and
+   save it separately with `save_screen`;
+3. place the two independent PNGs side-by-side in the PDF layout;
+4. label each panel with its view and anatomical orientation.
+
+Each saved 3D PNG must therefore correspond to one known camera/view state.
+
+
 ### 11.3 2D slice figures stay on the standard black background
 
 2D structural/slice figures should retain the standard DSI Studio **black background**.
@@ -1238,6 +1294,25 @@ For each tract-specific slice figure:
 - label the tract by name and side directly on the figure;
 - choose the axial, coronal, or sagittal slice that actually demonstrates the relative
   position; do not use an arbitrary plane merely for consistency.
+
+
+
+#### Clean 2D presentation state for the final PDF
+
+A final-report structural image must look like a presentation figure, not a working analysis
+screen. Before saving a 2D report figure:
+
+- hide diffusion fiber-orientation glyphs unless the user explicitly requests them;
+- hide crosshairs/cursor guides unless they are essential to the stated figure purpose;
+- hide unrelated tracts, regions, labels, and analysis overlays;
+- show the structural MRI that best demonstrates the lesion relationship;
+- show only the relevant tumor/edema segmentation overlay or boundary;
+- for a tract-specific slice, show and label only the tract being discussed;
+- add explicit anatomical orientation labels from the actual slice metadata/convention.
+
+Do not use a cluttered QC screenshot as a final report figure. QC views may contain
+crosshairs, glyphs, or extra overlays, but the final saved figure must be regenerated in the
+clean presentation state.
 
 ### 11.4 Orientation labels are mandatory
 
@@ -1288,8 +1363,10 @@ numbers.
 
 ### 11.5 Required report page sequence
 
-A complete presurgical tumor/tract report should normally use the following narrative
-sequence. Additional pages are allowed, but do not omit the required content.
+A complete presurgical tumor/tract report **must use the following non-mergeable page
+roles unless the user explicitly requests a different structure**. Additional pages are
+allowed. Do not collapse required roles together merely to shorten the report. Missing a
+required page/figure is a report-gate failure, not permission to produce a shorter PDF.
 
 #### Page 1 — case identification, executive summary, and representative tumor MRI
 
@@ -1297,7 +1374,8 @@ sequence. Additional pages are allowed, but do not omit the required content.
 - Give a short 2–5 sentence executive summary of lesion location, tumor-core/edema burden,
   and the main tract relationship; keep the detailed interpretation for later pages.
 - Show representative contrast-enhanced T1w and/or FLAIR centered through the tumor core.
-- 2D images remain black background.
+- **Do not substitute an all-tract or tract-tumor 3D rendering for the representative tumor MRI on Page 1.**
+- 2D images remain black background and must use the clean presentation state in §11.3.
 - Add correct orientation labels.
 - Briefly describe enhancement, necrosis, edema, and the anatomical location visible on
   the images.
@@ -1342,9 +1420,11 @@ percentage of the atlas region occupied by tumor. Because these are different at
 parcellations and the lesion may include white matter, percentages are not expected to sum
 to 100%.
 
-Use separate CHA and Brodmann charts/tables. This atlas page must also contain a representative
-anatomical figure, such as a direct DSI 3D tumor + cleaned `White_Matter` brain-envelope view or a structural tumor
-slice. A chart/table alone is not enough.
+Use separate CHA and Brodmann charts/tables. **Do not replace the tables/charts with prose.**
+Each reported atlas row must show both overlap volume and `% Tumor Core`. This atlas page
+must also contain a representative anatomical figure, such as a direct DSI 3D tumor +
+cleaned `White_Matter` brain-envelope view or a structural tumor slice. A chart/table alone
+is not enough, and prose alone is not enough.
 
 #### Next page — all-tract tumor overview
 
@@ -1444,10 +1524,12 @@ surgical plane.
 7. Set `show_surface=0` and `show_slice=0`. Do not call `add_surface`; no separate isosurface
    is required.
 8. Set `bkg_color=16777215` for white-background 3D rendering.
-9. For tract figures, set `tract_color_style=1` and run `color_all_cluster`; do not use
-   directional tract color in the final report.
+9. After all report tracts are present, set `tract_color_style=1` and run
+   `color_all_cluster`; do not use directional tract color in the final report. Re-run these
+   commands if a tract is added/reloaded or the tract scene is rebuilt before saving.
 10. Generate all required tumor-only, all-tract, and single-tract 3D figures while this
-    preset remains active.
+    preset remains active. Save one explicit camera/view per PNG with `save_screen`; do not
+    use stereo/lateral-pair figures as a substitute for orthogonal views.
 11. For each view, call `get_camera`, save with `save_screen`, and visually inspect the PNG.
 12. Keep 2D structural/slice figures on black background.
 13. Assemble the PDF only from accepted direct DSI exports.
@@ -1467,6 +1549,12 @@ Before delivering the PDF verify all of the following:
 [ ] Necrosis / Peritumoral Edema / Enhancing Tumor alpha values are 200 / 80 / 100
 [ ] tumor-region RGB values are the original DSI-assigned RGB values
 [ ] final tract figures use Assigned cluster colors, not directional colors
+[ ] tract scenes were cluster-colored after the final tract set was loaded
+[ ] no stereo/lateral-pair image substitutes for required orthogonal 3D views
+[ ] Page 1 contains representative tumor MRI, not only tract-tumor 3D
+[ ] final 2D figures hide nonessential crosshairs and diffusion glyphs
+[ ] required page roles were not merged merely to shorten the report
+[ ] final page contains a relevant figure or quantitative chart
 [ ] all 2D slice figures retain black background
 [ ] defragmented White_Matter region is visibly present as the brain envelope in each required 3D scene
 [ ] every image has correct anatomical orientation labels or unambiguous orientation metadata
@@ -1544,6 +1632,15 @@ background state, and whether the White_Matter brain envelope/tumor/tract are vi
 figure is missing, regenerate it in DSI Studio rather than substituting an older or edited
 image.
 
+**Freeze accepted case state before figure generation**
+
+Record the accepted tract list and the exact tract rows/counts used for T2R and morphology.
+Figure generation must use this same accepted tract state. If a previously accepted case is
+being reproduced, do not shrink the tract set based on a new agent's pathway-selection
+judgment. If a tract must be re-run, update the manifest and repeat dependent T2R/morphology
+measurements so the report does not mix results from different reconstructions.
+
+
 ### 11.10 Allowed post-processing and annotation
 
 Post-processing must not change the anatomical content of a DSI Studio 3D render. The
@@ -1586,3 +1683,107 @@ analyzed. Conversely, do not omit an affected tract merely to keep the report sh
 A new agent should not declare the report complete until the quantitative manifest, figure
 manifest, canonical page composition, and QC checklist have all been satisfied or any
 missing item has been explicitly disclosed as unavailable.
+
+### 11.12 Machine-checkable REPORT_GATE — blocking prerequisite for PDF assembly
+
+For a complete presurgical report, create and fill this gate **before** assembling the PDF.
+Use `PASS`, `UNAVAILABLE: <reason>`, or `FAIL`. PDF assembly is allowed only when every
+mandatory item is `PASS` or the user has explicitly accepted an unavailable item.
+
+```text
+REPORT_GATE
+
+CASE_STATE
+accepted_tract_list_frozen                 = PASS
+T2R_matches_accepted_tract_state           = PASS
+morphology_matches_accepted_tract_state    = PASS
+
+PAGE_1_TUMOR_MRI
+case_id_and_executive_summary              = PASS
+representative_tumor_MRI                   = PASS
+clean_2D_presentation                      = PASS
+orientation_labels                         = PASS
+
+PAGE_2_TUMOR_BURDEN_AND_3D
+whole_lesion_volume                        = PASS
+whole_lesion_percentages                   = PASS
+Tumor_Core_volume                          = PASS
+Tumor_Core_percentages                     = PASS
+composition_table_or_chart                 = PASS
+tumor_3D_axial_direct_DSI                  = PASS
+tumor_3D_coronal_direct_DSI                = PASS
+White_Matter_defragmented_alpha10_last     = PASS
+no_add_surface_or_separate_isosurface      = PASS
+
+PAGE_3_ATLAS
+CHA_separate_table_or_chart                = PASS
+CHA_volume_and_percent_Tumor_Core          = PASS
+Brodmann_separate_table_or_chart           = PASS
+Brodmann_volume_and_percent_Tumor_Core     = PASS
+representative_anatomical_figure           = PASS
+
+ALL_TRACT_OVERVIEW
+all_selected_tracts_present                = PASS
+assigned_cluster_colors                    = PASS
+all_tract_tumor_WM_direct_3D               = PASS
+quantitative_tract_lesion_summary          = PASS
+orientation_labels                         = PASS
+
+TRACT_PAGE_<TRACT_NAME>
+one_tract_only_in_each_3D_scene            = PASS
+assigned_cluster_color                     = PASS
+direct_DSI_3D_view_1                       = PASS
+direct_DSI_3D_view_2                       = PASS
+views_are_independent_not_stereo_pair      = PASS
+clean_structural_tract_tumor_slice         = PASS
+T2R_metrics_and_spatial_interpretation     = PASS
+orientation_labels                         = PASS
+
+# Repeat TRACT_PAGE block for every affected/clinically important tract.
+
+FINAL_PAGE
+integrated_interpretation                  = PASS
+relevant_figure_or_quantitative_chart      = PASS
+prioritized_intervention_points            = PASS
+
+GLOBAL_VISUAL_QC
+every_page_has_relevant_figure             = PASS
+no_required_page_roles_merged_for_brevity  = PASS
+no_stereo_or_save_lr_screen_report_figure  = PASS
+no_nonessential_crosshairs_or_glyphs       = PASS
+all_3D_white_background                    = PASS
+all_2D_black_background                    = PASS
+orientation_verified                       = PASS
+rendered_PDF_inspected_page_by_page        = PASS
+
+PDF_ASSEMBLY_ALLOWED                       = YES
+```
+
+Rules:
+
+- `PDF_ASSEMBLY_ALLOWED = YES` is valid only when all mandatory items above pass.
+- Do not convert a `FAIL` into a shorter report. Return to DSI Studio and create the missing
+  figure or measurement.
+- Do not silently merge pages to make missing figures disappear.
+- A final page without a figure/chart is a failure.
+- An atlas section that reports overlap volumes without `% Tumor Core` is a failure.
+- A composition section that reports only volumes without both percentage denominators is a
+  failure.
+- A tract page without two independent direct DSI 3D views and a clean structural slice is
+  a failure.
+
+For a case with two clinically important tract pages (for example CST and SLF), the default
+minimum structure is therefore seven page roles:
+
+```text
+P1 tumor MRI + executive summary
+P2 tumor burden/composition + tumor-only 3D
+P3 CHA + Brodmann localization
+P4 all-tract + tumor overview
+P5 tract 1
+P6 tract 2
+P7 integrated synthesis
+```
+
+More clinically important tracts add more tract pages; they are not collapsed into P4.
+
