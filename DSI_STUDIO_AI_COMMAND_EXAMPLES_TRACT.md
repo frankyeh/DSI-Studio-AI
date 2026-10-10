@@ -33,8 +33,8 @@ This file contains tract and automatic-tracking commands confirmed in the curren
 | `open_tract` | `["open_tract","C:/output/all_bundles.tt.gz",0]` | Open the tract file with newly loaded bundles unchecked/hidden. The source tests only whether the third element is empty; any supplied value has this effect. |
 | `open_mni_tract` | `["open_mni_tract","C:/data/cst_mni.tt.gz"]` | Open an MNI-space tract and map it into the current subject. |
 | `open_tract_name` | `["open_tract_name","C:/data/tract_names.txt"]` | Load whitespace-separated names and apply them in reverse order to the most recently listed tract rows. |
-| `load_tract_atlas` | `["load_tract_atlas","Corticospinal_Tract"]` | Load one named population tract-atlas bundle. |
-| `load_tract_atlas` | `["load_tract_atlas"]` | Load every tract name from the asymmetric tract atlas; this may create many bundles. |
+| `load_tract_atlas` | `["load_tract_atlas","ProjectionBrainstem_CorticospinalTractL"]` | Load population tract-atlas streamlines as one bundle named by the text. The text is a case-insensitive substring of atlas names (`list_auto_tract`), so an exact identifier loads one tract and a shorter text such as `CorticospinalTract` merges every match (left and right) into one bundle. |
+| `load_tract_atlas` | `["load_tract_atlas"]` | Load every atlas tract as separate bundles; this may create many bundles. From an AI agent it always loads all; only the GUI menu limits it to the AutoTrack dropdown selection. To load a subset as separate bundles, call `load_tract_atlas` once per exact identifier. |
 | `save_tract` | `["save_tract","C:/output/cst.tt.gz",0]` | Save one completed tract bundle by index. |
 | `save_mni_tract` | `["save_mni_tract","C:/output/cst_mni.tt.gz",0]` | Save one tract in MNI coordinates. |
 | `save_template_tract` | `["save_template_tract","C:/output/cst_template.tt.gz",0]` | Save one tract in loaded template space. |
