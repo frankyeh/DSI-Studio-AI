@@ -375,6 +375,60 @@ If a clinically relevant pathway remains empty after the bounded tolerance retry
 procedure, report it as `unmappable` with tract count, seed limit, tolerance values, and
 attempts. Do not interpret zero yield as anatomical absence or zero lesion involvement.
 
+Then load the built-in atlas version of that pathway, using the same exact identifier, and
+try **partial tracking**: track the subject's own streamlines inside a corridor around the
+atlas course. This can recover a pathway that is disrupted or displaced near the lesion.
+
+```bash
+# 1. atlas tract (warped to the subject in native space)
+bash ./dsi.sh load_tract_atlas "ProjectionBrainstem_CorticospinalTractR"
+bash ./dsi.sh list_tract                              # note the new row, e.g. 8
+
+# 2. atlas tract -> region; select a diffusion-space slice first so the region is on the FIB grid
+bash ./dsi.sh tract_to_region 8
+bash ./dsi.sh list_region                             # new row named after the tract, e.g. 10
+
+# 3. dilate by 5 voxels into a corridor
+bash ./dsi.sh region_action_dilation_by_voxel 10 5
+
+# 4. copy it: one copy seeds, the other limits propagation (copy is inserted after its source)
+bash ./dsi.sh copy_region 10                          # copy at row 11
+bash ./dsi.sh list_region
+
+# 5. track inside the corridor (3 = Seed, 6 = Limiting); asynchronous, poll list_tract until done
+bash ./dsi.sh run_tracking "CST R partial" "10:3&11:6"
+bash ./dsi.sh list_tract
+
+# remove the corridor regions so they do not enter T2R or the figures
+bash ./dsi.sh delete_region "10&11"
+```
+
+Re-resolve every row number with `list_tract` / `list_region` before using it.
+`tract_to_region` builds the region on the current slice grid, `region_action_dilation_by_voxel`
+takes the region row and the radius in voxels, and the `run_tracking` region string uses
+`row:type` pairs.
+
+- If partial tracking gives a plausible bundle along the expected course, report it as the
+  subject's reconstruction, labeled "atlas-guided partial tracking" in the table, header,
+  captions, and conclusion. Note that the corridor confines it to the atlas course, so a
+  pathway displaced more than about 5 voxels can be missed or truncated. Delete the atlas
+  tract row afterwards or keep it only as a reference.
+- If partial tracking also fails, use the atlas tract itself in its place, as below.
+
+In native space the population atlas is nonlinearly warped to the subject, so the atlas tract
+shows the **likely pathway location**, not the subject's own reconstruction. Use it in the
+figures and in T2R like the other bundles, but:
+
+- label it as atlas-based everywhere it appears: tract table ("CST R (atlas)"), tract-page
+  header, figure captions, and conclusion, with the wording "likely pathway location from the
+  population tractography atlas; AutoTrack could not map this pathway";
+- report its relationship to the lesion by intersection volume and compartment contact; if a
+  streamline fraction is given, call it a fraction of atlas streamlines;
+- leave it out of morphology, curl, and left/right asymmetry, which describe subject
+  reconstructions only;
+- state that mass effect or edema can displace the real pathway from the atlas position, so
+  the atlas course near the lesion is the least certain.
+
 ## 5. Quantify tract-to-lesion involvement with T2R
 
 Use **tract-to-region connectivity (T2R)** for quantitative tract-versus-lesion
@@ -562,6 +616,10 @@ Page notes:
   attention and praxis on the right, language on the dominant side; arcuate and FAT: language
   and speech initiation on the dominant side) and a relationship tag: "Tumor Core contact",
   "Edema contact", "Partial edema contact", or "No contact". Tags describe geometry, not risk.
+  Mark an atlas-guided partial-tracking bundle (§4) with "(atlas-guided)" and an atlas tract
+  with "(atlas)" after its name, each with a footnote saying how it was obtained and, for the
+  atlas tract, that it shows the likely pathway location because the pathway could not be
+  mapped.
 - **Tract pages.** A tract gets its own page when it intersects any lesion compartment, or
   when the 3D view shows clinically important adjacency, marginal course, compression, or
   displacement; every analyzed tract when the user asks. Give the level of edema contact
@@ -1319,6 +1377,8 @@ functional diagnoses:
 - Do **not** translate this automatically to `transected` or `destroyed`; state that true
   pathway disruption versus tractography failure cannot be distinguished from the
   tractography result alone.
+- Show its likely location with the atlas version (§4), labeled as atlas-based; it shows
+  where the pathway usually runs, not whether it is preserved.
 
 ### 8.5 Postoperative lesion-volume comparison
 
