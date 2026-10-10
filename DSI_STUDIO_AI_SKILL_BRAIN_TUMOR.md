@@ -542,7 +542,7 @@ below as separate pages; the number of tract pages follows the case. §7.9 build
 | 2 | Compartment table with color chips (volume, % whole lesion, % Tumor Core); both composition charts; lesion description; additional foci | Axial and coronal 3D tumor + `White_Matter` envelope |
 | 3 | CHA and Brodmann charts (volume and % Tumor Core), kept separate; localization note | One representative 3D view |
 | 4 | Tract table: streamlines, through edema, Tumor Core, function to correlate, relationship tag; tract-to-edema chart; key finding | Axial and coronal all-tract + tumor 3D |
-| 5..N | One tract per page: measures table (including level of edema contact and curl R/L) and interpretation | Two orthogonal single-tract 3D views and one labeled structural slice |
+| 5..N | One tract per page: measures table (including level of edema contact and curl R/L) and interpretation | Two orthogonal single-tract 3D views; 2D slices in two planes (three only when each adds something), 1–3 levels per plane |
 | Last | Impression (3–6 points); bilateral asymmetry table; points for clinical correlation; methods and limitations panel | Tract-to-edema and bilateral morphology charts |
 
 Page notes:
@@ -661,12 +661,18 @@ dsi set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"   # no glyph
   afterwards. Moving to a wrong row such as `White_Matter` lands at the ventricle level.
 - Choose the centering compartment by modality: contrast-enhanced T1w through the main
   enhancing tumor / core; FLAIR through the main edema.
-- Choose the plane per tract; do not reuse one axial slice for all. Show only that tract
-  (`show_only_tracts`) in its Assigned cluster color. A slice shows only the streamline points
-  that lie in it (one voxel thick), so a tract crossing the plane appears as a few dots.
-  CST: coronal or sagittal through the lesion, where the tract and the lesion both appear.
-  SLF and AF: axial or sagittal. Use the plane in which the tract runs beside the lesion as a
-  line.
+- Show each tract in more than one plane; do not reuse one axial slice for all tracts. Show
+  only that tract (`show_only_tracts`) in its Assigned cluster color. A slice shows only the
+  streamline points that lie in it (one voxel thick), so a tract crossing the plane appears as
+  a few dots. Most tracts need two of axial, coronal, and sagittal, chosen where the tract and
+  the lesion appear together; add the third only when it shows something the other two do not.
+  CST: coronal plus axial or sagittal. SLF and AF: axial plus sagittal.
+- Where the relationship changes along the tract, cut 2–3 levels in a plane instead of one,
+  e.g. the upper, middle, and lower parts of the edema in axial for CST. Get the lesion center
+  with `move_slice_to_region`, read its position in each view from `preview_screen roi`
+  (`slice_info: ... <plane> <position>/<total>`, 1-based, so the voxel index is position − 1),
+  then set each level with `move_slice "x y z"`, changing only that plane's coordinate. Keep
+  every level inside the lesion extent and convert millimeters to voxels with the voxel size.
 - Save with `save_roi_screen`, then open each image: the main lesion's outlines and the tract
   must both be clearly visible in the same slice. If the slice misses the main lesion, or the
   tract is only dots, re-center or change the plane and save again. If a slice is redone,
@@ -819,16 +825,28 @@ dsi set_slice_by_name "<exact FLAIR slice name>"
 dsi move_slice_to_region 5    # median of Peritumoral Edema
 dsi save_roi_screen sub003_FLAIR_corecenter.png
 
-# Tract slices on FLAIR through the main edema, plane chosen per tract
-dsi show_only_tracts "1"           # right CST: coronal
-dsi set_roi_view 1
+# Lesion center from the edema median: read x, y, z (position - 1) from slice_info in each view
 dsi move_slice_to_region 5
-dsi save_roi_screen sub003_CST_R_FLAIR_coronal.png
-dsi show_only_tracts "3"           # right SLF: axial
-dsi set_roi_view 2
-dsi move_slice_to_region 5
-dsi save_roi_screen sub003_SLF_R_FLAIR_axial.png
+dsi set_roi_view 0; dsi preview_screen roi     # slice_info: ... sagittal <x+1>/<total>
+dsi set_roi_view 1; dsi preview_screen roi     # coronal <y+1>
+dsi set_roi_view 2; dsi preview_screen roi     # axial <z+1>
+
+# Right CST: coronal through the center, axial at two levels through the edema
+dsi show_only_tracts "1"
+dsi set_roi_view 1; dsi move_slice "X Y Z";    dsi save_roi_screen sub003_CST_R_FLAIR_coronal_center.png
+dsi set_roi_view 2; dsi move_slice "X Y Z+12"; dsi save_roi_screen sub003_CST_R_FLAIR_axial_upper.png
+dsi move_slice "X Y Z-12";                     dsi save_roi_screen sub003_CST_R_FLAIR_axial_lower.png
+
+# Right SLF: axial at two levels, sagittal through the tract beside the lesion
+dsi show_only_tracts "3"
+dsi set_roi_view 2; dsi move_slice "X Y Z+8";  dsi save_roi_screen sub003_SLF_R_FLAIR_axial_upper.png
+dsi move_slice "X Y Z-8";                      dsi save_roi_screen sub003_SLF_R_FLAIR_axial_lower.png
+dsi set_roi_view 0; dsi move_slice "X-20 Y Z"; dsi save_roi_screen sub003_SLF_R_FLAIR_sagittal_center.png
 ```
+
+`X Y Z` stand for the voxel indices read above; the offsets (here 1 mm voxels) are examples.
+Pick levels where the edema and the tract both appear. For the sagittal SLF level, step x from
+the center toward the tract and confirm the direction on the saved image.
 
 Open each saved slice and check that the main lesion and the tract appear together before
 using it.
@@ -1095,8 +1113,15 @@ for f,o in [("tumor_WM_axial3D",AXIAL3D),("tumor_WM_coronal3D",CORONAL3D),("allt
 RAD = dict(left="R",right="L",top="A",bottom="P",dark=True,note="Radiological convention")
 for f in ["ceT1w_corecenter","FLAIR_corecenter"]:
     orient(f"sub003_{f}.png",f"sub003_{f}_lab.png",**RAD)
-orient("sub003_CST_R_FLAIR_coronal.png","sub003_CST_R_FLAIR_coronal_lab.png",callout=("Right CST",(530,560),(260,650)),**{**RAD,"top":"S","bottom":"I"})
-orient("sub003_SLF_R_FLAIR_axial.png","sub003_SLF_R_FLAIR_axial_lab.png",callout=("Right SLF",(330,490),(220,350)),**RAD)
+# per tract: (plane, level, callout or None); the callout point comes from the saved image
+SLICE_LABELS = {"axial":dict(top="A",bottom="P"),"coronal":dict(top="S",bottom="I"),
+                "sagittal":dict(left="A",right="P",top="S",bottom="I")}   # sagittal sides: verify on the image
+TRACT_SLICES = {"CST_R":[("coronal","center",("Right CST",(530,560),(260,650))),("axial","upper",None),("axial","lower",None)],
+                "SLF_R":[("axial","upper",("Right SLF",(330,490),(220,350))),("axial","lower",None),("sagittal","center",None)]}
+for short,slices in TRACT_SLICES.items():
+    for plane,level,callout in slices:
+        f = f"sub003_{short}_FLAIR_{plane}_{level}"
+        orient(f+".png",f+"_lab.png",callout=callout,**{**RAD,"note":None,**SLICE_LABELS[plane]})
 CONTOURS = legend([("Necrosis",NEC),("Enhancing tumor",ENH),("Peritumoral edema",EDE)])
 
 # ---- pages ----
@@ -1155,22 +1180,23 @@ s += [figures(("sub003_alltracts_tumor_WM_axial3D_lab.png","Axial · all analyze
                  "running through the edema field; the right SLF has limited edema contact. Streamline percentages describe the "
                  "reconstruction, not axon counts.",width=w),split=0.52)]
 
-for name,short,views,plane,metrics,note in [
-    ("Right corticospinal tract","CST_R",[("axial3D","Axial 3D"),("sagittal3D","Sagittal 3D")],"coronal",
+for name,short,views,metrics,note in [
+    ("Right corticospinal tract","CST_R",[("axial3D","Axial 3D"),("sagittal3D","Sagittal 3D")],
      [("Streamlines","8,595"),("Through edema","8,595 (100%)"),("Edema intersection","1,424 mm<super>3</super>"),
       ("Tumor Core","0"),("Level of edema contact","corona radiata [verify]"),("Curl R / L","1.25 / 1.12")],
      "The reconstructed motor pathway runs through the edema field and does not enter the Tumor Core. "
      "Consider correlation with motor examination and, where planned, intraoperative motor mapping."),
-    ("Right superior longitudinal fasciculus","SLF_R",[("axial3D","Axial 3D"),("coronal3D","Coronal 3D")],"axial",
+    ("Right superior longitudinal fasciculus","SLF_R",[("axial3D","Axial 3D"),("coronal3D","Coronal 3D")],
      [("Streamlines","5,315"),("Through edema","619 (11.6%)"),("Edema intersection","556 mm<super>3</super>"),
       ("Tumor Core","0"),("Level of edema contact","lateral parietal [verify]"),("Curl R / L","1.35 / 1.69")],
      "A minority of reconstructed right SLF streamlines contact edema; the Tumor Core remains separate.")]:
     tract = short.split("_")[0]
     s += [PageBreak()]+header(name,"Tract-to-lesion relationship")
     s += [figures(*[(f"sub003_{short}_tumor_WM_{v}_lab.png",f"{label} · right {tract} + tumor") for v,label in views]),Spacer(1,8),
-          side([img(f"sub003_{short}_FLAIR_{plane}_lab.png",W*0.46),Paragraph(f"FLAIR · {plane} through the main edema",CAP),CONTOURS],
-               [table(["Measure","Right "+tract],[list(m) for m in metrics],[W*0.25,W*0.24]),Spacer(1,8),
-                panel("Interpretation",note,width=W*0.5)],split=0.5)]
+          figures(*[(f"sub003_{short}_FLAIR_{plane}_{level}_lab.png",f"FLAIR · {plane} · {level}")
+                    for plane,level,_ in TRACT_SLICES[short]]),Spacer(1,3),CONTOURS,Spacer(1,8),
+          side(table(["Measure","Right "+tract],[list(m) for m in metrics],[W*0.25,W*0.24]),
+               lambda w:panel("Interpretation",note,width=w),split=0.5)]
 
 def ai(r,l):  # asymmetry index, % of the mean
     return f"{(r-l)/((r+l)/2)*100:+.0f}%"
