@@ -620,170 +620,42 @@ region from `human_tumor`; do not use `add_surface` or a separate isosurface.
 ### 7.4 2D figures
 
 2D slice figures keep DSI Studio's black background. Use contrast-enhanced T1w for the
-enhancing tumor and core, and FLAIR for edema and tract-to-edema relationships. Before
-`save_roi_screen`:
-
-- draw the tumor compartments as outlines, never filled, so the tumor signal stays visible:
-  `set_params "roi_draw_edge=1&roi_edge_width=2"`; this applies to every 2D figure,
-  including the page 1 MRI and the tract-page slices;
-- hide fiber-orientation glyphs (`set_param roi_fiber 0`), crosshairs, and unrelated
-  tracts, regions, and labels;
-- show only the tumor compartments (no `White_Matter` or Tumor Core copy in 2D), resolved by
-  name from a fresh `list_region`: rows shift when `White_Matter` moves to the last row;
-- place the slice through the lesion: `move_slice_to_region` on the Tumor Core row (or
-  Necrosis when there is no Tumor Core), again resolved by name. Moving to a wrong row such
-  as `White_Matter` lands at its center, the ventricle level, far from a superior tumor;
-- for a tract figure, show only that tract. A slice shows only the streamline points that
-  lie in it (one voxel thick), so a tract crossing the plane appears as a few dots. Use the
-  axial slice through the tumor center when the tract runs beside the lesion in that plane
-  (it shows as a line, as in the sub-003 report); otherwise use the plane along its course
-  through the same center: coronal for CST, sagittal or axial for SLF and AF;
-- open the saved image: the tumor outlines and the tract must both be visible next to each
-  other. If the slice shows no tumor, or the tract is only dots, fix the row or the plane and
-  save again.
-
-
-#### Canonical 2D tract-tumor slice rendering
-
-The final tract-specific structural slice is generated in DSI Studio first and annotated in
-Python afterward. The tract is **not converted to a region**. In the ROI/slice view,
-`roi_track=1` draws the currently shown tract where its streamlines intersect or run within
-the displayed slice. Depending on tract orientation, this may look like discrete colored
-dots/short segments (through-plane crossing) or a short colored line (in-plane course).
-
-For final 2D tumor/tract figures use this presentation state explicitly rather than relying
-on GUI defaults:
+enhancing tumor and core, and FLAIR for edema and tract-to-edema relationships. Set the
+slice view explicitly rather than relying on GUI defaults:
 
 ```bash
-# Select the structural background and the plane that best shows tumor/tract geometry.
-dsi set_slice_by_name "<exact T1w-gd or FLAIR slice name>"
-dsi set_roi_view <0=sagittal|1=coronal|2=axial>
-
-# Resolve rows by name immediately before use.
-dsi list_region
-dsi list_tract
-
-# Center through Tumor Core (or another justified lesion-center region).
-dsi move_slice_to_region <Tumor-Core-index>
-
-# Tumor is shown as REGION EDGES, not as an opaque filled mask.
-dsi set_param roi_draw_edge 1
-dsi set_param roi_edge_width 2
-
-# Show tract intersections/segments on the slice and suppress diffusion-direction glyphs.
-dsi set_param roi_track 1
-dsi set_param roi_track_count 500000
-dsi set_param roi_fiber 0
-
-# Remove working-view clutter from the final report figure.
-dsi set_param roi_position 0
-dsi set_param roi_ruler 0
-
-# Show only the true tumor compartments in 2D; do not show White_Matter or the Tumor Core copy.
-dsi show_only_regions "<Necrosis-index>&<Peritumoral-Edema-index>&<Enhancing-Tumor-index>"
-
-# Show one tract only on a tract-specific page. Keep its Assigned/cluster color.
-dsi set_param tract_color_style 1
-dsi show_only_tracts "<tract-index>"
-
-# Save the full-resolution structural/tumor/tract slice.
-dsi save_roi_screen "<tract>_<modality>_<plane>.png"
+dsi set_params "roi_draw_edge=1&roi_edge_width=2"     # tumor as outlines, never filled
+dsi set_params "roi_track=1&roi_track_count=500000"   # tracts drawn on the slice
+dsi set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"   # no glyphs, crosshair lines, ruler, "R" mark
 ```
 
-`roi_draw_edge=1` is **mandatory for final 2D tumor figures**. It keeps the structural MRI
-visible while outlining Necrosis, Peritumoral Edema, and Enhancing Tumor. Do not show the
-segmentation-derived `White_Matter` envelope in 2D; that envelope is for the 3D figures.
-
-`roi_track=1` and `roi_fiber=0` are different controls: the first shows the selected tract
-on the structural slice, while the second hides local diffusion fiber-direction glyphs.
-Do not turn `roi_fiber` on merely to make the tract visible.
-
-After saving, open the image and verify that (1) the tumor edges are visible, (2) the tract
-is visible at the lesion level, and (3) the chosen plane demonstrates the relationship. If
-the tract appears only as a few dots because it crosses the plane orthogonally, choose a
-more informative plane through the same lesion center when that better demonstrates its
-course.
-
-#### Python tract callout: leader line + tract name
-
-The leader line and tract-name box used in the accepted report are **post-processing
-annotations**, not DSI Studio tract rendering. They are allowed because they do not alter
-the anatomical pixels. The annotation endpoint must be placed on the visible tract after
-opening and inspecting the saved slice; do not guess its location from anatomy alone.
-
-Use a helper like this after `save_roi_screen`:
-
-```python
-from PIL import Image, ImageDraw, ImageFont
-import math
-
-
-def _font(size):
-    try:
-        return ImageFont.truetype("DejaVuSans-Bold.ttf", size)
-    except Exception:
-        return ImageFont.load_default()
-
-
-def annotate_tract_slice(src, dst, tract_name, tract_xy, label_xy,
-                         left="R", right="L", top="A", bottom="P",
-                         note="Radiological convention"):
-    """Add orientation and a leader-line tract label without altering source anatomy.
-
-    tract_xy: (x,y) pixel location on the visible tract in the ORIGINAL DSI image.
-    label_xy: (x,y) desired label-box center in the ORIGINAL DSI image coordinate frame.
-    """
-    im = Image.open(src).convert("RGB")
-    size = max(im.size)//16
-    margin = size*3//2
-    out = Image.new("RGB", (im.width+2*margin, im.height+2*margin), "black")
-    out.paste(im, (margin, margin))
-    d = ImageDraw.Draw(out)
-    W,H = out.size
-
-    f_orient = _font(size)
-    for txt,xy in ((top,(W/2,margin/2)),
-                   (bottom,(W/2,H-margin/2)),
-                   (left,(margin/2,H/2)),
-                   (right,(W-margin/2,H/2))):
-        d.text(xy, txt, fill="white", font=f_orient, anchor="mm")
-    if note:
-        d.text((margin//4,H-margin//4), note, fill="white",
-               font=_font(max(12,size//2)), anchor="ld")
-
-    tx,ty = tract_xy[0]+margin, tract_xy[1]+margin
-    lx,ly = label_xy[0]+margin, label_xy[1]+margin
-    f_label = _font(max(16,size*3//4))
-    bbox = d.textbbox((lx,ly), tract_name, font=f_label, anchor="mm")
-    pad_x,pad_y = 10,6
-    box = (bbox[0]-pad_x,bbox[1]-pad_y,bbox[2]+pad_x,bbox[3]+pad_y)
-
-    candidates=[((box[0],ly),(tx-box[0])**2+(ty-ly)**2),
-                ((box[2],ly),(tx-box[2])**2+(ty-ly)**2),
-                ((lx,box[1]),(tx-lx)**2+(ty-box[1])**2),
-                ((lx,box[3]),(tx-lx)**2+(ty-box[3])**2)]
-    (sx,sy),_ = min(candidates,key=lambda x:x[1])
-    width=max(2,size//20)
-    d.line([(sx,sy),(tx,ty)], fill="white", width=width)
-
-    vx,vy=tx-sx,ty-sy
-    length=max(1.0,math.hypot(vx,vy)); ux,uy=vx/length,vy/length
-    px,py=-uy,ux
-    arrow=max(8,size//5)
-    wing=max(5,size//9)
-    d.polygon([(tx,ty),
-               (tx-arrow*ux+wing*px,ty-arrow*uy+wing*py),
-               (tx-arrow*ux-wing*px,ty-arrow*uy-wing*py)], fill="white")
-
-    d.rounded_rectangle(box, radius=max(4,size//8), fill="black",
-                        outline="white", width=max(2,size//24))
-    d.text((lx,ly), tract_name, fill="white", font=f_label, anchor="mm")
-    out.save(dst)
-```
-
-For an axial radiological image use `left="R", right="L", top="A", bottom="P"`. The
-`tract_xy` point must be selected from the actual DSI-exported tract dots/segments. Put the
-label box in empty space and keep the leader line from obscuring the tumor or tract.
+- Outlines (`roi_draw_edge=1`) apply to every 2D figure, including the page 1 MRI and the
+  tract-page slices, so the tumor signal stays visible. `roi_track` shows the tract on the
+  slice; `roi_fiber` only controls diffusion glyphs, so do not turn it on to show a tract.
+- Show only the three tumor compartments (no `White_Matter` or Tumor Core copy in 2D),
+  resolved by name from a fresh `list_region`: rows shift when `White_Matter` moves to the
+  last row.
+- Center each slice on the **main lesion** with `move_slice_to_region`, which moves to the
+  region's per-axis median voxel, so small distant fragments do not pull the slice away.
+  Older DSI Studio builds used the midpoint of the first and last voxel instead (in sub-003
+  that put the slice at z ≈ 71, below the tumor); with such a build, center on a copy reduced
+  to its main component (`copy_region`, then `region_action_defragment`) and delete the copy
+  afterwards. Moving to a wrong row such as `White_Matter` lands at the ventricle level.
+- Choose the centering compartment by modality: contrast-enhanced T1w through the main
+  enhancing tumor / core; FLAIR through the main edema.
+- Choose the plane per tract; do not reuse one axial slice for all. Show only that tract
+  (`show_only_tracts`) in its Assigned cluster color. A slice shows only the streamline points
+  that lie in it (one voxel thick), so a tract crossing the plane appears as a few dots.
+  CST: coronal or sagittal through the lesion, where the tract and the lesion both appear.
+  SLF and AF: axial or sagittal. Use the plane in which the tract runs beside the lesion as a
+  line.
+- Save with `save_roi_screen`, then open each image: the main lesion's outlines and the tract
+  must both be clearly visible in the same slice. If the slice misses the main lesion, or the
+  tract is only dots, re-center or change the plane and save again. If a slice is redone,
+  replace it in the report: every 2D figure in the PDF must come from the final slices.
+- The tract name, leader line and arrow are added afterwards by `orient()` in §7.9. Pick the
+  arrow point on the tract as it appears in the saved image, not from expected anatomy, and
+  put the label box in empty space so the line does not cover the tumor or tract.
 
 ### 7.5 Orientation labels
 
@@ -910,31 +782,36 @@ come from `get_camera`, as in §7.5.
 #### DSI Studio commands for the 2D figures
 
 ```bash
-# Tumor compartments as outlines on every 2D figure; no fiber glyphs.
-# Rows after the White_Matter move: 4 Necrosis, 5 Peritumoral Edema, 6 Enhancing Tumor.
+# 2D view state from §7.4.
 dsi set_params "roi_draw_edge=1&roi_edge_width=2"
-dsi set_param roi_track 1
-dsi set_param roi_track_count 500000
-dsi set_param roi_fiber 0
-dsi set_param roi_position 0
-dsi set_param roi_ruler 0
-dsi list_region
-dsi show_only_regions "4&5&6"
+dsi set_params "roi_track=1&roi_track_count=500000"
+dsi set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"
+dsi list_region                    # 4 Necrosis, 5 Peritumoral Edema, 6 Enhancing Tumor, 7 White_Matter
+dsi show_only_regions "4&5&6"      # outlines of the three tumor compartments only
+dsi check_uncheck_all_tract 0
 
-# Representative tumor MRI (repeat with the FLAIR slice name for the FLAIR panel)
+# Representative MRI: ceT1w through the main enhancing tumor, FLAIR through the main edema
 dsi set_slice_by_name "<exact ceT1w / T1w-gd slice name>"
 dsi set_roi_view 2
-dsi move_slice_to_region 4    # Necrosis (or Tumor Core): the lesion center, not White_Matter
-dsi check_uncheck_all_tract 0
+dsi move_slice_to_region 6    # median of Enhancing Tumor
 dsi save_roi_screen sub003_ceT1w_corecenter.png
-
-# Tract on FLAIR at the same lesion-center slice, tumor outlines kept
 dsi set_slice_by_name "<exact FLAIR slice name>"
+dsi move_slice_to_region 5    # median of Peritumoral Edema
+dsi save_roi_screen sub003_FLAIR_corecenter.png
+
+# Tract slices on FLAIR through the main edema, plane chosen per tract
+dsi show_only_tracts "1"           # right CST: coronal
+dsi set_roi_view 1
+dsi move_slice_to_region 5
+dsi save_roi_screen sub003_CST_R_FLAIR_coronal.png
+dsi show_only_tracts "3"           # right SLF: axial
 dsi set_roi_view 2
-dsi move_slice_to_region 4
-dsi show_only_tracts "1"; dsi save_roi_screen sub003_CST_R_FLAIR_axial.png
-dsi show_only_tracts "3"; dsi save_roi_screen sub003_SLF_R_FLAIR_axial.png
+dsi move_slice_to_region 5
+dsi save_roi_screen sub003_SLF_R_FLAIR_axial.png
 ```
+
+Open each saved slice and check that the main lesion and the tract appear together before
+using it.
 
 Tract names, arrows and R/L/A/P labels are added afterwards (§7.7, code in §7.9); DSI Studio
 does not draw them.
@@ -1060,6 +937,7 @@ callout needs the tract's pixel position in the saved slice: open the image, fin
 place the label box in empty space so the leader line does not cross the lesion.
 
 ```python
+import math
 from PIL import Image as PILImage, ImageDraw, ImageFont
 
 def font(size):
@@ -1070,7 +948,8 @@ def font(size):
 
 def orient(src,dst,left,right,top,bottom,dark=False,note=None,callout=None):
     """Pad a DSI export and write R/L/A/P/S/I labels (from get_camera or R_side) in the margin.
-    callout = (text,(x,y) of the tract in source pixels,(x,y) of the label box)."""
+    callout = (text,(x,y) of the tract in source pixels,(x,y) of the label box center).
+    The leader line runs from the nearest side of the label box to an arrowhead on the tract."""
     im = PILImage.open(src).convert("RGB")
     s = max(im.size)//16                  # label size: readable when the panel is half a page wide
     m = s*3//2
@@ -1084,10 +963,16 @@ def orient(src,dst,left,right,top,bottom,dark=False,note=None,callout=None):
         d.text((m//4,H-m//4),note,fill=fg,font=font(s//2),anchor="ld")
     if callout:
         text,(tx,ty),(lx,ly) = callout
-        box = d.textbbox((lx+m,ly+m),text,font=font(s*3//4),anchor="mm")
-        d.line([(lx+m,ly+m),(tx+m,ty+m)],fill="white",width=max(2,s//20))
-        d.rounded_rectangle([box[0]-6,box[1]-4,box[2]+6,box[3]+4],radius=5,fill="black",outline="white",width=2)
-        d.text((lx+m,ly+m),text,fill="white",font=font(s*3//4),anchor="mm")
+        tx,ty,lx,ly = tx+m,ty+m,lx+m,ly+m
+        b = d.textbbox((lx,ly),text,font=font(s*3//4),anchor="mm")
+        box = (b[0]-s//6,b[1]-s//10,b[2]+s//6,b[3]+s//10)
+        sx,sy = min(((box[0],ly),(box[2],ly),(lx,box[1]),(lx,box[3])),key=lambda p:(p[0]-tx)**2+(p[1]-ty)**2)
+        d.line([(sx,sy),(tx,ty)],fill="white",width=max(2,s//20))
+        n = max(1.0,math.hypot(tx-sx,ty-sy))
+        ux,uy,a,w = (tx-sx)/n,(ty-sy)/n,max(8,s//5),max(5,s//9)
+        d.polygon([(tx,ty),(tx-a*ux-w*uy,ty-a*uy+w*ux),(tx-a*ux+w*uy,ty-a*uy-w*ux)],fill="white")
+        d.rounded_rectangle(box,radius=max(4,s//8),fill="black",outline="white",width=max(2,s//24))
+        d.text((lx,ly),text,fill="white",font=font(s*3//4),anchor="mm")
     out.save(dst)
 
 from reportlab.lib import colors
@@ -1153,7 +1038,8 @@ for f,o in [("sub003_tumor_WM_axial3D",AXIAL3D),("sub003_tumor_WM_coronal3D",COR
 RADIOLOGICAL = dict(left="R",right="L",top="A",bottom="P",dark=True,note="Radiological convention")
 for f in ["sub003_ceT1w_corecenter","sub003_FLAIR_corecenter"]:
     orient(f+".png",f+"_lab.png",**RADIOLOGICAL)
-orient("sub003_CST_R_FLAIR_axial.png","sub003_CST_R_FLAIR_axial_lab.png",callout=("Right CST",(530,560),(260,650)),**RADIOLOGICAL)
+orient("sub003_CST_R_FLAIR_coronal.png","sub003_CST_R_FLAIR_coronal_lab.png",callout=("Right CST",(530,560),(260,650)),
+       **{**RADIOLOGICAL,"top":"S","bottom":"I"})
 orient("sub003_SLF_R_FLAIR_axial.png","sub003_SLF_R_FLAIR_axial_lab.png",callout=("Right SLF",(330,490),(220,350)),**RADIOLOGICAL)
 
 # ---- pages ----
@@ -1209,12 +1095,12 @@ s = [Paragraph(CASE,H1),
                       "relationship is the right CST within the edema field; right SLF has limited edema contact.",BODY)]],
           [WIDTH*0.52,WIDTH*0.48])]
 
-for name,short,views,t2r,interpretation in [
-    ("right corticospinal tract (CST)","CST_R",[("axial3D","Axial"),("sagittal3D","Sagittal")],
+for name,short,views,plane,t2r,interpretation in [
+    ("right corticospinal tract (CST)","CST_R",[("axial3D","Axial"),("sagittal3D","Sagittal")],"coronal",
      ["8,595 / 8,595 right-CST streamlines intersect edema (100%).","0 intersect necrosis.","0 intersect enhancing tumor.",
       "Edema-intersecting tract volume: 1,424 mm<super>3</super>."],
      "the reconstructed motor pathway is embedded in the edema environment but does not enter the reconstructed tumor core."),
-    ("right superior longitudinal fasciculus (SLF)","SLF_R",[("axial3D","Axial"),("coronal3D","Coronal")],
+    ("right superior longitudinal fasciculus (SLF)","SLF_R",[("axial3D","Axial"),("coronal3D","Coronal")],"axial",
      ["619 / 5,315 right-SLF streamlines intersect edema (11.6%).","0 intersect necrosis.","0 intersect enhancing tumor.",
       "Edema-intersecting tract volume: 556 mm<super>3</super>."],
      "a minority of reconstructed right-SLF streamlines contact edema; the reconstructed tumor core remains separate.")]:
@@ -1222,8 +1108,8 @@ for name,short,views,t2r,interpretation in [
     s += [PageBreak(),Paragraph(f"Affected tract: {name}",H2),
           figures(*[(f"sub003_{short}_tumor_WM_{v}_lab.png",f"{label} 3D right {tract} + tumor + White_Matter envelope") for v,label in views]),
           Spacer(1,6),
-          grid([[img(f"sub003_{short}_FLAIR_axial_lab.png",WIDTH*0.5),
-                 Paragraph(f"<b>FLAIR axial slice.</b> Radiological convention: image left = patient right. The tumor/edema "
+          grid([[img(f"sub003_{short}_FLAIR_{plane}_lab.png",WIDTH*0.5),
+                 Paragraph(f"<b>FLAIR {plane} slice.</b> Radiological convention: image left = patient right. The tumor/edema "
                            f"mask is delineated and the right {tract} is labeled.<br/><br/><b>T2R</b><br/>"+
                            "<br/>".join("&bull; "+x for x in t2r)+f"<br/><br/><b>Interpretation:</b> {interpretation}",BODY)]],
                [WIDTH*0.52,WIDTH*0.48])]
