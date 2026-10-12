@@ -1111,8 +1111,13 @@ ordinary content, and each GLB as a PowerPoint 3D model. python-pptx has no 3D-m
   `enabled="false"`, so no default lighting is added. Stronger Office lighting washed out
   DSI Studio's tract and tumor colors in the PowerPoint comparison (To-Do #27). Do not darken
   GLB materials instead.
-- `meterPerModelUnit` = 1 / largest scene extent (read from the GLB), so PowerPoint fits the
-  model; the GLB is already centered, so `preTrans` is zero.
+- Geometry, verified in PowerPoint on sub-003: `meterPerModelUnit` = 1 / largest scene
+  extent, so PowerPoint scales the model's largest extent to 1 m; the GLB is already centered,
+  so `preTrans` is zero. The inner `am3d:spPr` offset is 0,0 (relative to the frame; repeating
+  the slide position shifts the poster down and right). `viewportSz` is the size of the
+  camera's square output on the slide, so it is set larger than the frame until the model's
+  front-view extent fills the frame; a viewport equal to the frame leaves the model small, and
+  moving the camera closer does not change that.
 - One interactive 3D model per slide by default.
 
 ```python
@@ -1191,13 +1196,13 @@ def slice_image(slide,file,x,y,w,plane,r_side,caption):  # §7.7 labels in a mar
     text(slide,caption+"\nOutline: Necrosis · Enhancing Tumor · Peritumoral Edema   (radiological: image left = patient right)",
          x,cy+ph+margin,w,Inches(0.6),11)
 
-def glb_extent(file):  # largest scene extent in model units (mm) from the POSITION accessors
+def glb_extents(file):  # x, y, z scene extents in model units (mm) from the POSITION accessors
     with open(file,"rb") as f:
         f.seek(12)
         length,_ = struct.unpack("<II",f.read(8))
         gltf = json.loads(f.read(length))
     bounds = [a for a in gltf["accessors"] if "min" in a]
-    return max(max(a["max"][i] for a in bounds)-min(a["min"][i] for a in bounds) for i in range(3))
+    return [max(a["max"][i] for a in bounds)-min(a["min"][i] for a in bounds) for i in range(3)]
 
 def add_glb(slide,glb,poster,x,y,w,h,caption):
     package = slide.part.package
@@ -1212,7 +1217,10 @@ def add_glb(slide,glb,poster,x,y,w,h,caption):
         y,h = y+(h-w*ih//iw)//2,w*ih//iw
     sid = max([s.shape_id for s in slide.shapes]+[1])+1
     descr = quoteattr(caption)
-    mpu = max(1,round(1e6/glb_extent(glb)))
+    extents = glb_extents(glb)
+    mpu = max(1,round(1e6/max(extents)))
+    # camera output square at the model: 2 * 66000000 EMU * tan(22.5 deg); front-view extent in EMU (1 m = 36000000)
+    viewport = round(min(w,h)*2*66000000*0.41421356/(36000000*max(extents[:2])/max(extents)))
     xfrm = f'<a:off x="{x}" y="{y}"/><a:ext cx="{w}" cy="{h}"/>'
     slide.shapes._spTree.append(parse_xml(f'''
 <mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -1226,14 +1234,14 @@ def add_glb(slide,glb,poster,x,y,w,h,caption):
    <p:xfrm>{xfrm}</p:xfrm>
    <a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/drawing/2017/model3d">
     <am3d:model3d r:embed="{rid_model}">
-     <am3d:spPr><a:xfrm>{xfrm}</a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></am3d:spPr>
+     <am3d:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{w}" cy="{h}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></am3d:spPr>
      <am3d:camera><am3d:pos x="0" y="0" z="66000000"/><am3d:up dx="0" dy="36000000" dz="0"/>
       <am3d:lookAt x="0" y="0" z="0"/><am3d:perspective fov="2700000"/></am3d:camera>
      <am3d:trans><am3d:meterPerModelUnit n="{mpu}" d="1000000"/><am3d:preTrans dx="0" dy="0" dz="0"/>
       <am3d:scale><am3d:sx n="1000000" d="1000000"/><am3d:sy n="1000000" d="1000000"/><am3d:sz n="1000000" d="1000000"/></am3d:scale>
       <am3d:rot/><am3d:postTrans dx="0" dy="0" dz="0"/></am3d:trans>
      <am3d:raster rName="Office3DRenderer" rVer="16.0.8326"><am3d:blip r:embed="{rid_poster}"/></am3d:raster>
-     <am3d:objViewport viewportSz="{min(w,h)}"/>
+     <am3d:objViewport viewportSz="{viewport}"/>
      <am3d:ambientLight><am3d:clr><a:scrgbClr r="100000" g="100000" b="100000"/></am3d:clr>
       <am3d:illuminance n="100000" d="1000000"/></am3d:ambientLight>
      {LIGHTS_OFF}
