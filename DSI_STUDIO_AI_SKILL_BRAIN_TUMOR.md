@@ -1118,7 +1118,9 @@ dsi list_region
 Who runs the script:
 
 - **Local agents** (Codex, Claude, Muse, Antigravity, Grok) write the script and run Python
-  with their own tools on the user's computer, and create the PPTX there.
+  with their own tools on the user's computer, and create the PPTX there. If an agent's
+  own file tools are unavailable, use `bash ./dsi.sh write_text_file make_report.py --stdin
+  <<'PY'` ... `PY`, then `bash ./dsi.sh run_shell "python make_report.py"`.
 - **Web agents** have no local files or Python. Send the script with `write_text_file`, run
   it with `run_shell "python make_report.py"` (Windows fallback `py make_report.py`), and
   fetch the PPTX and charts with `web_upload`. Install missing packages first with

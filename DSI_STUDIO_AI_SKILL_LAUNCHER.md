@@ -53,6 +53,26 @@ bash ./dsi.sh voice "I will inspect the available tracts." -- list_auto_tract \
 
 Do not place an empty command before, after, or between `--` separators.
 
+### Large text through stdin (`--stdin`)
+
+Send a long string parameter, such as a generated script, through standard input
+instead of the command line. Put the literal token `--stdin` where the parameter goes;
+the launcher replaces it with the complete stdin text (UTF-8) as one string:
+
+```bash
+bash ./dsi.sh write_text_file build_report.py --stdin <<'PY'
+import json
+print("quotes, $, %, !, &, |, <, >, backticks and indentation need no escaping")
+PY
+```
+
+- Quote the heredoc delimiter (`<<'PY'`) so Bash does not expand `$` or backticks.
+- `--stdin` works for any command and any string parameter, also inside a `--` batch;
+  only one `--stdin` is allowed per request. The value is always a string, never
+  converted to a number.
+- Without `--stdin`, the launcher never reads stdin. Short parameters still go on the
+  command line, and the request sent to DSI Studio is the same either way.
+
 The Windows wrapper accepts the same command arguments:
 
 ```powershell
@@ -127,7 +147,7 @@ removed.
 | File | Platform | Role |
 |---|---|---|
 | `dsi.sh` | Windows, macOS, Linux | Recommended shared launcher |
-| `dsi.cmd` | Windows | Native wrapper that forwards arguments through `DSI_ARG_*` environment variables and invokes `dsi.ps1` with PowerShell's call operator |
+| `dsi.cmd` | Windows | Native wrapper that forwards arguments through `DSI_ARG_*` environment variables and invokes `dsi.ps1` with PowerShell's call operator; stdin passes through for `--stdin` |
 | `dsi.ps1` | Windows | Native PowerShell implementation and fallback; accepts normal PowerShell arguments or the safe `DSI_ARG_*` forwarding used by the wrappers |
 
 On Windows, `dsi.sh` uses Git Bash only as the entry shell. It forwards the original
@@ -148,7 +168,9 @@ console output encoding to UTF-8 so non-ASCII DSI Studio responses survive the
 Windows wrapper path.
 
 On macOS and Linux, `dsi.sh` uses Python 3 to build the request and communicate with
-the local Unix-domain socket.
+the local Unix-domain socket. The embedded Python code is passed on file descriptor 3,
+so stdin stays free for `--stdin` on every platform; on Windows, `dsi.ps1` reads the
+caller's stdin directly, and large text never travels through `DSI_ARG_*`.
 
 ## Command batching
 

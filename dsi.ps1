@@ -62,6 +62,14 @@ function Convert-DsiValue([string]$Text)
 }
 
 if(!$Value.Count -and !$Chat) { throw 'Missing command name.' }
+$StdinCount = @($Value | Where-Object {$_ -ceq '--stdin'}).Count
+if($StdinCount -gt 1) { throw 'Only one --stdin is allowed.' }
+if($StdinCount) # read only when asked: the caller's stdin, as UTF-8 bytes
+{
+    $buffer = [IO.MemoryStream]::new()
+    [Console]::OpenStandardInput().CopyTo($buffer)
+    $StdinText = $utf8.GetString($buffer.ToArray())
+}
 
 $request = [ordered]@{agent=$Agent;session=$Session}
 if($Value.Count)
@@ -88,7 +96,7 @@ if($Value.Count)
     foreach($segment in $Segments)
     {
         $cmd = [ordered]@{cmd=$segment[0]}
-        $param = @($segment | Select-Object -Skip 1 | ForEach-Object {Convert-DsiValue $_})
+        $param = @($segment | Select-Object -Skip 1 | ForEach-Object {if($_ -ceq '--stdin') {$StdinText} else {Convert-DsiValue $_}})
         if($param.Count -eq 1) { $cmd.param = $param[0] }
         elseif($param.Count -gt 1) { $cmd.param = $param }
         $Commands += ,$cmd

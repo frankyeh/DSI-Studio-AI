@@ -198,6 +198,17 @@ backticks, backslashes, indentation, and newlines need no escaping beyond the JS
 {"cmd":"write_text_file","param":["make_report.py","import pptx\nprint('ok')\n"]}
 ```
 
+From the launcher, send the content through stdin with `--stdin` (no shell escaping, one
+request and one confirmation):
+
+```bash
+bash ./dsi.sh write_text_file make_report.py --stdin <<'PY'
+import pptx
+print('ok')
+PY
+bash ./dsi.sh run_shell "python make_report.py"
+```
+
 - Every call from an AI agent shows the local user a confirmation dialog with the full path
   and byte count; declining fails with `user declined to write this file`.
 - A relative path is resolved against this chat's current directory (`run_shell "cd ..."`).

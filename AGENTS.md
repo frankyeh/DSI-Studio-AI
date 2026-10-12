@@ -48,7 +48,11 @@ The launcher maps requests as follows:
 3. Standalone integers and floating-point values become JSON numbers. Paths, names,
    and composite expressions remain strings.
 4. `-Chat "message"` may accompany a command or may be sent by itself.
-5. There is no separate window-ID argument and no separate request-type keyword.
+5. A long string parameter (for example a script for `write_text_file`) goes through
+   stdin: put `--stdin` in its place and pipe the text, e.g.
+   `bash ./dsi.sh write_text_file build.py --stdin <<'PY'` ... `PY`. See
+   `DSI_STUDIO_AI_SKILL_LAUNCHER.md`.
+6. There is no separate window-ID argument and no separate request-type keyword.
 
 Shared `bring_to_front`, `minimize`, `maximize`, and `close` controls are handled
 before ordinary MainWindow/window routing. `run_cli` and `run_shell` are global

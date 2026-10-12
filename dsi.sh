@@ -27,7 +27,8 @@ else
     exit 1
 fi
 
-exec "${py[@]}" - "$@" <<'PY'
+# the launcher code comes in on fd 3, so stdin stays free for --stdin
+exec "${py[@]}" /dev/fd/3 "$@" 3<<'PY'
 import json
 import math
 import os
@@ -74,6 +75,9 @@ while i < len(args):
 
 if not values and chat is None:
     fail('Usage: bash ./dsi.sh [command] [values...] [-- command values...] [-Chat "message"]')
+if values.count("--stdin") > 1:
+    fail("Only one --stdin is allowed.")
+stdin_text = sys.stdin.buffer.read().decode("utf-8") if "--stdin" in values else None  # read only when asked
 
 integer = re.compile(r"^[+-]?\d+$")
 number = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
@@ -110,7 +114,7 @@ if values:
     commands = []
     for segment in segments:
         command = {"cmd": segment[0]}
-        params = [convert(value) for value in segment[1:]]
+        params = [stdin_text if value == "--stdin" else convert(value) for value in segment[1:]]
         if len(params) == 1:
             command["param"] = params[0]
         elif params:
