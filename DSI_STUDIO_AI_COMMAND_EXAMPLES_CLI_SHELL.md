@@ -2,7 +2,7 @@
 
 `run_cli` and `run_shell` are global MainWindow commands. They remain available even when the AI session has selected a reconstruction, tracking, or image window.
 
-Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` for operating-system shell commands; every `run_shell` command other than `cd` requires the local user to approve a confirmation dialog before it runs.
+Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` for operating-system shell commands; every `run_shell` command, including `cd`, requires the local user to approve a confirmation dialog before it runs.
 
 ## `run_cli`
 
@@ -126,15 +126,15 @@ Keep the entire command in one string.
 
 ### Local user confirmation
 
-Every `run_shell` command other than `cd` shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no exemption for a plain `dir`/`ls`: the command runs through a real shell (see below), so a compound string like `ls && rm file` would execute everything after `ls` too if only the first token were checked — the confirmation dialog is the only gate for anything other than `cd`. This means:
+Every `run_shell` command, including `cd`, shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no exemption for a plain `dir`/`ls` or `python script.py`: the command runs through a real shell (see below), so a compound string like `ls && rm file` would execute everything after `ls` too if only the first token were checked. This means:
 
-- `run_shell` (other than `cd`) blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
+- `run_shell` blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
 - If the user declines, the command fails with `user declined to run this shell command`.
 - Never send credentials, tokens, or other sensitive text in a `run_shell` command, since the local user sees the exact text in the confirmation dialog and it is written to captured output/console history either way.
 
 ### `cd`
 
-`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, and does not show a confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is remembered per AI session (not process-wide) and reapplied automatically before every later `run_shell`, `run_cli`, and relative-path operation in the same chat; a different chat's `cd` never affects it. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
+`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, after the same confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is remembered per AI session (not process-wide) and reapplied automatically before every later `run_shell`, `run_cli`, and relative-path operation in the same chat; a different chat's `cd` never affects it. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
 
 ### `dir`/`ls` and other synchronous commands
 
@@ -187,6 +187,41 @@ For large or complete datasets, first determine the intended object set; S3 list
 
 Do not place credentials, tokens, protected data, or untrusted command text in `run_shell`.
 
+## `write_text_file`
+
+`write_text_file <filename> <content>` writes generated text, such as a Python script, to a
+local file exactly as sent. Use it instead of `echo`, heredocs, or shell redirection: the
+content never passes through a shell, so quotes, `$`, `%`, `!`, `&`, `|`, `<`, `>`,
+backticks, backslashes, indentation, and newlines need no escaping beyond the JSON string.
+
+```json
+{"cmd":"write_text_file","param":["make_report.py","import pptx\nprint('ok')\n"]}
+```
+
+- Every call from an AI agent shows the local user a confirmation dialog with the full path
+  and byte count; declining fails with `user declined to write this file`.
+- A relative path is resolved against this chat's current directory (`run_shell "cd ..."`).
+- The file is overwritten if it exists. The content is written byte for byte as UTF-8,
+  with its own newlines and no BOM.
+- Success returns `wrote <bytes> bytes to <absolute path>`; an open or write failure
+  returns `cannot write to <path>`.
+- The command array is recorded in the console, so do not write credentials or tokens.
+
+### Running a Python script
+
+Write the script with `write_text_file`, then run it with `run_shell`, which waits up to 10
+minutes and returns its standard output:
+
+```json
+"command":[{"cmd":"write_text_file","param":["make_report.py","<script>"]},
+           {"cmd":"run_shell","param":"python make_report.py"}]
+```
+
+On Windows, if `python` is not found, use `py make_report.py`. Install a missing package
+first, e.g. `run_shell "python -m pip install --user python-pptx matplotlib pillow"`. A
+non-zero exit fails the command with `command exited with code <N>`; read the error with
+`log`. Web agents then send the produced file with `web_upload`.
+
 ## Command arrays and routing
 
 Both commands are handled by MainWindow before fallback to the selected data window.
@@ -194,7 +229,7 @@ Both commands are handled by MainWindow before fallback to the selected data win
 - `run_cli` is normally synchronous.
 - `run_shell` commands other than `curl` are synchronous (after the confirmation dialog, if any), bounded to 10 minutes.
 - `curl` returns immediately once approved.
-- Any `run_shell` command other than `cd` pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes such a `run_shell` will not proceed past it until the user responds.
+- Any `run_shell` command pauses the whole request on the local user's confirmation dialog before it does anything else; a batched command array that includes such a `run_shell` will not proceed past it until the user responds.
 - Do not place a dependent open or processing command after `curl` in the same array.
 - Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 

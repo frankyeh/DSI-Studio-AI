@@ -53,7 +53,8 @@ only as parameters of the documented commands below.
 | `save_qc_src` | `["save_qc_src","C:/report.txt","C:/data/a.sz"]` | Same as `save_qc_nii` for SRC/SZ files. |
 | `save_qc_fib` | `["save_qc_fib","C:/report.txt","C:/data/a.fz"]` | Same as `save_qc_nii` for FIB/FZ files. |
 | `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]` | Parse and execute one DSI Studio command-line string inside the running process. Missing `--action` defaults to `vis`; wildcard looping and each action's own requirements apply. |
-| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one shell command string. `cd` changes this AI session's own current directory (remembered per chat, reapplied on later calls) with no confirmation dialog; every other command shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
+| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one shell command string. `cd` changes this AI session's own current directory (remembered per chat, reapplied on later calls); every command, including `cd`, shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
+| `write_text_file` | `["write_text_file","make_report.py","<script text>"]` | Write text to a local file exactly as sent (UTF-8, no BOM, overwrite), with no shell parsing. Every AI call asks the local user to confirm. Returns the path and byte count. Use it to write a script, then run it with `run_shell "python make_report.py"`. See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a new `view_image` window and select it. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
 | `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
@@ -132,8 +133,8 @@ wildcards, global thread settings, overwrites, or actions that depend on open wi
 ## Confirmation-gated `run_shell` commands
 
 `run_shell` accepts exactly one non-empty command string. The first token is matched
-case-insensitively; `cd` is a built-in special case with no confirmation dialog,
-everything else is passed to the operating system shell after local user approval:
+case-insensitively; every command needs local user approval, then `cd` is handled
+inside DSI Studio and everything else is passed to the operating system shell:
 
 ```json
 ["run_shell","cd \"C:\\data\""]
@@ -150,8 +151,7 @@ everything else is passed to the operating system shell after local user approva
   containing spaces in one pair of double quotes.
 - `cd` without a path reports the current directory. Do not use `cd /d`; the
   remaining text is interpreted as the path.
-- `cd` runs with no confirmation dialog and no external process. Every other
-  `run_shell` command shows the local user a confirmation dialog with the exact
+- `cd` starts no external process. Every `run_shell` command, including `cd`, shows the local user a confirmation dialog with the exact
   command text and only runs if they approve it; there is no whitelist or character
   restriction anymore, the dialog is the only gate. `run_shell` therefore cannot
   complete unattended with nobody present to approve it, and a batched command array

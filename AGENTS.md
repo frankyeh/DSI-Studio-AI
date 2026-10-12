@@ -550,7 +550,7 @@ actions may modify global application state.
 
 Never send an operating-system command through `run_cli`.
 
-### 8.2 `run_shell`: `cd` is free, everything else needs local user approval
+### 8.2 `run_shell`: every command needs local user approval
 
 ```bash
 bash ./dsi.sh run_shell "cd \"C:/data\""
@@ -560,9 +560,8 @@ bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
 
 `cd` changes this AI session's own current directory (remembered per chat, not
 process-wide) and therefore affects later relative `run_shell` and `run_cli` paths
-in the same chat; it runs with no confirmation dialog and no external process.
-Every other `run_shell` command shows the local user a
-confirmation dialog with the exact command text and only runs if they approve it —
+in the same chat; it starts no external process. Every `run_shell` command,
+including `cd`, shows the local user a confirmation dialog with the exact command text and only runs if they approve it —
 there is no whitelist or character restriction anymore, the dialog is the only gate.
 This means `run_shell` cannot complete unattended with nobody at the DSI Studio
 machine to respond, and a batched command array containing `run_shell` pauses at
@@ -587,6 +586,20 @@ For a Web agent, send `{"cmd":"log"}` as a command before the curl-start request
 Never send credentials, tokens, or other sensitive text in a `run_shell` command —
 the local user sees the exact text in the confirmation dialog either way. Never send
 a DSI Studio `--action=...` line through `run_shell`.
+
+### 8.3 `write_text_file`: write a script, then run it
+
+`write_text_file <filename> <content>` writes text to a local file exactly as sent,
+without shell parsing, after the local user confirms. Use it for generated scripts instead
+of `echo` or heredocs, then run the script with `run_shell`:
+
+```json
+"command":[{"cmd":"write_text_file","param":["make_report.py","<script>"]},
+           {"cmd":"run_shell","param":"python make_report.py"}]
+```
+
+Local agents that can write files and run Python with their own tools may do so directly.
+See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`.
 
 ## 9. Windows speech and demo mode
 

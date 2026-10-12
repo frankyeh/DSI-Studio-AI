@@ -1115,6 +1115,17 @@ dsi list_region
 
 ### 7.11 Assemble the PPTX
 
+Who runs the script:
+
+- **Local agents** (Codex, Claude, Muse, Antigravity, Grok) write the script and run Python
+  with their own tools on the user's computer, and create the PPTX there.
+- **Web agents** have no local files or Python. Send the script with `write_text_file`, run
+  it with `run_shell "python make_report.py"` (Windows fallback `py make_report.py`), and
+  fetch the PPTX and charts with `web_upload`. Install missing packages first with
+  `run_shell "python -m pip install --user python-pptx matplotlib pillow"`. Each
+  `write_text_file` asks the user to confirm, so write the chart code (§7.5) and this
+  script as one file where practical. See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`.
+
 Build a 16:9 deck with python-pptx: title bar, tables, charts, and labeled 2D slices as
 ordinary content, and each GLB as a PowerPoint 3D model. python-pptx has no 3D-model API, so
 `add_glb()` adds the GLB part and inserts the Office `am3d:model3d` XML with its poster:

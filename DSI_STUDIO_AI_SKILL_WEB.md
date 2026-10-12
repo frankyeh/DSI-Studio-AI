@@ -129,7 +129,11 @@ not split a string on spaces:
 ```
 
 Command routing, persistent `set_window` selection, shared window controls, `run_cli`,
-and `run_shell` work as described in `AGENTS.md` and the command examples. To read
+and `run_shell` work as described in `AGENTS.md` and the command examples. You have no
+file system or Python of your own on the user's computer: to produce a file there (for
+example a PPTX report), write the script with `write_text_file` and run it with
+`run_shell "python <script>"` (`DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`), then fetch
+the result with `web_upload`. To read
 console output (for example after an asynchronous `curl`), send `{"cmd":"log"}` as a
 command. The first `log` sets the cursor, and later calls return only new output.
 
