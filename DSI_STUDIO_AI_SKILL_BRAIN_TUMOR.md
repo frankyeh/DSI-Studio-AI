@@ -1,11 +1,11 @@
 # DSI Studio AI Brain Tumor Report
 
 Use this skill for presurgical or postsurgical brain-tumor evaluation for a neurosurgeon.
-The deliverable is a **PDF report** (§7) that presents the lesion, its anatomical location,
-and its relationship to the eloquent pathways. Run the analysis (Steps 1–6) through, then
-generate the figures and assemble the PDF. Keep chat updates short; the report carries the
-findings. Use the general command manuals for exact command semantics rather than inferring
-behavior.
+The deliverable is a **PowerPoint PPTX report** (§7) that presents the lesion, its anatomical
+location, and its relationship to the eloquent pathways. Run the analysis (Steps 1–6)
+through, then generate the 2D figures and native GLB 3D models and assemble the PPTX. Keep
+chat updates short; the report carries the findings. Use the general command manuals for
+exact command semantics rather than inferring behavior.
 
 This workflow provides imaging and tractography decision support. Tractography does not by
 itself establish function, tissue viability, safe resection margins, or whether a pathway
@@ -23,7 +23,7 @@ Presurgical:
 4. Reconstruct them with AutoTrack.
 5. Quantify tract-to-lesion involvement with T2R.
 6. Compare bilateral tract morphology and inspect tract/lesion spatial relationships.
-7. Generate the figures and assemble the PDF report.
+7. Generate the 2D figures and native GLB models and assemble the PPTX report.
 
 Postsurgical (§8): reconstruct the same eloquent pathways and report whether each remains
 reconstructable around the cavity, residual lesion, and edema.
@@ -582,24 +582,35 @@ anatomical boundary. Positive tumor/edema intersection is meaningful structural 
 but absence of reconstructed intersection near the anterior temporal lobe does not reliably
 exclude Meyer's-loop involvement.
 
-## 7. PDF report
+## 7. PPTX report
 
 ### 7.1 Report structure
 
-Produce a real PDF, not a slide export, containing a tumor report and a tract–tumor report.
-Every page carries at least one figure that helps interpret that page. Keep the page roles
-below as separate pages; the number of tract pages follows the case. §7.9 builds this layout.
+Produce a real **PowerPoint `.pptx`** containing a tumor report and a tract–tumor report.
+The primary report is PPTX, not PDF. PDF may be exported later as a static derivative, but it
+loses interactive 3D and is not the required deliverable.
 
-| Page | Content | Figures |
+Every 3D visualization in the report must be a **native DSI Studio GLB** embedded as an
+interactive PowerPoint 3D object. Do not convert OBJ/MTL to GLB outside DSI Studio for this
+workflow. Do not use static 3D screenshots as the report's 3D figure. A raster image may be
+used only as the PowerPoint fallback/poster for the same GLB object.
+
+Do **not** generate multiple fixed 3D views for a scene. Use one interactive GLB model on the
+slide and let the reader rotate it. Keep multiple 2D MRI slices only when they add anatomical
+information that the interactive 3D model does not provide.
+
+Recommended slide roles:
+
+| Slide | Content | Visuals |
 |---|---|---|
-| 1 | Header band; summary (location, Tumor Core and edema volumes, main tract relationship); four KPI cards; three key findings | Contrast-enhanced T1w through the main enhancing tumor and FLAIR through the main edema, outlines and contour legend |
-| 2 | Compartment table with color chips (volume, % whole lesion, % Tumor Core); both composition charts; lesion description; additional foci | Axial and coronal 3D tumor + `White_Matter` envelope |
-| 3 | CHA and Brodmann charts (volume and % Tumor Core), kept separate; localization note | One representative 3D view |
-| 4 | Tract table: streamlines, through edema, Tumor Core, function to correlate, relationship tag; tract-to-edema chart; key finding | Axial and coronal all-tract + tumor 3D |
-| 5..N | One tract per page: measures table (including level of edema contact and curl R/L) and interpretation | Two orthogonal single-tract 3D views; 2D slices in two planes (three only when each adds something), 1–3 levels per plane |
-| Last | Impression (3–6 points); bilateral asymmetry table; points for clinical correlation; methods and limitations panel | Tract-to-edema and bilateral morphology charts |
+| 1 | Summary: location, Tumor Core and edema volumes, main tract relationship, key findings | Contrast-enhanced T1w through the main enhancing tumor and FLAIR through the main edema |
+| 2 | Compartment table, composition charts, lesion description, additional foci | One interactive tumor + `White_Matter` GLB |
+| 3 | CHA and Brodmann localization, kept separate | Atlas charts; optional same tumor GLB only when it materially helps |
+| 4 | Tract table, T2R results, tract-to-edema chart, key finding | One interactive all-relevant-tracts + tumor + `White_Matter` GLB |
+| 5..N | One clinically important tract per slide: measures, interpretation, selected 2D slices | One interactive single-tract + tumor + `White_Matter` GLB |
+| Last | Impression, bilateral asymmetry, clinical-correlation points, methods and limitations | Tract-to-edema and bilateral morphology charts |
 
-Page notes:
+Slide notes:
 
 - **Composition.** Report both denominators: whole lesion = Necrosis + Enhancing Tumor +
   Peritumoral Edema; Tumor Core = Necrosis + Enhancing Tumor.
@@ -609,42 +620,26 @@ Page notes:
 - **Additional foci.** Every separate component visible in 3D gets a row: location, volume,
   label, and "satellite lesion or false positive: verify on the source images". Do not leave
   visible foci unexplained.
-- **Atlas.** Keep CHA and Brodmann separate. Show overlap volume and `% Tumor Core` (overlap
-  volume / Tumor Core volume, the share of the core in that region; need not sum to 100) for
-  every nonzero row.
-- **Tract table.** Add the function to correlate (CST: contralateral motor; SLF: visuospatial
-  attention and praxis on the right, language on the dominant side; arcuate and FAT: language
-  and speech initiation on the dominant side) and a relationship tag: "Tumor Core contact",
-  "Edema contact", "Partial edema contact", or "No contact". Tags describe geometry, not risk.
-  Mark an atlas-guided partial-tracking bundle (§4) with "(atlas-guided)" and an atlas tract
-  with "(atlas)" after its name, each with a footnote saying how it was obtained and, for the
-  atlas tract, that it shows the likely pathway location because the pathway could not be
-  mapped.
-- **Tract pages.** A tract gets its own page when it intersects any lesion compartment, or
-  when the 3D view shows clinically important adjacency, marginal course, compression, or
-  displacement; every analyzed tract when the user asks. Give the level of edema contact
-  (for CST: cortex, corona radiata, internal capsule). Choose the two 3D planes from the
-  anatomy (CST: axial + sagittal; SLF: axial + coronal). Never use an all-tract image, or a
-  masked/recolored one, as a tract figure.
-- **Last page.** Answer where the lesion is and how large its compartments are; which regions
-  and pathways are involved; which tracts intersect Tumor Core, enhancing tumor, necrosis, or
-  edema; whether any are displaced, compressed, marginal, or incompletely reconstructed; and
-  where uncertainty calls for functional or anatomical correlation. Add an asymmetry table
-  (count and curl, (R − L) / mean) and points for clinical correlation (e.g. motor examination
-  and motor mapping for CST in edema), worded as items to correlate, not recommendations.
-- **Methods panel.** Structural and diffusion sequences, b-values and resolution, segmentation
+- **Atlas.** Keep CHA and Brodmann separate. Show overlap volume and `% Tumor Core` for every
+  nonzero row.
+- **Tract table.** Add function to correlate and a relationship tag: `Tumor Core contact`,
+  `Edema contact`, `Partial edema contact`, or `No contact`. Tags describe geometry, not risk.
+  Mark atlas-guided partial tracking and atlas tracts explicitly as in §4.
+- **Tract slides.** A tract gets its own slide when it intersects any lesion compartment or
+  when the interactive 3D scene shows clinically important adjacency, marginal course,
+  compression, displacement, or incomplete reconstruction; include every analyzed tract when
+  the user asks. Never substitute the all-tract GLB for a tract-specific GLB.
+- **Methods.** Structural and diffusion sequences, b-values and resolution, segmentation
   model, registration check, AutoTrack settings, DSI Studio version, and report date.
-- Briefly explain each method (segmentation, atlas overlap, AutoTrack, T2R, curl) where its
-  result first appears; the reader may not know them.
-- **Style.** One palette everywhere: the compartment colors of the 3D regions (Necrosis
-  `#5b484e`, Enhancing `#bc6e71`, Edema `#8397ab`) in contours, charts, chips, and KPI cards,
-  with a legend next to every figure that shows compartments. Fill the page with full-width
-  figures instead of leaving half pages empty. Never truncate a table cell, keep units
-  typeset (mm<sup>3</sup>), and leave unconfirmed values visibly marked `[verify]`.
+- Briefly explain segmentation, atlas overlap, AutoTrack, T2R, and curl where their results
+  first appear.
+- **Style.** Use one palette everywhere, derived from the DSI Studio region colors. Never
+  recolor the GLB to compensate for PowerPoint rendering. Keep unconfirmed values visibly
+  marked `[verify]`.
 
 ### 7.2 Report inputs
 
-Collect before building figures:
+Collect before assembling the PPTX:
 
 ```text
 Case          FIB source and reconstruction space, structural slice, segmentation model
@@ -653,112 +648,123 @@ Lesion        Enhancing Tumor, Necrosis, Tumor Core, Peritumoral Edema, whole le
 Atlas         CHA and Brodmann rows: overlap volume and % Tumor Core
 Tracts        AutoTrack identifiers and settings; total streamlines per bundle;
               T2R intersecting streamlines and intersect volume per compartment;
-              bilateral curl, volume, surface area; list of tracts that get pages
-Figures       file name, scene content, set_view and get_camera orientation for each 3D save
+              bilateral curl, volume, surface area; list of tracts that get slides
+3D models     GLB file name and exact scene content for each interactive 3D slide
+2D figures    file name, slice plane/level, modality, orientation metadata
 ```
 
-All figures and numbers must come from one accepted analysis state. When reproducing or
-revising an analyzed case, reuse its recorded tract set and results; do not re-select
-pathways or re-run AutoTrack just to make the PDF. Re-track only for missing or corrupt
-data, a user request, or a failed QC, then repeat the dependent T2R and morphology and say
-the reconstruction changed.
+All figures, GLBs, and numbers must come from one accepted analysis state. When reproducing
+or revising an analyzed case, reuse its recorded tract set and results; do not re-select
+pathways or re-run AutoTrack just to make the PPTX. Re-track only for missing or corrupt
+data, a user request, or failed QC, then repeat dependent T2R and morphology and say the
+reconstruction changed.
 
-### 7.3 3D figures
+### 7.3 Native GLB 3D scenes
 
-3D figures are fresh direct DSI Studio saves. The brain envelope is the `White_Matter`
-region from `human_tumor`; do not use `add_surface` or a separate isosurface.
+Use `save_3d_model <file>.glb` for every 3D report scene. Native GLB export already shares
+DSI Studio's geometry/material preparation with OBJ/MTL, uses the same centered export
+coordinates, and preserves the current scene's RGB/alpha values.
 
-1. Resolve region rows by name with `list_region`.
-2. Defragment `White_Matter` (`region_action_defragment`) and check it forms one coherent
-   envelope. Do not defragment the tumor compartments unless the user asks.
-3. Keep each region's own RGB and change alpha only (`set_region_color` with the unsigned
-   `#AARRGGBB` value; never copy RGB from another subject): Necrosis 200, Peritumoral Edema
-   80, Enhancing Tumor 100, White_Matter 10.
-4. Move `White_Matter` to the last Region-table row so it renders last, re-resolving
-   indices as it moves.
-5. Show only the three tumor compartments and `White_Matter`.
-6. `set_param show_surface 0`, `set_param show_slice 0`, `set_param bkg_color -1` (white).
-   Tract-style presets also set the background (the "Tube 2" style sets it to black), so set
-   `bkg_color` after any style change and keep it white for every 3D save.
-7. Once the final tract set is loaded, `set_param tract_color_style 1` (Assigned) and
-   `color_all_cluster`; repeat after any tract is added or reloaded. Do not use directional
-   color.
-8. Save one explicit view per image: `set_view`, `get_camera`, `save_screen`. If a PNG looks
-   washed out compared with the screen, the DSI Studio build predates the opaque-framebuffer
-   fix; save as `.jpg` instead. Do not use
-   `save_lr_screen` or other stereo pairs; place two separate views side by side instead.
-9. Open each image. The background must already be white as saved. If it is black or
-   transparent, set `bkg_color -1` and save again; never invert or recolor the background
-   afterwards, because that destroys the translucent `White_Matter` envelope and the tumor
-   colors. Likewise, if the envelope, a tumor compartment, or the requested tract is missing,
-   fix the scene and save again.
+The brain envelope is the `White_Matter` region from `human_tumor`; do not add a separate
+isosurface merely for the report when `White_Matter` is already available.
+
+Prepare the scene:
+
+1. Resolve tract and region rows from fresh `list_tract` / `list_region` output.
+2. Defragment `White_Matter` (`region_action_defragment`) and verify it forms one coherent
+   envelope. Do not defragment tumor compartments unless requested.
+3. Keep each region's own RGB and change alpha only when needed. The established report
+   defaults are approximately: Necrosis 200, Peritumoral Edema 80, Enhancing Tumor 100,
+   White_Matter 10 in the alpha byte.
+4. Move `White_Matter` to the last Region-table row when practical, re-resolving indices as
+   rows move.
+5. Show only the three tumor compartments plus `White_Matter`; omit the derived Tumor Core
+   copy from the 3D scene unless it adds information not already represented by its component
+   regions.
+6. Turn off the unrelated DSI isosurface and slice planes for the report GLB:
+
+```bash
+bash ./dsi.sh set_param show_surface 0
+bash ./dsi.sh set_param show_slice 0
+```
+
+7. Use assigned tract colors:
+
+```bash
+bash ./dsi.sh set_param tract_color_style 1
+bash ./dsi.sh color_all_cluster
+```
+
+Repeat `color_all_cluster` after adding/reloading tracts. Do not use directional color for the
+report GLB.
+
+Export examples:
+
+```bash
+# tumor-only scene
+bash ./dsi.sh check_uncheck_all_tract 0
+bash ./dsi.sh set_param show_tract 0
+bash ./dsi.sh show_only_regions "<necrosis>&<enhancing>&<edema>&<white-matter>"
+bash ./dsi.sh save_3d_model "case_tumor_WM.glb"
+
+# all relevant tracts + tumor
+bash ./dsi.sh set_param show_tract 1
+bash ./dsi.sh show_only_tracts "<all-report-tract-indices>"
+bash ./dsi.sh show_only_regions "<necrosis>&<enhancing>&<edema>&<white-matter>"
+bash ./dsi.sh save_3d_model "case_alltracts_tumor_WM.glb"
+
+# one tract + tumor
+bash ./dsi.sh show_only_tracts "<tract-index>"
+bash ./dsi.sh save_3d_model "case_<tract>_tumor_WM.glb"
+```
+
+The GLB is view-independent. Do not make axial/coronal/sagittal copies of the same GLB and do
+not use `set_view` merely to create additional 3D report views. The reader rotates the one
+embedded model interactively.
+
+For Web sessions, upload each completed GLB with `web_upload` and use the returned attachment
+directly; do not ask the user to download and re-upload it.
 
 ### 7.4 2D figures
 
-2D slice figures keep DSI Studio's black background. Use contrast-enhanced T1w for the
-enhancing tumor and core, and FLAIR for edema and tract-to-edema relationships. Set the
-slice view explicitly rather than relying on GUI defaults:
+2D slice figures remain static images because they show MRI signal and exact slice context.
+Use contrast-enhanced T1w for the enhancing tumor/core and FLAIR for edema and
+tract-to-edema relationships. Set the slice view explicitly rather than relying on GUI
+defaults:
 
 ```bash
-dsi set_params "roi_draw_edge=1&roi_edge_width=2"     # tumor as outlines, never filled
-dsi set_params "roi_track=1&roi_track_count=500000"   # tracts drawn on the slice
-dsi set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"   # no glyphs, crosshair lines, ruler, "R" mark
+bash ./dsi.sh set_params "roi_draw_edge=1&roi_edge_width=2"
+bash ./dsi.sh set_params "roi_track=1&roi_track_count=500000"
+bash ./dsi.sh set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"
 ```
 
-- Outlines (`roi_draw_edge=1`) apply to every 2D figure, including the page 1 MRI and the
-  tract-page slices, so the tumor signal stays visible. `roi_track` shows the tract on the
-  slice; `roi_fiber` only controls diffusion glyphs, so do not turn it on to show a tract.
-- Show only the three tumor compartments (no `White_Matter` or Tumor Core copy in 2D),
-  resolved by name from a fresh `list_region`: rows shift when `White_Matter` moves to the
-  last row.
-- Center each slice on the **main lesion** with `move_slice_to_region`, which moves to the
-  region's per-axis median voxel, so small distant fragments do not pull the slice away.
-  Older DSI Studio builds used the midpoint of the first and last voxel instead (in sub-003
-  that put the slice at z ≈ 71, below the tumor); with such a build, center on a copy reduced
-  to its main component (`copy_region`, then `region_action_defragment`) and delete the copy
-  afterwards. Moving to a wrong row such as `White_Matter` lands at the ventricle level.
-- Choose the centering compartment by modality: contrast-enhanced T1w through the main
-  enhancing tumor / core; FLAIR through the main edema.
-- Show each tract in more than one plane; do not reuse one axial slice for all tracts. Show
-  only that tract (`show_only_tracts`) in its Assigned cluster color. A slice shows only the
-  streamline points that lie in it (one voxel thick), so a tract crossing the plane appears as
-  a few dots. Most tracts need two of axial, coronal, and sagittal, chosen where the tract and
-  the lesion appear together; add the third only when it shows something the other two do not.
-  CST: coronal plus axial or sagittal. SLF and AF: axial plus sagittal.
-- Where the relationship changes along the tract, cut 2–3 levels in a plane instead of one,
-  e.g. the upper, middle, and lower parts of the edema in axial for CST. Get the lesion center
-  with `move_slice_to_region`, read its position in each view from `preview_screen roi`
-  (`slice_info: ... <plane> <position>/<total>`, 1-based, so the voxel index is position − 1),
-  then set each level with `move_slice "x y z"`, changing only that plane's coordinate. Keep
-  every level inside the lesion extent and convert millimeters to voxels with the voxel size.
-- Save with `save_roi_screen`, then open each image: the main lesion's outlines and the tract
-  must both be clearly visible in the same slice. If the slice misses the main lesion, or the
-  tract is only dots, re-center or change the plane and save again. If a slice is redone,
-  replace it in the report: every 2D figure in the PDF must come from the final slices.
-- Contours keep the region colors used in 3D; add the contour legend under every slice.
-  Overlay text on a slice is white and bold, never dark on black.
-- The tract name, leader line and arrow are added afterwards by `orient()` in §7.9. Pick the
-  arrow point on the tract as it appears in the saved image, not from expected anatomy, and
-  put the label box in empty space so the line does not cover the tumor or tract.
+- Use outlines rather than filled tumor regions so MRI signal stays visible.
+- Show only the three tumor compartments; do not include `White_Matter` in 2D slices.
+- Center on the main lesion with `move_slice_to_region` and choose the centering compartment
+  by modality: contrast-enhanced T1w through enhancing tumor/core, FLAIR through edema.
+- For tract-specific slides, show only that tract in its assigned cluster color. Use the one
+  or two planes that best demonstrate the tract/lesion relationship. Add additional levels
+  only when the relationship changes along the tract and each image adds information.
+- Save with `save_roi_screen` and inspect the result. The lesion outline and relevant tract
+  must both be visible when the figure is intended to demonstrate their relationship.
+- If a 2D image is redone, replace it in the PPTX; do not keep stale figures from a previous
+  analysis state.
 
-### 7.5 Orientation labels
+### 7.5 Orientation and 3D interaction
 
-Every image carries anatomical orientation labels, large enough to read in the PDF: about
-1/16 of the image width (roughly 10 pt or more as printed), bold, in a margin outside the
-anatomy. This applies whatever tool assembles the report. For 3D, read `image_left` and `image_up`
-from `get_camera` after each `set_view`. For the standard unflipped views:
+Static 2D images require anatomical orientation labels from the slice metadata. Use the
+radiological convention consistently and state it when appropriate.
+
+Do not put fixed cardinal orientation labels around an interactive GLB as if it were a
+static camera view; the user can rotate it. Instead caption it clearly, for example:
 
 ```text
-set_view 2 0  axial      image left R, right L, top A, bottom P
-set_view 1 0  coronal    image left R, right L, top S, bottom I
-set_view 0 0  sagittal   image left A, right P, top S, bottom I
+Interactive 3D — drag to rotate
+Right CST + tumor compartments + White_Matter envelope
 ```
 
-Still call `get_camera` for every save, especially after flips or rotations; do not put
-cardinal labels on an oblique view. For 2D, use `R_side` and the slice convention; in
-radiological convention image left is patient right, and the figure says so. A tract's side
-and the viewing side are different: "Right CST" is not a "right sagittal view". Do not use
-voxel coordinates as clinical localization.
+If a PowerPoint fallback/poster image is required for the 3D object, use only one image of
+the same scene. It is not a second 3D view and must not replace the embedded GLB.
 
 ### 7.6 Wording
 
@@ -786,504 +792,74 @@ No reconstructed [tract] streamlines entered the Tumor Core.
 
 ### 7.7 Annotation and post-processing
 
-Allowed: orientation labels from camera/slice metadata, a tract name and arrow, captions,
-borders, and trimming empty margin. Not allowed: inverting or replacing the 3D background,
-recoloring or masking an all-tract image into a single tract, removing structures,
-synthesizing missing anatomy, or mirroring without relabeling. If a figure is wrong, save it
-again from DSI Studio.
+Allowed on static content: orientation labels from slice metadata, tract name/caption,
+borders, legends, and trimming empty margin. Do not recolor or geometrically modify an
+exported GLB after DSI Studio. If a 3D scene is wrong or missing a structure, fix the DSI
+scene and export the GLB again.
 
-### 7.8 Worked example: figures for UPenn-GBM sub-003
+Do not create a fake single-tract model by masking or recoloring an all-tract export. Export
+a tract-specific GLB from DSI Studio.
 
-This is the accepted figure set for a right-hemisphere case with CST and SLF tract pages.
-Use it as a template: replace the row indices with the ones `list_region` / `list_tract`
-report for the current case, and the numbers with the case's recorded inputs (§7.2).
+### 7.8 Worked GLB export pattern
 
-#### DSI Studio commands for the 3D figures
+For a right-hemisphere case with right CST and right SLF as tract-specific slides:
 
 ```bash
-dsi() { bash ./dsi.sh "$@"; }
-dsi set_window <tracking-window-id>
+# lesion scene
+bash ./dsi.sh check_uncheck_all_tract 0
+bash ./dsi.sh set_param show_tract 0
+bash ./dsi.sh show_only_regions "<necrosis>&<enhancing>&<edema>&<white-matter>"
+bash ./dsi.sh save_3d_model "sub003_tumor_WM.glb"
 
-# Rows after human_tumor: 0 White_Matter, 1 Gray_Matter, 2 Cerebellar_Cortex,
-# 3 Basal_Ganglia, 4 Others, 5 Necrosis, 6 Peritumoral Edema, 7 Enhancing Tumor
-dsi list_region
-dsi region_action_defragment 0
+# all relevant tracts scene
+bash ./dsi.sh set_param show_tract 1
+bash ./dsi.sh show_only_tracts "<CST-L>&<CST-R>&<SLF-L>&<SLF-R>&<AF-L>&<AF-R>&<FAT-L>&<FAT-R>"
+bash ./dsi.sh save_3d_model "sub003_alltracts_tumor_WM.glb"
 
-# Alpha only on the subject's own RGB (#AARRGGBB as an unsigned integer)
-dsi set_region_color 0 182970350    # 0x0AE7E7EE White_Matter      alpha 10
-dsi set_region_color 5 3361425486   # 0xC85B484E Necrosis          alpha 200
-dsi set_region_color 6 1350801323   # 0x508397AB Peritumoral Edema alpha 80
-dsi set_region_color 7 1690070641   # 0x64BC6E71 Enhancing Tumor   alpha 100
+# right CST scene
+bash ./dsi.sh show_only_tracts "<CST-R>"
+bash ./dsi.sh save_3d_model "sub003_CST_R_tumor_WM.glb"
 
-# White_Matter to the last row (it moves 0 -> 7); the tumor rows become 4, 5, 6
-for row in 0 1 2 3 4 5 6; do dsi move_down_region $row; done
-dsi list_region
-
-dsi show_only_regions "4&5&6&7"
-dsi set_param show_region 1
-dsi set_param show_surface 0
-dsi set_param show_slice 0
-dsi set_param bkg_color -1    # white; set again after any tract-style change
-dsi set_zoom 0.8
-
-# Tumor only: axial and coronal
-dsi check_uncheck_all_tract 0
-dsi set_param show_tract 0
-dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_tumor_WM_axial3D.png "1920 1080"
-dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_tumor_WM_coronal3D.png "1920 1080"
-
-# The accepted bilateral tract set; poll list_tract until all eight are done,
-# then resolve each row by name (here 0/1 CST L/R, 2/3 SLF L/R, 4/5 AF L/R, 6/7 FAT L/R)
-for t in ProjectionBrainstem_CorticospinalTract Association_SuperiorLongitudinalFasciculus \
-         Association_ArcuateFasciculus Association_FrontalAslantTract; do
-    dsi run_auto_track ${t}L; dsi run_auto_track ${t}R
-done
-dsi list_tract
-
-dsi set_param tract_color_style 1
-dsi color_all_cluster
-dsi set_param show_tract 1
-
-# All tracts + tumor
-dsi show_only_tracts "0&1&2&3&4&5&6&7"
-dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_alltracts_tumor_WM_axial3D.png "1920 1080"
-dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_alltracts_tumor_WM_coronal3D.png "1920 1080"
-
-# Right CST (row 1): axial + sagittal
-dsi show_only_tracts "1"
-dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_CST_R_tumor_WM_axial3D.png "1920 1080"
-dsi set_view 0 0; dsi get_camera; dsi save_screen sub003_CST_R_tumor_WM_sagittal3D.png "1920 1080"
-
-# Right SLF (row 3): axial + coronal
-dsi show_only_tracts "3"
-dsi set_view 2 0; dsi get_camera; dsi save_screen sub003_SLF_R_tumor_WM_axial3D.png "1920 1080"
-dsi set_view 1 0; dsi get_camera; dsi save_screen sub003_SLF_R_tumor_WM_coronal3D.png "1920 1080"
+# right SLF scene
+bash ./dsi.sh show_only_tracts "<SLF-R>"
+bash ./dsi.sh save_3d_model "sub003_SLF_R_tumor_WM.glb"
 ```
 
-Inspect each image after saving (or `preview_screen 3d` before it). The orientation labels
-come from `get_camera`, as in §7.5.
+No second axial/coronal/sagittal 3D export is needed. Use the interactive model itself for
+inspection.
 
-#### DSI Studio commands for the 2D figures
+### 7.9 Assemble the PPTX
 
-```bash
-# 2D view state from §7.4.
-dsi set_params "roi_draw_edge=1&roi_edge_width=2"
-dsi set_params "roi_track=1&roi_track_count=500000"
-dsi set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"
-dsi list_region                    # 4 Necrosis, 5 Peritumoral Edema, 6 Enhancing Tumor, 7 White_Matter
-dsi show_only_regions "4&5&6"      # outlines of the three tumor compartments only
-dsi check_uncheck_all_tract 0
+Use a 16:9 widescreen PowerPoint presentation. Keep the report visually compact and
+clinical: concise title/header, summary or table/chart area, and one large interactive 3D
+model when a slide calls for 3D.
 
-# Representative MRI: ceT1w through the main enhancing tumor, FLAIR through the main edema
-dsi set_slice_by_name "<exact ceT1w / T1w-gd slice name>"
-dsi set_roi_view 2
-dsi move_slice_to_region 6    # median of Enhancing Tumor
-dsi save_roi_screen sub003_ceT1w_corecenter.png
-dsi set_slice_by_name "<exact FLAIR slice name>"
-dsi move_slice_to_region 5    # median of Peritumoral Edema
-dsi save_roi_screen sub003_FLAIR_corecenter.png
+For every interactive 3D object:
 
-# Lesion center from the edema median: read x, y, z (position - 1) from slice_info in each view
-dsi move_slice_to_region 5
-dsi set_roi_view 0; dsi preview_screen roi     # slice_info: ... sagittal <x+1>/<total>
-dsi set_roi_view 1; dsi preview_screen roi     # coronal <y+1>
-dsi set_roi_view 2; dsi preview_screen roi     # axial <z+1>
+- embed the `.glb` as an Office Model3D part; use a known-good PowerPoint 3D placeholder or
+  equivalent OOXML `am3d:model3d` structure rather than converting the GLB to an image;
+- keep the GLB material colors and alpha values **unchanged**;
+- use PowerPoint global lighting of **white ambient light only, 10% illuminance**;
+- use **no directional, point, or spot lights**;
+- provide at most one raster fallback/poster for the same GLB scene when required by the
+  PPTX package;
+- use only one interactive 3D model per slide by default.
 
-# Right CST: coronal through the center, axial at two levels through the edema
-dsi show_only_tracts "1"
-dsi set_roi_view 1; dsi move_slice "X Y Z";    dsi save_roi_screen sub003_CST_R_FLAIR_coronal_center.png
-dsi set_roi_view 2; dsi move_slice "X Y Z+12"; dsi save_roi_screen sub003_CST_R_FLAIR_axial_upper.png
-dsi move_slice "X Y Z-12";                     dsi save_roi_screen sub003_CST_R_FLAIR_axial_lower.png
+The 10% white-ambient setting was selected by direct PowerPoint comparison because stronger
+Office lighting washed out DSI Studio's assigned tract and tumor colors. Do not darken GLB
+materials to compensate for PowerPoint lighting.
 
-# Right SLF: axial at two levels, sagittal through the tract beside the lesion
-dsi show_only_tracts "3"
-dsi set_roi_view 2; dsi move_slice "X Y Z+8";  dsi save_roi_screen sub003_SLF_R_FLAIR_axial_upper.png
-dsi move_slice "X Y Z-8";                      dsi save_roi_screen sub003_SLF_R_FLAIR_axial_lower.png
-dsi set_roi_view 0; dsi move_slice "X-20 Y Z"; dsi save_roi_screen sub003_SLF_R_FLAIR_sagittal_center.png
-```
+2D MRI figures and charts remain ordinary raster/vector slide content. Keep legends and units
+readable without covering anatomy. Do not export the PPTX to PDF as the primary deliverable.
 
-`X Y Z` stand for the voxel indices read above; the offsets (here 1 mm voxels) are examples.
-Pick levels where the edema and the tract both appear. For the sagittal SLF level, step x from
-the center toward the tract and confirm the direction on the saved image.
+Before delivery:
 
-Open each saved slice and check that the main lesion and the tract appear together before
-using it.
-
-Tract names, arrows and R/L/A/P labels are added afterwards (§7.7, code in §7.9); DSI Studio
-does not draw them.
-
-#### Frozen quantitative inputs
-
-When reproducing an accepted report, use its recorded values. Re-running AutoTrack changes
-the streamline counts: one reproduction attempt reported SLF 587/5271 instead of the
-accepted 619/5315 and was rejected.
-
-```text
-Necrosis 11.961 mL   Enhancing 6.702 mL   Tumor Core 18.663 mL
-Edema 60.477 mL      Whole lesion 79.140 mL
-
-Right tract   streamlines   edema-intersecting   edema intersect volume   Tumor Core
-CST           8595          8595 (100%)          1424 mm^3                0
-SLF           5315          619 (11.6%)          556 mm^3                 0
-Arcuate       7255          0                    -                        0
-FAT           5812          0                    -                        0
-```
-
-#### Python for the quantitative charts
-
-One palette with the 3D compartment colors; contact bars in the enhancing color, zero bars grey.
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-
-# one palette for charts, contours, 3D, and cards: the DSI Studio compartment colors
-NEC,ENH,EDE,NAVY,GREY = "#5b484e","#bc6e71","#8397ab","#1f3a5f","#b8c2cc"
-plt.rcParams.update({"font.family":"DejaVu Sans","font.size":15,"axes.titlesize":17,"axes.titleweight":"bold",
-                     "axes.spines.top":False,"axes.spines.right":False,"axes.edgecolor":"#8a96a3",
-                     "xtick.color":"#4a5560","ytick.color":"#4a5560","axes.titlelocation":"left"})
-
-necrosis,enhancing,edema = 11.961,6.702,60.477
-core = necrosis+enhancing
-whole = core+edema
-cha = [("Posterior cingulate",5.501),("Precentral",1.250),("Postcentral",0.768),("Premotor",0.445),("Precuneus",0.127)]
-brodmann = [("BA31 right",2.493),("BA4 right",1.756),("BA23 right",1.046),("BA23 left",0.460),("BA24 right",0.458),
-            ("BA5 right",0.371),("BA6 right",0.337),("BA24 left",0.157),("BA31 left",0.111)]
-tracts = ["CST","SLF","Arcuate","FAT"]
-edema_pct = np.array([8595,619,0,0])/np.array([8595,5315,7255,5812])*100
-curl_left,curl_right = [1.120708,1.692461,1.236686,1.192565],[1.253219,1.347196,2.282737,1.223556]
-
-def save(fig,file):
-    fig.tight_layout()
-    fig.savefig(file,dpi=150,facecolor="white")
-    plt.close(fig)
-
-def composition(parts,total,title,file):  # stacked bar: volume and % of the stated total
-    fig,ax = plt.subplots(figsize=(5.2,1.7))
-    start = 0.0
-    for name,value,color in parts:
-        ax.barh([0],[value],left=[start],color=color,height=0.6)
-        if value/total > 0.18:
-            ax.text(start+value/2,0,f"{name}\n{value:.2f} mL · {value/total*100:.1f}%",ha="center",va="center",fontsize=9.5,color="white")
-        start += value
-    ax.set_title(f"{title}  {total:.2f} mL")
-    ax.set_xlim(0,total)
-    ax.set_yticks([])
-    ax.spines["left"].set_visible(False)
-    save(fig,file)
-
-def atlas(rows,title,file):  # one atlas per chart; % is of Tumor Core
-    names,volumes = zip(*rows[::-1])
-    fig,ax = plt.subplots(figsize=(6.2,0.42*len(rows)+1.1))
-    ax.barh(names,volumes,color=NAVY,height=0.65)
-    for y,value in enumerate(volumes):
-        ax.text(value+max(volumes)*0.02,y,f"{value:.2f} mL · {value/core*100:.1f}%",va="center",fontsize=11)
-    ax.set_title(title)
-    ax.set_xlabel("Overlap with Tumor Core (mL)")
-    ax.set_xlim(0,max(volumes)*1.45)
-    save(fig,file)
-
-composition([("Necrosis",necrosis,NEC),("Enhancing",enhancing,ENH),("Edema",edema,EDE)],whole,"Whole lesion","whole_lesion_composition.png")
-composition([("Necrosis",necrosis,NEC),("Enhancing",enhancing,ENH)],core,"Tumor Core","tumor_core_composition.png")
-atlas(cha,"CHA atlas","CHA_tumor_core_overlap.png")
-atlas(brodmann,"Brodmann atlas","Brodmann_tumor_core_overlap.png")
-
-fig,ax = plt.subplots(figsize=(6.2,3.2))
-for x,value in enumerate(edema_pct):
-    ax.bar(x,value,color=ENH if value > 0 else GREY,width=0.6)
-    ax.text(x,value+2,f"{value:.1f}%",ha="center",fontsize=12)
-ax.set_xticks(range(len(tracts)),tracts)
-ax.set_title("Right tracts through edema")
-ax.set_ylabel("Reconstructed streamlines (%)")
-ax.set_ylim(0,115)
-save(fig,"right_tract_to_edema.png")
-
-x = np.arange(len(tracts))
-fig,ax = plt.subplots(figsize=(6.2,3.2))
-ax.bar(x-0.19,curl_left,0.38,label="Left",color=GREY)
-ax.bar(x+0.19,curl_right,0.38,label="Right",color=NAVY)
-ax.set_xticks(x,tracts)
-ax.set_ylabel("Curl (route / distance)")
-ax.set_title("Bilateral tract morphology")
-ax.set_ylim(0,2.6)
-ax.legend(frameon=False)
-save(fig,"bilateral_tract_morphology.png")
-```
-
-The y-axis of the edema chart is a reconstructed-streamline fraction (§7.6), not an axon or
-infiltration fraction.
-
-### 7.9 Assembling the PDF
-
-The script below builds the report with ReportLab from the §7.8 images and charts: a navy
-header band with an accent stripe on every page, a summary panel and KPI cards, figure rows
-with captions and contour legends, tables with compartment color chips and relationship tags,
-side-by-side figure and text panels, a methods panel, and a footer. For a new case keep the
-structure and replace the values, text, and file names with the case inputs (§7.2); values
-not yet confirmed stay marked `[verify]`. Add or remove tract pages by editing the tract list.
-
-Orientation labels are written into a margin, never over the anatomy, about 1/16 of the image
-width, white on slices. 3D labels come from `get_camera` for that save; 2D labels from
-`R_side` (radiological here). A tract callout needs the tract's pixel position in the saved
-slice: open the image, find the tract, and place the label box in empty space.
-
-```python
-import math
-from PIL import Image as PILImage, ImageDraw, ImageFont
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,Image,PageBreak,KeepTogether
-
-# ---- case inputs (§7.2): replace every value, keep [verify] visible until confirmed ----
-CASE = {"title":"UPenn-GBM sub-003","study":"UPenn-GBM","space":"GQI native space",
-        "methods":[("Structural","contrast-enhanced T1w (segmentation), FLAIR (edema/tract context)"),
-                   ("Diffusion","sub-003_dwi.gqi.fz · 240 × 240 × 155 · 1 mm isotropic · b-values [verify]"),
-                   ("Segmentation","U-Net Studio human_tumor V2 · registration checked in three planes"),
-                   ("Tractography","AutoTrack, bilateral · TIP 4 · 10,000-tract target"),
-                   ("Software","DSI Studio [version] · report generated [date]")]}
-NEC,ENH,EDE = colors.HexColor("#5b484e"),colors.HexColor("#bc6e71"),colors.HexColor("#8397ab")
-NAVY,INK,MUTED = colors.HexColor("#1f3a5f"),colors.HexColor("#1d2733"),colors.HexColor("#6b7785")
-PALE,LINE,RED,AMBER,GREY = colors.HexColor("#f3f6fa"),colors.HexColor("#d5dce4"),colors.HexColor("#b4474b"),colors.HexColor("#c98a1a"),colors.HexColor("#8a96a3")
-W = letter[0]-1.2*inch
-
-def style(name,**kw):
-    return ParagraphStyle(name,**{"fontName":"Helvetica","fontSize":9.5,"leading":13,"textColor":INK,**kw})
-BODY,SMALL,H3 = style("b"),style("s",fontSize=8,leading=10.5,textColor=MUTED),style("h3",fontName="Helvetica-Bold",fontSize=11,leading=14,textColor=NAVY,spaceAfter=3)
-CAP = style("cap",fontSize=8,leading=10,textColor=MUTED)
-
-# ---- orientation labels and tract callout, in a margin outside the anatomy (§7.5) ----
-def font(size):
-    try:
-        return ImageFont.truetype("DejaVuSans-Bold.ttf",size)
-    except OSError:
-        return ImageFont.load_default(size)
-
-def orient(src,dst,left,right,top,bottom,dark=False,note=None,callout=None):
-    """callout = (text,(x,y) on the tract in source pixels,(x,y) label-box center); the leader runs
-    from the nearest side of the box to an arrowhead on the tract."""
-    im = PILImage.open(src).convert("RGB")
-    s = max(im.size)//16
-    m = s*3//2
-    out = PILImage.new("RGB",(im.width+2*m,im.height+2*m),"black" if dark else "white")
-    out.paste(im,(m,m))
-    d,fg = ImageDraw.Draw(out),"white" if dark else "#1d2733"
-    Wd,Hd = out.size
-    for text,xy in ((top,(Wd/2,m/2)),(bottom,(Wd/2,Hd-m/2)),(left,(m/2,Hd/2)),(right,(Wd-m/2,Hd/2))):
-        d.text(xy,text,fill=fg,font=font(s),anchor="mm")
-    if note:
-        d.text((m//4,Hd-m//4),note,fill=fg,font=font(s//2),anchor="ld")
-    if callout:
-        text,(tx,ty),(lx,ly) = callout
-        tx,ty,lx,ly = tx+m,ty+m,lx+m,ly+m
-        b = d.textbbox((lx,ly),text,font=font(s*3//4),anchor="mm")
-        box = (b[0]-s//6,b[1]-s//10,b[2]+s//6,b[3]+s//10)
-        sx,sy = min(((box[0],ly),(box[2],ly),(lx,box[1]),(lx,box[3])),key=lambda p:(p[0]-tx)**2+(p[1]-ty)**2)
-        d.line([(sx,sy),(tx,ty)],fill="white",width=max(2,s//20))
-        n = max(1.0,math.hypot(tx-sx,ty-sy))
-        ux,uy,a,w = (tx-sx)/n,(ty-sy)/n,max(8,s//5),max(5,s//9)
-        d.polygon([(tx,ty),(tx-a*ux-w*uy,ty-a*uy+w*ux),(tx-a*ux+w*uy,ty-a*uy-w*ux)],fill="white")
-        d.rounded_rectangle(box,radius=max(4,s//8),fill="black",outline="white",width=max(2,s//24))
-        d.text((lx,ly),text,fill="white",font=font(s*3//4),anchor="mm")
-    out.save(dst)
-
-# ---- layout pieces ----
-def img(file,width):
-    w,h = PILImage.open(file).size
-    return Image(file,width,width*h/w)
-
-def box(rows,widths,bg=None,border=LINE,pad=6,extra=()):
-    t = Table(rows,colWidths=widths,cornerRadii=[5]*4)
-    t.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),("BOX",(0,0),(-1,-1),0.6,border),
-                           ("TOPPADDING",(0,0),(-1,-1),pad),("BOTTOMPADDING",(0,0),(-1,-1),pad),
-                           ("LEFTPADDING",(0,0),(-1,-1),pad+2),("RIGHTPADDING",(0,0),(-1,-1),pad+2)]+
-                          ([("BACKGROUND",(0,0),(-1,-1),bg)] if bg else [])+list(extra)))
-    return t
-
-def header(title,subtitle):  # navy band with a thin accent stripe
-    t = Table([[Paragraph(title,style("t",fontName="Helvetica-Bold",fontSize=17,leading=21,textColor=colors.white)),
-                Paragraph(subtitle,style("st",fontSize=9,textColor=colors.HexColor("#c9d6e6"),alignment=2))]],
-              colWidths=[W*0.62,W*0.38])
-    t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),NAVY),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-                           ("TOPPADDING",(0,0),(-1,-1),10),("BOTTOMPADDING",(0,0),(-1,-1),10),
-                           ("LEFTPADDING",(0,0),(-1,-1),12),("RIGHTPADDING",(0,0),(-1,-1),12),
-                           ("LINEBELOW",(0,0),(-1,-1),3,ENH)]))
-    return [t,Spacer(1,10)]
-
-def panel(title,html,bg=PALE,width=W):
-    return box([[[Paragraph(title,H3),Paragraph(html,BODY)]]],[width],bg=bg)
-
-def kpis(items):  # (label, value, color) cards with a colored top rule
-    cells = [[Paragraph(f'<font size="8" color="#6b7785">{label.upper()}</font><br/><font name="Helvetica-Bold" size="19">{value}</font>',
-                        style("k",leading=22)) for label,value,_ in items]]
-    extra = [("LINEABOVE",(i,0),(i,0),3,c) for i,(_,_,c) in enumerate(items)]+[("LINEAFTER",(0,0),(-2,0),0.6,LINE)]
-    return box(cells,[W/len(items)]*len(items),bg=PALE,pad=8,extra=extra)
-
-def figures(*pairs):  # images side by side with captions
-    w = W/len(pairs)
-    return box([[img(f,w-14) for f,_ in pairs],[Paragraph(c,CAP) for _,c in pairs]],[w]*len(pairs),pad=5)
-
-def side(left,right,split=0.5):  # two columns; a callable gets its column width (for panels and tables)
-    wl,wr = W*split-6,W*(1-split)
-    left,right = [x(w) if callable(x) else x for x,w in ((left,wl),(right,wr))]
-    t = Table([[left,right]],colWidths=[W*split,W*(1-split)])
-    t.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(0,0),6),
-                           ("RIGHTPADDING",(1,0),(1,0),0)]))
-    return t
-
-def table(header_row,rows,widths,chips=None,tags=None):
-    """chips: {row: color} draws a compartment color chip in column 0; tags: {(row,col): color} renders a pill."""
-    t = Table([[Paragraph(f"<b>{h}</b>",style("th",fontSize=8.5,textColor=colors.white)) for h in header_row]]+
-              [[Paragraph(str(c),style("td",fontSize=9)) for c in r] for r in rows],colWidths=widths,repeatRows=1)
-    s = [("BACKGROUND",(0,0),(-1,0),NAVY),("LINEBELOW",(0,1),(-1,-1),0.5,LINE),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-         ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,PALE])]
-    for r,c in (chips or {}).items():
-        s += [("LINEBEFORE",(0,r+1),(0,r+1),6,c)]
-    for (r,col),c in (tags or {}).items():
-        t._cellvalues[r+1][col] = Paragraph(f'<font color="white"><b>&nbsp;{rows[r][col]}&nbsp;</b></font>',style("tag",fontSize=8,backColor=c,borderPadding=2))
-    t.setStyle(TableStyle(s))
-    return t
-
-def legend(items):  # compartment color key for contours and 3D: a color chip before each name
-    t = Table([sum(([" ",Paragraph(n,SMALL)] for n,_ in items),[])],colWidths=sum(([8,len(n)*4.6+14] for n,_ in items),[]),hAlign="LEFT")
-    t.setStyle(TableStyle([("BACKGROUND",(2*i,0),(2*i,0),c) for i,(_,c) in enumerate(items)]+
-                          [("TOPPADDING",(0,0),(-1,-1),1),("BOTTOMPADDING",(0,0),(-1,-1),1),("LEFTPADDING",(0,0),(-1,-1),4),
-                           ("RIGHTPADDING",(0,0),(-1,-1),8),("VALIGN",(0,0),(-1,-1),"MIDDLE")]))
-    return t
-
-def footer(canvas,doc):
-    canvas.saveState()
-    canvas.setStrokeColor(LINE)
-    canvas.line(0.6*inch,0.55*inch,letter[0]-0.6*inch,0.55*inch)
-    canvas.setFont("Helvetica",7.5)
-    canvas.setFillColor(MUTED)
-    canvas.drawString(0.6*inch,0.38*inch,f"{CASE['title']} · DSI Studio tumor and tractography report · imaging decision support, not a diagnosis")
-    canvas.drawRightString(letter[0]-0.6*inch,0.38*inch,f"Page {doc.page}")
-    canvas.restoreState()
-
-# ---- labeled figures ----
-AXIAL3D,CORONAL3D,SAGITTAL3D = ("R","L","A","P"),("R","L","S","I"),("A","P","S","I")
-for f,o in [("tumor_WM_axial3D",AXIAL3D),("tumor_WM_coronal3D",CORONAL3D),("alltracts_tumor_WM_axial3D",AXIAL3D),
-            ("alltracts_tumor_WM_coronal3D",CORONAL3D),("CST_R_tumor_WM_axial3D",AXIAL3D),("CST_R_tumor_WM_sagittal3D",SAGITTAL3D),
-            ("SLF_R_tumor_WM_axial3D",AXIAL3D),("SLF_R_tumor_WM_coronal3D",CORONAL3D)]:
-    orient(f"sub003_{f}.png",f"sub003_{f}_lab.png",*o)
-RAD = dict(left="R",right="L",top="A",bottom="P",dark=True,note="Radiological convention")
-for f in ["ceT1w_corecenter","FLAIR_corecenter"]:
-    orient(f"sub003_{f}.png",f"sub003_{f}_lab.png",**RAD)
-# per tract: (plane, level, callout or None); the callout point comes from the saved image
-SLICE_LABELS = {"axial":dict(top="A",bottom="P"),"coronal":dict(top="S",bottom="I"),
-                "sagittal":dict(left="A",right="P",top="S",bottom="I")}   # sagittal sides: verify on the image
-TRACT_SLICES = {"CST_R":[("coronal","center",("Right CST",(530,560),(260,650))),("axial","upper",None),("axial","lower",None)],
-                "SLF_R":[("axial","upper",("Right SLF",(330,490),(220,350))),("axial","lower",None),("sagittal","center",None)]}
-for short,slices in TRACT_SLICES.items():
-    for plane,level,callout in slices:
-        f = f"sub003_{short}_FLAIR_{plane}_{level}"
-        orient(f+".png",f+"_lab.png",callout=callout,**{**RAD,"note":None,**SLICE_LABELS[plane]})
-CONTOURS = legend([("Necrosis",NEC),("Enhancing tumor",ENH),("Peritumoral edema",EDE)])
-
-# ---- pages ----
-s = header("Brain Tumor Imaging &amp; Tractography",f"{CASE['study']} · {CASE['title'].split()[-1]} · {CASE['space']}")
-s += [panel("Summary","Predominantly right parasagittal lesion centered in posterior cingulate / perirolandic territory: "
-            "Tumor Core 18.66 mL (necrosis 11.96 mL, enhancing 6.70 mL) with 60.48 mL peritumoral edema. "
-            "All reconstructed right CST streamlines pass through edema and 11.6% of right SLF streamlines do; "
-            "no reconstructed tract enters the Tumor Core."),Spacer(1,8),
-      kpis([("Tumor Core","18.7 mL",NEC),("Edema","60.5 mL",EDE),("Right CST in edema","100%",RED),("Right SLF in edema","11.6%",AMBER)]),Spacer(1,8),
-      figures(("sub003_ceT1w_corecenter_lab.png","Contrast-enhanced T1w · axial through the main enhancing tumor"),
-              ("sub003_FLAIR_corecenter_lab.png","FLAIR · axial through the main edema")),
-      Spacer(1,3),CONTOURS,Spacer(1,8),
-      panel("Key findings","1. Right parasagittal posterior cingulate / perirolandic lesion with edema three times the Tumor Core volume.<br/>"
-            "2. Right CST lies within the edema field; no reconstructed streamline enters necrosis or enhancing tumor.<br/>"
-            "3. Two small separate foci (see page 2) need verification on the source images.",bg=colors.white),
-      PageBreak()]
-
-s += header("Lesion compartments","Automated human_tumor segmentation")
-s += [side(table(["Compartment","Volume","% whole lesion","% Tumor Core"],
-                 [["Necrosis","11.96 mL","15.1%","64.1%"],["Enhancing tumor","6.70 mL","8.5%","35.9%"],
-                  ["Peritumoral edema","60.48 mL","76.4%","—"],["Tumor Core","18.66 mL","23.6%","100%"],
-                  ["Whole lesion","79.14 mL","100%","—"]],
-                 [W*0.17,W*0.1,W*0.11,W*0.11],chips={0:NEC,1:ENH,2:EDE,3:NAVY,4:GREY}),
-           [img("whole_lesion_composition.png",W*0.47),img("tumor_core_composition.png",W*0.47)],split=0.5),Spacer(1,8),
-      figures(("sub003_tumor_WM_axial3D_lab.png","Axial 3D · tumor within the White_Matter envelope"),
-              ("sub003_tumor_WM_coronal3D_lab.png","Coronal 3D")),Spacer(1,3),CONTOURS,Spacer(1,8),
-      side(lambda w:panel("Lesion description","Right hemisphere, parasagittal; posterior cingulate gyrus extending to the perirolandic region; "
-                 "deep white matter and cortex; abuts the falx [verify midline / corpus callosum]. Main-component diameters "
-                 "[AP × LR × SI cm, verify].",width=w),
-           [Paragraph("Additional foci",H3),
-            table(["Focus","Volume","Label"],[["Left frontal","[mL]","Enhancing"],["Inferior [location]","[mL]","Enhancing"]],[W*0.2,W*0.1,W*0.15]),
-            Paragraph("Satellite lesion or segmentation false positive: verify on the source images.",SMALL)],split=0.52),
-      PageBreak()]
-
-s += header("Anatomical localization","Tumor Core overlap · CHA and Brodmann atlases")
-s += [side(img("CHA_tumor_core_overlap.png",W*0.49),img("Brodmann_tumor_core_overlap.png",W*0.49)),Spacer(1,6),
-      Paragraph("Percentages are the share of the 18.66 mL Tumor Core lying in each region; the two atlases are separate parcellations "
-                "and need not sum to 100%.",SMALL),Spacer(1,8),
-      side(img("sub003_tumor_WM_coronal3D_lab.png",W*0.42),
-           lambda w:panel("Localization","Largest CHA overlap: posterior cingulate (29.5% of the core); perirolandic overlap in precentral (6.7%), "
-                 "postcentral (4.1%), and premotor (2.4%) cortex. Brodmann overlap is mainly right-sided: BA31 (13.4%), BA4 (9.4%), "
-                 "BA23 (5.6%). Atlas overlap localizes anatomy; it does not establish function.",width=w),split=0.45),
-      PageBreak()]
-
-s += header("Eloquent tracts","Bilateral AutoTrack · tract-to-region (T2R) analysis")
-s += [figures(("sub003_alltracts_tumor_WM_axial3D_lab.png","Axial · all analyzed tracts"),
-              ("sub003_alltracts_tumor_WM_coronal3D_lab.png","Coronal · all analyzed tracts")),Spacer(1,8),
-      table(["Right tract","Function to correlate","Streamlines","Through edema","Tumor Core","Relationship"],
-            [["CST","Contralateral motor","8,595","8,595 (100%)","0","Edema contact"],
-             ["SLF","Visuospatial attention, praxis","5,315","619 (11.6%)","0","Partial edema contact"],
-             ["Arcuate","Language if right-dominant","7,255","0","0","No contact"],
-             ["FAT","Speech initiation if right-dominant","5,812","0","0","No contact"]],
-            [W*0.09,W*0.25,W*0.13,W*0.16,W*0.11,W*0.26],tags={(0,5):RED,(1,5):AMBER,(2,5):GREY,(3,5):GREY}),Spacer(1,8),
-      side(img("right_tract_to_edema.png",W*0.5),
-           lambda w:panel("Key finding","No reconstructed tract enters necrosis or enhancing tumor. The main relationship is the right CST "
-                 "running through the edema field; the right SLF has limited edema contact. Streamline percentages describe the "
-                 "reconstruction, not axon counts.",width=w),split=0.52)]
-
-for name,short,views,metrics,note in [
-    ("Right corticospinal tract","CST_R",[("axial3D","Axial 3D"),("sagittal3D","Sagittal 3D")],
-     [("Streamlines","8,595"),("Through edema","8,595 (100%)"),("Edema intersection","1,424 mm<super>3</super>"),
-      ("Tumor Core","0"),("Level of edema contact","corona radiata [verify]"),("Curl R / L","1.25 / 1.12")],
-     "The reconstructed motor pathway runs through the edema field and does not enter the Tumor Core. "
-     "Consider correlation with motor examination and, where planned, intraoperative motor mapping."),
-    ("Right superior longitudinal fasciculus","SLF_R",[("axial3D","Axial 3D"),("coronal3D","Coronal 3D")],
-     [("Streamlines","5,315"),("Through edema","619 (11.6%)"),("Edema intersection","556 mm<super>3</super>"),
-      ("Tumor Core","0"),("Level of edema contact","lateral parietal [verify]"),("Curl R / L","1.35 / 1.69")],
-     "A minority of reconstructed right SLF streamlines contact edema; the Tumor Core remains separate.")]:
-    tract = short.split("_")[0]
-    s += [PageBreak()]+header(name,"Tract-to-lesion relationship")
-    s += [figures(*[(f"sub003_{short}_tumor_WM_{v}_lab.png",f"{label} · right {tract} + tumor") for v,label in views]),Spacer(1,8),
-          figures(*[(f"sub003_{short}_FLAIR_{plane}_{level}_lab.png",f"FLAIR · {plane} · {level}")
-                    for plane,level,_ in TRACT_SLICES[short]]),Spacer(1,3),CONTOURS,Spacer(1,8),
-          side(table(["Measure","Right "+tract],[list(m) for m in metrics],[W*0.25,W*0.24]),
-               lambda w:panel("Interpretation",note,width=w),split=0.5)]
-
-def ai(r,l):  # asymmetry index, % of the mean
-    return f"{(r-l)/((r+l)/2)*100:+.0f}%"
-s += [PageBreak()]+header("Integrated impression","For imaging review and planning support")
-s += [side(img("right_tract_to_edema.png",W*0.49),img("bilateral_tract_morphology.png",W*0.49)),Spacer(1,6),
-      table(["Tract","Streamlines L / R","Asymmetry","Curl L / R","Asymmetry"],
-            [["CST","8,013 / 8,595",ai(8595,8013),"1.12 / 1.25",ai(1.25,1.12)],["SLF","3,459 / 5,385",ai(5385,3459),"1.69 / 1.35",ai(1.35,1.69)],
-             ["Arcuate","8,688 / 7,246",ai(7246,8688),"1.24 / 2.28",ai(2.28,1.24)],["FAT","5,767 / 5,642",ai(5642,5767),"1.19 / 1.22",ai(1.22,1.19)]],
-            [W*0.16,W*0.24,W*0.18,W*0.24,W*0.18]),Spacer(1,8),
-      side(lambda w:panel("Impression","1. Right parasagittal posterior cingulate / perirolandic lesion: Tumor Core 18.66 mL, edema 60.48 mL.<br/>"
-                 "2. Right CST runs through the edema field (100% of reconstructed streamlines); no Tumor-Core intersection.<br/>"
-                 "3. Right SLF: partial edema contact (11.6%). Arcuate and FAT: no lesion contact.<br/>"
-                 "4. Right arcuate curl is higher than left without lesion contact: a descriptive reconstruction asymmetry.<br/>"
-                 "5. Two small separate foci require verification.",width=w),
-           lambda w:panel("For clinical correlation","Motor examination and motor mapping for the CST relationship; visuospatial assessment for "
-                 "the right SLF; functional MRI or stimulation mapping where eloquence is uncertain.",bg=colors.white,width=w),split=0.56),
-      Spacer(1,8),
-      box([[Paragraph("Methods and limitations",H3)]]+[[Paragraph(f"<b>{k}</b> &nbsp;{v}",SMALL)] for k,v in CASE["methods"]]+
-          [[Paragraph("Streamlines are reconstructed trajectories, not axons. Edema intersection is geometric, not histologic invasion; "
-                      "zero Tumor-Core intersection does not prove a safe plane. Verify against the source images.",SMALL)]],[W],pad=4)]
-
-SimpleDocTemplate("sub003_tumor_report.pdf",pagesize=letter,leftMargin=0.6*inch,rightMargin=0.6*inch,
-                  topMargin=0.5*inch,bottomMargin=0.75*inch).build(s,onFirstPage=footer,onLaterPages=footer)
-```
-
-After `build`, render every page to an image and look at it before delivering: clipped or
-unreadable labels, wrong orientation, a 3D view missing the envelope, tumor, or tract, or a
-page without a relevant figure means returning to DSI Studio or the script, not editing the
-image.
+1. verify the PPTX package opens in desktop Microsoft PowerPoint;
+2. rotate every embedded GLB interactively;
+3. confirm tumor compartments, requested tract(s), and `White_Matter` envelope are present;
+4. confirm tract/tumor colors and transparency are plausible with the 10% ambient setting;
+5. inspect every 2D image and chart for clipping, stale values, and orientation errors;
+6. confirm each slide uses figures and numbers from the same accepted analysis state.
 
 # POSTSURGICAL EVALUATION
 
@@ -1344,7 +920,10 @@ spatial relationship to verified cavity/residual lesion/edema
 T2R intersecting streamline count/fraction for postoperative regions when useful
 ```
 
-Use identical `set_view 0 0` and the same rotations for comparable pre/post 3D captures.
+For 3D comparison, export matched native GLB scenes with the same named tract(s), region
+content, tract coloring, and transparency settings. A fixed `set_view` is not required
+because the PowerPoint models are interactive. When pre/post 3D comparison is needed, use
+matched consecutive slides by default rather than multiple fixed camera views.
 
 Interpret pre/post tract count, volume, surface area, and T2R changes descriptively.
 Differences may reflect acquisition, reconstruction, registration, brain shift/deformation,
@@ -1397,12 +976,17 @@ cavity size, treatment effect, or biological response from volume change alone.
 Repeat CHA/Brodmann localization only when it answers a postoperative question; pathway
 preservation should remain the principal postoperative focus.
 
-## 9. Postoperative PDF report
+## 9. Postoperative PPTX report
 
-Use the §7 framework (figures, orientation, wording, assembly), but lead with eloquent-tract
-preservation rather than lesion statistics: one page per relevant pathway with matched
-pre/post 3D views (same `set_view` and rotations) and its preservation category, then
-postoperative anatomy and the conclusion. Content:
+Use the §7 PPTX framework, but lead with eloquent-tract preservation rather than lesion
+statistics. Every 3D scene is a native GLB embedded interactively in PowerPoint with the same
+white ambient-only 10% lighting and unchanged GLB materials.
+
+Default to one interactive 3D model per slide. When both preoperative and postoperative 3D
+models are needed, use matched consecutive slides with comparable scene content rather than
+multiple fixed views of either model.
+
+Suggested content:
 
 ```text
 Postoperative neurosurgical summary
