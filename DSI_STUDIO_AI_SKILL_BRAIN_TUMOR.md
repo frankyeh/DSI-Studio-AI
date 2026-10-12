@@ -848,7 +848,11 @@ Prepare the scene once:
    envelope. Do not defragment tumor compartments unless requested.
 3. Keep each region's own RGB and change only the alpha byte with `set_region_color <row>
    <unsigned #AARRGGBB>`; read the RGB from the case, never copy it from another subject.
-   Alpha: Necrosis 200, Peritumoral Edema 80, Enhancing Tumor 100, White_Matter 10.
+   Alpha: Necrosis 200, Peritumoral Edema 80, Enhancing Tumor 100, White_Matter 64. The GLB
+   opacity is the alpha byte / 255 × `region_alpha` (default 0.8), so White_Matter is about
+   0.2. PowerPoint draws one translucent layer, unlike DSI Studio's stacked layers: an alpha
+   of 10 (opacity 0.03) looks fine on screen but leaves the brain envelope invisible in
+   PowerPoint. Keep 64 even if the DSI Studio screen and poster look denser.
 4. Move `White_Matter` to the last Region-table row with repeated `move_down_region`,
    re-resolving indices as rows move.
 5. Check only the three tumor compartments and `White_Matter`; omit the Tumor Core copy.
@@ -1000,7 +1004,7 @@ dsi list_region
 dsi region_action_defragment 0
 
 # Alpha only on the subject's own RGB (#AARRGGBB as an unsigned integer)
-dsi set_region_color 0 182970350    # 0x0AE7E7EE White_Matter      alpha 10
+dsi set_region_color 0 1088940014   # 0x40E7E7EE White_Matter      alpha 64
 dsi set_region_color 5 3361425486   # 0xC85B484E Necrosis          alpha 200
 dsi set_region_color 6 1350801323   # 0x508397AB Peritumoral Edema alpha 80
 dsi set_region_color 7 1690070641   # 0x64BC6E71 Enhancing Tumor   alpha 100
