@@ -144,6 +144,7 @@ for endpoint in paths + ["\0dsi-studio"]:
     try:
         client.settimeout(5)
         client.connect(endpoint)
+        client.settimeout(None)  # the reply may wait on the user's approval dialog
         client.sendall(payload)
         client.shutdown(socket.SHUT_WR)
         chunks = []
