@@ -311,9 +311,11 @@ Use the parent SLF entry rather than mapping SLF II/III separately for routine t
 planning.
 
 Reconstruct the ipsilateral (lesion-side) pathways and their contralateral
-homologs. The contralateral side serves as a control for descriptive bilateral comparison.
-Curl (route/distance ratio) may help identify asymmetry, but curl alone does not prove that
-a tumor caused displacement; spatial geometry must also support that interpretation.
+homologs. For CST and optic radiation the contralateral side serves as a control for
+descriptive bilateral morphology comparison (§6); other pathways are not compared left to
+right because they are normally asymmetric. Curl (route/distance ratio) may help identify
+asymmetry, but curl alone does not prove that a tumor caused displacement; spatial geometry
+must also support that interpretation.
 
 Practical selection:
 
@@ -497,7 +499,14 @@ successfully.
 
 ## 6. Evaluate tract morphology, laterality, and spatial relationship
 
-First obtain raw bilateral tract measurements:
+**Left/right morphology comparison is limited to CST and optic radiation.** These are
+approximately symmetric in healthy brains, so the contralateral tract is a usable control.
+Arcuate fasciculus, SLF, and other association pathways (FAT, IFOF, ILF, uncinate) are
+normally asymmetric, so do not compare their left/right curl, volume, surface area, or
+ratios, do not chart them, and do not report their asymmetry as a finding. Describe those
+pathways by their own lesion relationship (T2R, geometry) only.
+
+For CST and optic radiation, obtain raw bilateral tract measurements:
 
 ```bash
 bash ./dsi.sh show_only_tracts "<left-tract>&<right-tract>"
@@ -513,7 +522,7 @@ total surface area(mm^2)
 curl (route/distance ratio)
 ```
 
-Compare ipsilesional and contralateral morphology descriptively. Higher ipsilesional curl
+Compare ipsilesional and contralateral CST / optic-radiation morphology descriptively. Higher ipsilesional curl
 can be consistent with a longer or more winding reconstructed route, but curl alone does
 not establish tumor-induced displacement. Attribute displacement to the lesion only when
 the live/saved 3D geometry also shows the pathway being pushed around the lesion or edema
@@ -564,15 +573,15 @@ passing along a lesion margin
 incompletely reconstructed / uncertain
 ```
 
-When one side is meaningfully designated as lesion side, optional morphology ratios are:
+When one side is meaningfully designated as lesion side, optional CST / optic-radiation
+morphology ratios are:
 
 ```text
 volume ratio = ipsilesional volume / contralateral volume
 surface-area ratio = ipsilesional surface area / contralateral surface area
 ```
 
-Do not interpret ratios alone. Normal asymmetry can be substantial, particularly for the
-arcuate fasciculus.
+Do not interpret ratios alone; even CST and optic radiation have some normal asymmetry.
 
 ### Optic-radiation caution
 
@@ -610,7 +619,7 @@ Recommended slide roles:
 | 4 | Tumor–Brodmann localization: overlap table | Brodmann overlap chart and the tumor + overlapping Brodmann areas + `White_Matter` GLB |
 | 5 | Tract-to-lesion relations: tract table, T2R results, key finding | Tract-to-edema chart and the all-eloquent-tracts + tumor + `White_Matter` GLB |
 | 6..N | One clinically important tract per slide: measures, interpretation | That tract + tumor + `White_Matter` GLB, and 2D slices showing both the tumor outlines and the tract |
-| N+1 | Bilateral tract morphology: curl, volume, surface area, asymmetry | Bilateral morphology chart and the bilateral tracts + tumor + `White_Matter` GLB |
+| N+1 | Bilateral morphology of CST and optic radiation only (§6): curl, volume, surface area, asymmetry | Bilateral morphology chart and the left + right CST / optic radiation + tumor + `White_Matter` GLB; omit the slide when neither was reconstructed |
 | Last | Impression, clinical-correlation points, methods and limitations | Text; optional tract-to-edema chart |
 
 Every row that lists a GLB requires it; do not drop a 3D model to save space. Give each GLB
@@ -656,7 +665,8 @@ Lesion        Enhancing Tumor, Necrosis, Tumor Core, Peritumoral Edema, whole le
 Atlas         CHA and Brodmann rows: overlap volume and % Tumor Core
 Tracts        AutoTrack identifiers and settings; total streamlines per bundle;
               T2R intersecting streamlines and intersect volume per compartment;
-              bilateral curl, volume, surface area; list of tracts that get slides
+              bilateral curl, volume, surface area for CST and optic radiation only;
+              list of tracts that get slides
 3D models     GLB file name, poster file name, and exact scene content per 3D slide;
               atlas label indices and template/atlas indices from list_atlas
 2D figures    file name, slice plane/level, modality, R_side, plane orientation
@@ -768,7 +778,7 @@ brodmann = [("BA31 right",2.493),("BA4 right",1.756),("BA23 right",1.046),("BA23
             ("BA5 right",0.371),("BA6 right",0.337),("BA24 left",0.157),("BA31 left",0.111)]
 tracts = ["CST","SLF","Arcuate","FAT"]
 edema_pct = np.array([8595,619,0,0])/np.array([8595,5315,7255,5812])*100
-curl_left,curl_right = [1.120708,1.692461,1.236686,1.192565],[1.253219,1.347196,2.282737,1.223556]
+morph = {"CST":(1.120708,1.253219)}  # left, right curl; CST and optic radiation only (§6)
 
 def save(fig,file):
     fig.tight_layout()
@@ -815,14 +825,14 @@ ax.set_ylabel("Reconstructed streamlines (%)")
 ax.set_ylim(0,115)
 save(fig,"right_tract_to_edema.png")
 
-x = np.arange(len(tracts))
-fig,ax = plt.subplots(figsize=(6.2,3.2))
-ax.bar(x-0.19,curl_left,0.38,label="Left",color=GREY)
-ax.bar(x+0.19,curl_right,0.38,label="Right",color=NAVY)
-ax.set_xticks(x,tracts)
+x = np.arange(len(morph))
+fig,ax = plt.subplots(figsize=(4.2,3.2))
+ax.bar(x-0.19,[v[0] for v in morph.values()],0.38,label="Left",color=GREY)
+ax.bar(x+0.19,[v[1] for v in morph.values()],0.38,label="Right",color=NAVY)
+ax.set_xticks(x,list(morph))
 ax.set_ylabel("Curl (route / distance)")
 ax.set_title("Bilateral tract morphology")
-ax.set_ylim(0,2.6)
+ax.set_ylim(0,max(max(v) for v in morph.values())*1.25)
 ax.legend(frameon=False)
 save(fig,"bilateral_tract_morphology.png")
 ```
@@ -904,9 +914,8 @@ Atlas scenes (slides 3 and 4), after every other GLB:
 4. Delete the parcel rows (`delete_region "<rows>"`) before the next atlas, and re-run
    `list_region`.
 
-Bilateral scene (morphology slide): the left and right tracts compared in the morphology
-chart, plus the tumor compartments and `White_Matter`. If that tract set equals the all-tract
-scene, reuse that GLB instead of exporting a duplicate.
+Bilateral scene (morphology slide): left and right CST and optic radiation (whichever were
+reconstructed), plus the tumor compartments and `White_Matter`.
 
 The GLB is view-independent. Do not make axial/coronal/sagittal copies of the same GLB and do
 not use `set_view` merely to create additional 3D report views. Each GLB is centered on its
@@ -961,7 +970,9 @@ No reconstructed [tract] streamlines entered the Tumor Core.
   unsafe, from tractography alone.
 - Edema intersection is a geometric relationship, not histologic invasion. Zero Tumor-Core
   intersection does not prove a safe surgical plane.
-- Report curl asymmetry without lesion contact as a descriptive reconstruction asymmetry.
+- Compare left/right morphology only for CST and optic radiation; never report AF, SLF, or
+  other association-tract asymmetry as a finding. Report CST / optic-radiation curl asymmetry
+  without lesion contact as a descriptive reconstruction asymmetry.
 - Do not use universal percentage thresholds for risk or displacement.
 - Report streamline counts from the accepted analysis, never from export-reduced tracts.
 
@@ -1084,7 +1095,7 @@ scene sub003_tumor_WM ""
 scene sub003_alltracts_tumor_WM "0&1&2&3&4&5&6&7"
 scene sub003_CST_R_tumor_WM "1"
 scene sub003_SLF_R_tumor_WM "3"
-# bilateral morphology slide: same eight tracts as the all-tract scene, so that GLB is reused
+scene sub003_CST_bilateral_tumor_WM "0&1"   # morphology slide: CST only (no optic radiation analyzed)
 
 # atlas scenes last; label and atlas indices come from list_atlas, never from this example
 dsi list_atlas
