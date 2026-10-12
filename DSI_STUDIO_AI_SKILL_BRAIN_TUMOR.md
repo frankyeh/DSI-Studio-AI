@@ -605,11 +605,16 @@ Recommended slide roles:
 | Slide | Content | Visuals |
 |---|---|---|
 | 1 | Summary: location, Tumor Core and edema volumes, main tract relationship, key findings | Contrast-enhanced T1w through the main enhancing tumor and FLAIR through the main edema |
-| 2 | Compartment table, composition charts, lesion description, additional foci | One interactive tumor + `White_Matter` GLB |
-| 3 | CHA and Brodmann localization, kept separate | Atlas charts; optional same tumor GLB only when it materially helps |
-| 4 | Tract table, T2R results, tract-to-edema chart, key finding | One interactive all-relevant-tracts + tumor + `White_Matter` GLB |
-| 5..N | One clinically important tract per slide: measures, interpretation, selected 2D slices | One interactive single-tract + tumor + `White_Matter` GLB |
-| Last | Impression, bilateral asymmetry, clinical-correlation points, methods and limitations | Tract-to-edema and bilateral morphology charts |
+| 2 | Tumor composition and position: compartment table, lesion description, additional foci | Both composition charts (Tumor Core = Necrosis + Enhancing; whole lesion = Necrosis + Enhancing + Edema) and the tumor + `White_Matter` GLB |
+| 3 | Tumor–CHA localization: overlap table | CHA overlap chart and the tumor + overlapping CHA parcels + `White_Matter` GLB |
+| 4 | Tumor–Brodmann localization: overlap table | Brodmann overlap chart and the tumor + overlapping Brodmann areas + `White_Matter` GLB |
+| 5 | Tract-to-lesion relations: tract table, T2R results, key finding | Tract-to-edema chart and the all-eloquent-tracts + tumor + `White_Matter` GLB |
+| 6..N | One clinically important tract per slide: measures, interpretation | That tract + tumor + `White_Matter` GLB, and 2D slices showing both the tumor outlines and the tract |
+| N+1 | Bilateral tract morphology: curl, volume, surface area, asymmetry | Bilateral morphology chart and the bilateral tracts + tumor + `White_Matter` GLB |
+| Last | Impression, clinical-correlation points, methods and limitations | Text; optional tract-to-edema chart |
+
+Every row that lists a GLB requires it; do not drop a 3D model to save space. Give each GLB
+at least half the slide width.
 
 Slide notes:
 
@@ -621,8 +626,9 @@ Slide notes:
 - **Additional foci.** Every separate component visible in 3D gets a row: location, volume,
   label, and "satellite lesion or false positive: verify on the source images". Do not leave
   visible foci unexplained.
-- **Atlas.** Keep CHA and Brodmann separate. Show overlap volume and `% Tumor Core` for every
-  nonzero row.
+- **Atlas.** Keep CHA and Brodmann on separate slides. Show overlap volume and `% Tumor Core`
+  for every nonzero row. The atlas GLB shows exactly the parcels in that slide's table, so a
+  parcel in 3D matches a row by name and color.
 - **Tract table.** Add function to correlate and a relationship tag: `Tumor Core contact`,
   `Edema contact`, `Partial edema contact`, or `No contact`. Tags describe geometry, not risk.
   Mark atlas-guided partial tracking and atlas tracts explicitly as in §4.
@@ -651,7 +657,8 @@ Atlas         CHA and Brodmann rows: overlap volume and % Tumor Core
 Tracts        AutoTrack identifiers and settings; total streamlines per bundle;
               T2R intersecting streamlines and intersect volume per compartment;
               bilateral curl, volume, surface area; list of tracts that get slides
-3D models     GLB file name, poster file name, and exact scene content per 3D slide
+3D models     GLB file name, poster file name, and exact scene content per 3D slide;
+              atlas label indices and template/atlas indices from list_atlas
 2D figures    file name, slice plane/level, modality, R_side, plane orientation
 Charts        file names of the composition, atlas, tract-to-edema, and morphology charts
 ```
@@ -674,7 +681,8 @@ AutoTrack bundles exceed this (sub-003: CST 8595, SLF 5315, AF 7255, FAT 5812). 
 2. Save the accepted tracts: `save_all_tracts "<case>_accepted_tracts.tt.gz"` with all report
    tracts checked. This is the restore point for revisions.
 3. Make the charts (§7.5) and every 2D figure (§7.4). They show the full bundles.
-4. Export the GLBs and posters last (§7.6).
+4. Export the GLBs and posters last (§7.6), the atlas scenes after all others because they
+   add and then delete Region-table rows.
 5. Assemble the PPTX (§7.11).
 
 If anything must be recomputed after step 4, reload the accepted tracts with `open_tract`
@@ -722,6 +730,15 @@ bash ./dsi.sh set_params "roi_fiber=0&roi_position=0&roi_ruler=0&roi_label=0"   
   every level inside the lesion extent and convert millimeters to voxels with the voxel size.
 - Record `R_side` from the same `preview_screen roi` output for the orientation labels
   (§7.7).
+- **The tract must be visible in every tract-slide image.** Before each `save_roi_screen`,
+  run `preview_screen roi`: it prints a `tract` block only when the checked tract has points
+  in the current slice. No `tract` block means the saved image shows tumor outlines only.
+  Then check, in order: the slide's tract is checked (`show_only_tracts`, never after
+  `check_uncheck_all_tract 0` without it); `roi_track=1`; the tract has finished drawing
+  (a tract still being updated after `color_all_cluster` or a reload is skipped, so run
+  `preview_screen roi` again); and the slice level actually crosses the tract (move the level
+  toward the tract). Save only after the `tract` block appears, and confirm the tract on the
+  saved image.
 - Save with `save_roi_screen` and open each image: the main lesion's outlines and the tract
   must both be clearly visible in the same slice. If the slice misses the main lesion, or the
   tract is only dots, re-center or change the plane and save again. If a 2D image is redone,
@@ -868,6 +885,24 @@ Per scene:
 4. Save the poster from the same scene: `save_screen "<scene>_poster.jpg" "1600 1200"`. Any
    view works; it is shown only until PowerPoint renders the model. The background must be
    white as saved; if not, set `bkg_color -1` and save again.
+
+Atlas scenes (slides 3 and 4), after every other GLB:
+
+1. `list_atlas` gives the template's atlas indices; `list_atlas CHA` (or `Brodmann`) gives
+   label indices and names. Take the labels whose names match the nonzero rows of
+   `show_region_overlap_statistics` (§2). Do not guess indices.
+2. `add_region_from_atlas "<template> <atlas> <label1>&<label2>&..."` adds those parcels as
+   regions with the atlas names. Run `list_region`, move `White_Matter` to the last row again
+   with `move_down_region`, and set each parcel's alpha byte to about 120 with
+   `set_region_color`, keeping the RGB it was given (read it with `save_region_color`).
+3. Check the three tumor compartments, the parcels, and `White_Matter`; uncheck all tracts.
+   `preview_screen 3d`, `save_3d_model`, poster.
+4. Delete the parcel rows (`delete_region "<rows>"`) before the next atlas, and re-run
+   `list_region`.
+
+Bilateral scene (morphology slide): the left and right tracts compared in the morphology
+chart, plus the tumor compartments and `White_Matter`. If that tract set equals the all-tract
+scene, reuse that GLB instead of exporting a duplicate.
 
 The GLB is view-independent. Do not make axial/coronal/sagittal copies of the same GLB and do
 not use `set_view` merely to create additional 3D report views. Each GLB is centered on its
@@ -1045,6 +1080,22 @@ scene sub003_tumor_WM ""
 scene sub003_alltracts_tumor_WM "0&1&2&3&4&5&6&7"
 scene sub003_CST_R_tumor_WM "1"
 scene sub003_SLF_R_tumor_WM "3"
+# bilateral morphology slide: same eight tracts as the all-tract scene, so that GLB is reused
+
+# atlas scenes last; label and atlas indices come from list_atlas, never from this example
+dsi list_atlas
+dsi list_atlas CHA                      # match names to the nonzero CHA overlap rows
+dsi add_region_from_atlas "<template> <CHA-atlas> <posterior-cingulate>&<precentral>&<postcentral>&<premotor>&<precuneus>"
+dsi list_region                         # parcels added after White_Matter (rows 8..12)
+for row in 7 8 9 10 11; do dsi move_down_region $row; done   # White_Matter back to the last row
+dsi list_region
+dsi save_region_color sub003_region_colors.txt                # RGB of each parcel for the alpha change
+dsi set_region_color <parcel-row> <0x78RRGGBB as unsigned>     # alpha 120, one call per parcel
+dsi show_only_regions "4&5&6&7&8&9&10&11&12"
+scene sub003_tumor_CHA_WM ""
+dsi delete_region "7&8&9&10&11"         # the parcel rows from list_region
+dsi list_region
+# repeat with Brodmann for sub003_tumor_Brodmann_WM
 ```
 
 ### 7.11 Assemble the PPTX
@@ -1054,8 +1105,10 @@ ordinary content, and each GLB as a PowerPoint 3D model. python-pptx has no 3D-m
 `add_glb()` adds the GLB part and inserts the Office `am3d:model3d` XML with its poster:
 
 - GLB materials stay **unchanged**; the poster is the required raster fallback.
-- Lighting is **white ambient only, 10% illuminance** (`illuminance n="100000"
-  d="1000000"`); no directional, point, or spot lights. Stronger Office lighting washed out
+- Lighting is set **per model** inside each `am3d:model3d`; PowerPoint has no deck-wide light
+  setting. Each model gets **white ambient only, 10% illuminance** (`illuminance n="100000"
+  d="1000000"`) and PowerPoint's three point lights written explicitly as
+  `enabled="false"`, so no default lighting is added. Stronger Office lighting washed out
   DSI Studio's tract and tumor colors in the PowerPoint comparison (To-Do #27). Do not darken
   GLB materials instead.
 - `meterPerModelUnit` = 1 / largest scene extent (read from the GLB), so PowerPoint fits the
@@ -1076,6 +1129,10 @@ from PIL import Image
 
 NEC,ENH,EDE,NAVY,GREY = "5B484E","BC6E71","8397AB","1F3A5F","B8C2CC"
 RT_MODEL3D = "http://schemas.microsoft.com/office/2017/06/relationships/model3d"
+LIGHTS_OFF = "".join(  # PowerPoint's three point lights, disabled so only the 10% ambient light remains
+    f'<am3d:ptLight rad="0" enabled="false"><am3d:clr><a:scrgbClr r="100000" g="100000" b="100000"/></am3d:clr>'
+    f'<am3d:intensity n="0" d="1000000"/><am3d:pos x="{x}" y="{y}" z="{z}"/></am3d:ptLight>'
+    for x,y,z in ((21959998,70920001,16344003),(-37964106,51130435,57631972),(-37739122,58056624,-34769649)))
 
 prs = Presentation()
 prs.slide_width,prs.slide_height = Inches(13.333),Inches(7.5)
@@ -1179,6 +1236,7 @@ def add_glb(slide,glb,poster,x,y,w,h,caption):
      <am3d:objViewport viewportSz="{min(w,h)}"/>
      <am3d:ambientLight><am3d:clr><a:scrgbClr r="100000" g="100000" b="100000"/></am3d:clr>
       <am3d:illuminance n="100000" d="1000000"/></am3d:ambientLight>
+     {LIGHTS_OFF}
     </am3d:model3d>
    </a:graphicData></a:graphic>
   </p:graphicFrame>
@@ -1212,13 +1270,18 @@ rather than switching to static images.
 
 ### 7.12 Before delivery
 
-1. Open the PPTX in desktop Microsoft PowerPoint without a repair prompt.
-2. Rotate every embedded GLB; confirm tumor compartments, the requested tract(s), and the
-   `White_Matter` envelope are present and colors and transparency are plausible.
-3. Inspect every 2D image and chart for clipping, stale values, and orientation errors;
+1. Open the PPTX in desktop Microsoft PowerPoint without a repair prompt. Confirm every
+   slide XML with a model has the ambient illuminance `n="100000"` and only
+   `enabled="false"` point lights (`unzip -p report.pptx "ppt/slides/slide*.xml" | grep -o
+   "<am3d:illuminance[^>]*>\|<am3d:ptLight[^>]*>"`).
+2. Rotate every embedded GLB; confirm tumor compartments, the requested tract(s) or atlas
+   parcels, and the `White_Matter` envelope are present and colors and transparency are
+   plausible. Every slide that lists a GLB in §7.1 has one.
+3. Every tract-slide 2D image shows the tract, not only tumor outlines.
+4. Inspect every 2D image and chart for clipping, stale values, and orientation errors;
    every slice has orientation labels and a contour legend.
-4. Confirm every number matches the accepted analysis (§7.2), not export-reduced tracts.
-5. Keep `[verify]` marks visible on anything unconfirmed.
+5. Confirm every number matches the accepted analysis (§7.2), not export-reduced tracts.
+6. Keep `[verify]` marks visible on anything unconfirmed.
 
 # POSTSURGICAL EVALUATION
 
