@@ -248,6 +248,16 @@ scans sharing that acquisition convention:
 operations with `+`. Do not infer a group-wide correction from a low-SNR or
 artifact-heavy outlier.
 
+When the bval/bvec are lost or corrupted rather than flipped, replace them:
+`--bval=<file> --bvec=<file>` on `--action=rec` (or `load_bval` / `load_bvec`), or
+`--cmd=regenerate_btable=<reference.sz>` (`regenerate_btable`) using a reference scan
+of the same single-shell protocol with a known-good b-table. Then check orientation as
+above.
+
+To exclude corrupted volumes found in QC, use `--remove=<indices or b>value>` on
+`--action=rec` or the `remove` command (same syntax, e.g. `3,10:12` or `b>3000`); the
+removal is recorded in the reconstruction steps and report.
+
 Automatic b-table checking is evidence, not proof. Confirm its result using
 anatomy, local fiber directions, and whole-brain tractography. Be cautious with
 low-SNR, low-direction, partial-coverage, animal, or severely pathological data.
