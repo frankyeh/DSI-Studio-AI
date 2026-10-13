@@ -92,6 +92,9 @@ Both setters accept `name=value[&name=value...]`.
 | `save_nifti` | `bash ./dsi.sh save_nifti "C:/output/dwi.nii.gz"` | Save a 4D diffusion NIfTI plus bval/bvec files. Omit the path for a local save dialog. |
 | `save_b0` | `bash ./dsi.sh save_b0 "C:/output/b0.nii.gz"` | Save the first b0 volume. Omit the path for a local save dialog. |
 | `save_dwi_sum` | `bash ./dsi.sh save_dwi_sum "C:/output/dwi_sum.nii.gz"` | Save the summed diffusion image. Omit the path for a local save dialog. |
+| `save_b_table` | `bash ./dsi.sh save_b_table "C:/output/subject.b_table.txt"` | Save the b-table (b-value and b-vector per DWI). Omit the path for a local save dialog. |
+| `save_bval` | `bash ./dsi.sh save_bval "C:/output/subject.bval"` | Save FSL-format b-values. Omit the path for a local save dialog. |
+| `save_bvec` | `bash ./dsi.sh save_bvec "C:/output/subject.bvec"` | Save FSL-format b-vectors (y flipped to FSL convention). Omit the path for a local save dialog. |
 | `mask_open` | `bash ./dsi.sh mask_open "C:/data/mask.nii.gz"` | Replace the reconstruction mask using a supplied file. Omit the path to let the user choose it locally. |
 | `mask_unet` | `bash ./dsi.sh mask_unet` | Generate a mask using the packaged U-Net model. Inspect the mask before reconstruction. |
 | `mask_from_template` | `bash ./dsi.sh mask_from_template 0` | Generate a mask using a zero-based template index. Omission uses the current template setting. |
@@ -105,7 +108,9 @@ Both setters accept `name=value[&name=value...]`.
 | `mask_negate` | `bash ./dsi.sh mask_negate` | Invert the current mask. |
 | `mask_remove_background` | `bash ./dsi.sh mask_remove_background` | Permanently zero signals outside the current mask. |
 | `probabilistic_masking` | `bash ./dsi.sh probabilistic_masking "C:/data/probability.nii.gz"` | Multiply diffusion signals by a same-dimension probability image. Omit the path for a local picker. |
-| `set_voxel_size` | `bash ./dsi.sh set_voxel_size "1.5 1.5 2.0"` | Replace the three voxel-size values without resampling. Supply all three values. |
+| `set_voxel_size` | `bash ./dsi.sh set_voxel_size "1.5 1.5 2.0"` | Replace the three voxel-size values without resampling. Supply all three values; omit them to let the user enter them locally. |
+| `remove` | `bash ./dsi.sh remove "0,3:5,60:end"` | Remove DWIs by zero-based index or range (`a:b`, `a:end`) or by b-value (`b>3000`, `b<100`), comma-separated. Fails if nothing matches or every DWI would be removed. Recorded as a step; same syntax as CLI `--remove`. |
+| `add_other_image` | `bash ./dsi.sh add_other_image "t1w:C:/data/T1w.nii.gz"` | Register another NIfTI image to the DWI and store it in the reconstructed FIB under the optional `name:` prefix (default: the file name). Same syntax as CLI `--other_image`. Omit the path for a local picker. |
 | `smooth_signals` | `bash ./dsi.sh smooth_signals` | Smooth diffusion signals. |
 | `crop_background` | `bash ./dsi.sh crop_background 5` | Crop background with an optional voxel border. Omission uses zero. |
 | `resample` | `bash ./dsi.sh resample 2` | Resample to the supplied isotropic millimeter resolution. Omit it to let the user choose locally. |
@@ -124,6 +129,9 @@ Both setters accept `name=value[&name=value...]`.
 | `swap_bxby` | `bash ./dsi.sh swap_bxby` | Swap b-vector X/Y. |
 | `swap_bybz` | `bash ./dsi.sh swap_bybz` | Swap b-vector Y/Z. |
 | `swap_bxbz` | `bash ./dsi.sh swap_bxbz` | Swap b-vector X/Z. |
+| `load_bval` | `bash ./dsi.sh load_bval "C:/data/new.bval"` | Replace the b-values from an FSL bval file. The value count must equal the DWI count. Same as CLI `--bval` on `--action=rec`. |
+| `load_bvec` | `bash ./dsi.sh load_bvec "C:/data/new.bvec"` | Replace the b-vectors from an FSL bvec file (three rows or one row per DWI; y flipped as on import). Same as CLI `--bvec` on `--action=rec`. |
+| `regenerate_btable` | `bash ./dsi.sh regenerate_btable "C:/data/reference.sz"` | Rebuild a lost or corrupted b-table from a reference SRC acquired with the same single-shell scheme: affinely aligns the reference b0 to this b0, matches each DWI to its three best-correlated reference DWIs, and assigns their correlation-weighted direction and the reference b-value. Leaves the b-table unchanged on failure. CLI: `--cmd=regenerate_btable=<reference.sz>`. |
 | `topup` | `bash ./dsi.sh topup "C:/data/reverse_pe.rz"` | Run TOPUP using an explicit reverse-PE source. With no parameter, an AI command uses automatic reverse-PE discovery. |
 | `topup_eddy` | `bash ./dsi.sh topup_eddy "C:/data/reverse_pe.rz"` | Run TOPUP when possible, followed by EDDY. With no parameter, an AI command uses automatic reverse-PE discovery. |
 | `eddy` | `bash ./dsi.sh eddy` | Run EDDY without an explicit TOPUP source. |
@@ -131,7 +139,7 @@ Both setters accept `name=value[&name=value...]`.
 | `bias_field_correction` | `bash ./dsi.sh bias_field_correction` | Correct signal inhomogeneity. |
 | `correct_by_t1w` | `bash ./dsi.sh correct_by_t1w "C:/data/T1w.nii.gz\|1.5"` | Correct AP–PA susceptibility distortion using the subject's T1w image. The optional `\|<mm>` suffix sets the isotropic output resolution (`0` or no suffix = native). Omit the path for a local picker. The legacy `correct_by_t2w` token is an alias that runs the same correction at native resolution. |
 | `orientation_correction` | `bash ./dsi.sh orientation_correction` | Apply automatic volume-orientation correction. |
-| `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. |
+| `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. Omit it to let the user enter it locally. |
 
 ## Pre-reconstruction QC and b-table orientation
 
@@ -163,6 +171,12 @@ acquisitions in the same group using `flip_bx`, `flip_by`, `flip_bz`, `swap_bxby
 `swap_bybz`, and/or `swap_bxbz` as appropriate. This assumes the scanner/export
 pipeline used the same b-table orientation convention consistently across that group.
 Do not infer group-wide orientation from a poor-SNR outlier.
+
+If the b-table is missing or wrong in a way flips and swaps cannot fix, replace it:
+`load_bval` / `load_bvec` when the correct FSL files exist, or `regenerate_btable`
+with a reference scan of the same single-shell protocol whose b-table is known to be
+correct. After `regenerate_btable`, run `check_btable2` and inspect fiber directions
+before reconstruction.
 
 As an alternative, CLI QC can check every `.sz` independently against a selected
 template:
