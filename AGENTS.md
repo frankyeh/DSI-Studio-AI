@@ -686,7 +686,7 @@ bash ./dsi.sh set_params "method=4&param=1.25&thread_count=8"
 ### 10.3 Use concise reconstruction operation names
 
 ```bash
-bash ./dsi.sh mask_unet
+bash ./dsi.sh mask_from_unet
 bash ./dsi.sh bias_field_correction
 bash ./dsi.sh resample 2
 bash ./dsi.sh recon 4
