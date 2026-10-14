@@ -11,9 +11,22 @@ write a request, and DSI Studio replaces it with the result.
 The Web transport does not depend on the agent. Any web-based AI agent that can read and
 write a Google Doc can use it. It has been confirmed with ChatGPT, Claude, and Muse.
 
-To confirm a new agent, run the full workflow: connect, `set_title`, a `chat`-only request,
-`list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate fasciculus, and
-`list_tract` showing both bundles done.
+To confirm a new agent in GUI Web, run the full workflow: connect, `set_title`, a
+`chat`-only request, `list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate
+fasciculus, and `list_tract` showing both bundles done. In headless Web, run `set_title`,
+`run_cli`, `run_shell`, `write_text_file`, and `web_upload` instead.
+
+## Two modes
+
+| Mode | Started by | Commands |
+|---|---|---|
+| GUI Web | **New Chat → Web** in DSI Studio | the full command center |
+| Headless Web | `dsi_studio --action=ai --agent=web` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, and `set_title` only |
+
+Headless Web opens no window. `run_shell` and `write_text_file` wait for the user's
+approval in that terminal, and `run_cli` cannot use `--action=vis` or `--action=cnt`. Any
+other command returns an error; run the work as a command-line action through `run_cli`
+instead (for example `--action=atk`).
 
 ## Read the manuals first
 
@@ -34,8 +47,10 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 
 ## Start
 
-1. The user picks **New Chat → Web** in DSI Studio, which copies a connection prompt
-   with the session document link, and pastes it into a web-based AI agent.
+1. The user starts a Web session in either mode and pastes its connection prompt, which
+   holds the session document link, into a web-based AI agent. GUI Web copies the prompt;
+   headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
+   prints a Google URL and code, which the user enters on any computer or phone.
 2. Check that you can read and write the session document (see the next section).
 3. Read the document. DSI Studio has written the first message:
 
