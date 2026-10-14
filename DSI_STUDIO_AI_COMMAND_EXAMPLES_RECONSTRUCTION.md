@@ -35,7 +35,7 @@ recon
 list_param
 set_param
 set_params
-mask_unet
+mask_from_unet
 resample
 bias_field_correction
 ```
@@ -96,7 +96,7 @@ Both setters accept `name=value[&name=value...]`.
 | `save_bval` | `bash ./dsi.sh save_bval "C:/output/subject.bval"` | Save FSL-format b-values. Omit the path for a local save dialog. |
 | `save_bvec` | `bash ./dsi.sh save_bvec "C:/output/subject.bvec"` | Save FSL-format b-vectors (y flipped to FSL convention). Omit the path for a local save dialog. |
 | `mask_open` | `bash ./dsi.sh mask_open "C:/data/mask.nii.gz"` | Replace the reconstruction mask using a supplied file. Omit the path to let the user choose it locally. |
-| `mask_unet` | `bash ./dsi.sh mask_unet` | Generate a mask using the packaged U-Net model. Inspect the mask before reconstruction. |
+| `mask_from_unet` | `bash ./dsi.sh mask_from_unet` | Generate a mask with the U-Net tissue model of the current template's species (b0 foreground probability > 0.5). The old name `mask_unet` is still accepted. Inspect the mask before reconstruction. |
 | `mask_from_template` | `bash ./dsi.sh mask_from_template 0` | Generate a mask using a zero-based template index. Omission uses the current template setting. |
 | `mask_threshold` | `bash ./dsi.sh mask_threshold 100` | Create a mask using an integer signal threshold. Omit the threshold to let the user choose it locally. |
 | `mask_erosion` | `bash ./dsi.sh mask_erosion` | Erode the current mask. |
