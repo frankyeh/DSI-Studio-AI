@@ -21,12 +21,15 @@ fasciculus, and `list_tract` showing both bundles done. In headless Web, run `se
 | Mode | Started by | Commands |
 |---|---|---|
 | GUI Web | **New Chat → Web** in DSI Studio | the full command center |
-| Headless Web | `dsi_studio --action=ai --agent=web` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, and `set_title` only |
+| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, and `set_title` only |
 
 A headless session's connection prompt includes "This session is headless" and its approval
 mode; the GUI prompt does not. In a headless session, use only the headless commands above, and when a request needs
 the DSI Studio window (opening a `.fz`, rendering, or dialogs), tell the user it is not available
 in this session instead of trying it.
+
+Headless Web resumes the most recent chat by default; `--session=N` resumes the N-th listed chat
+(0 = most recent) and `--session=-1` starts a new one.
 
 Headless Web opens no window. `run_shell` and `write_text_file` wait for the user's
 approval in that terminal unless `--approval` says otherwise:
