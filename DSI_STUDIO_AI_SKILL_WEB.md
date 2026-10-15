@@ -68,7 +68,10 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 1. The user starts a Web session in either mode and pastes its connection prompt, which
    holds the session document link, into a web-based AI agent. GUI Web copies the prompt;
    headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
-   prints a Google URL and code, which the user enters on any computer or phone. Its terminal
+   prints a Google URL and code, which the user enters on any computer or phone. It then lets
+   the user resume a recent chat (same session document) or start a new one. A resumed
+   document may still hold an old message: read it first, keep the same `session`, and give
+   your next request an `id` greater than any `id` in it. Its terminal
    then shows only the chat history (your `chat` text, each command, errors, and approval
    prompts); `--debug` also shows DSI Studio's log and command output.
 2. Check that you can read and write the session document (see the next section).
