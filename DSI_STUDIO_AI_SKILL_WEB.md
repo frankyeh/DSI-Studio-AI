@@ -70,7 +70,7 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 ## Start
 
 1. The user starts a Web session in either mode. The user then pastes its connection prompt
-   (codename, this skill, and the document link), or just says "connect to DSI neon-raven" or,
+   (this skill and the codename, e.g. "connect to DSI Studio neon-raven"), or just says "connect to DSI neon-raven" or,
    for example in voice mode, "connect to the latest DSI session". GUI Web copies the prompt;
    headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
    prints a Google URL and code, which the user enters on any computer or phone. It then lets
@@ -80,7 +80,7 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
    then shows only the chat history (your `chat` text, each command, errors, and approval
    prompts); `--debug` also shows DSI Studio's log and command output.
 2. Find the session document:
-   - **Link given:** use it.
+   - **Link given** (e.g. pasted from Google Docs): use it.
    - **Codename given:** search the `DSI Studio AI` folder for a Doc whose name ends with
      `DSI Studio <codename>`.
    - **"The latest":** list the Docs in that folder, newest modified first, and take the
