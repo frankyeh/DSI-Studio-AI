@@ -23,13 +23,26 @@ fasciculus, and `list_tract` showing both bundles done. In headless Web, run `se
 | GUI Web | **New Chat → Web** in DSI Studio | the full command center |
 | Headless Web | `dsi_studio --action=ai --agent=web` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, and `set_title` only |
 
-A headless session's connection prompt includes "This session is headless"; the GUI prompt
-does not. In a headless session, use only the headless commands above, and when a request needs
+A headless session's connection prompt includes "This session is headless" and its approval
+mode; the GUI prompt does not. In a headless session, use only the headless commands above, and when a request needs
 the DSI Studio window (opening a `.fz`, rendering, or dialogs), tell the user it is not available
 in this session instead of trying it.
 
 Headless Web opens no window. `run_shell` and `write_text_file` wait for the user's
-approval in that terminal, and `run_cli` cannot use `--action=vis` or `--action=cnt`. Any
+approval in that terminal unless `--approval` says otherwise:
+
+| `--approval` | Read-only `run_shell` | Other `run_shell` | `write_text_file` |
+|---|---|---|---|
+| `manual` (default) | asks | asks | asks |
+| `read_only` | runs | asks | asks |
+| `auto` | runs | runs | runs |
+
+A read-only command is one simple command (`pwd`, `ls`, `cat`, `head`, `tail`, `grep`, `wc`,
+`stat`, `du`, `df`, `basename`, `dirname`, `readlink`, `realpath`, `find`, `rg`, `file`) with
+no `;`, `&`, `|`, `<`, `>`, `$`, backquote, or brackets, and no writing option such as
+`find -delete`/`-exec`. Anything else asks. Read-only means it cannot change files; its output
+still comes back to you, so never read credentials or keys. Answering `a` at the terminal
+switches the session to `auto`. In every mode, `run_cli` cannot use `--action=vis` or `--action=cnt`. Any
 other command returns an error; run the work as a command-line action through `run_cli`
 instead (for example `--action=atk`).
 
@@ -96,6 +109,16 @@ and do not send commands any other way.
 ```text
 ready -> request -> processing -> done | error -> next request -> ...
 ```
+
+While a request is `processing`, DSI Studio may add `step` to that message:
+
+- `"step":"waiting_approval"` with `"approval":"<what will run>"`: nothing has run yet; the
+  user must approve it on the DSI Studio computer (a dialog in GUI Web, the terminal in headless
+  Web). Tell the user, keep reading, and do not resend.
+- `"step":"running"`: approved and running; a long wait is normal.
+
+A result error that starts with `user declined` means nothing ran. Any other `run_shell` error
+(exit code, timeout) means the command ran.
 
 ## Sending a request
 
