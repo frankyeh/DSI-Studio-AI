@@ -68,7 +68,9 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 1. The user starts a Web session in either mode and pastes its connection prompt, which
    holds the session document link, into a web-based AI agent. GUI Web copies the prompt;
    headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
-   prints a Google URL and code, which the user enters on any computer or phone.
+   prints a Google URL and code, which the user enters on any computer or phone. Its terminal
+   then shows only the chat history (your `chat` text, each command, errors, and approval
+   prompts); `--debug` also shows DSI Studio's log and command output.
 2. Check that you can read and write the session document (see the next section).
 3. Read the document. DSI Studio has written the first message:
 
