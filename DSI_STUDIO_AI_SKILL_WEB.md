@@ -1,8 +1,9 @@
 # DSI Studio AI Web Session
 
-Use this skill when DSI Studio gives you a Web session document (a Google Doc titled
-`DSI Studio <session-uuid>`). DSI Studio creates one document per Web chat, in the
-user's `DSI Studio AI` Google Drive folder. The document body is a single-slot mailbox
+Use this skill when the user asks you to connect to a DSI Studio Web session. Each session
+has a two-word codename such as `neon-raven`. DSI Studio creates one Google Doc per Web chat,
+in the user's `DSI Studio AI` Google Drive folder, named `DSI Studio <codename>` (after
+`set_title`: `<title> · DSI Studio <codename>`). The document body is a single-slot mailbox
 holding exactly one compact JSON message. DSI Studio reads it about every 500 ms; you
 write a request, and DSI Studio replaces it with the result.
 
@@ -29,7 +30,7 @@ the DSI Studio window (opening a `.fz`, rendering, or dialogs), tell the user it
 in this session instead of trying it.
 
 Headless Web resumes the most recent chat by default; `--session=N` resumes the N-th listed chat
-(0 = most recent) and `--session=-1` starts a new one.
+(0 = most recent), `--session=<codename>` resumes that chat, and `--session=-1` starts a new one.
 
 Headless Web opens no window. `run_shell` and `write_text_file` wait for the user's
 approval in that terminal unless `--approval` says otherwise:
@@ -68,8 +69,9 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 
 ## Start
 
-1. The user starts a Web session in either mode and pastes its connection prompt, which
-   holds the session document link, into a web-based AI agent. GUI Web copies the prompt;
+1. The user starts a Web session in either mode. The user then pastes its connection prompt
+   (codename, this skill, and the document link), or just says "connect to DSI neon-raven" or,
+   for example in voice mode, "connect to the latest DSI session". GUI Web copies the prompt;
    headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
    prints a Google URL and code, which the user enters on any computer or phone. It then lets
    the user resume a recent chat (same session document) or start a new one. A resumed
@@ -77,14 +79,24 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
    your next request an `id` greater than any `id` in it. Its terminal
    then shows only the chat history (your `chat` text, each command, errors, and approval
    prompts); `--debug` also shows DSI Studio's log and command output.
-2. Check that you can read and write the session document (see the next section).
-3. Read the document. DSI Studio has written the first message:
+2. Find the session document:
+   - **Link given:** use it.
+   - **Codename given:** search the `DSI Studio AI` folder for a Doc whose name ends with
+     `DSI Studio <codename>`.
+   - **"The latest":** list the Docs in that folder, newest modified first, and take the
+     first one named `... DSI Studio <codename>`. If two or more changed in the last few
+     minutes, tell the user their codenames and titles and ask which one.
+   After connecting by codename or "latest", tell the user the codename and title you
+   connected to (e.g. "Connected to neon-raven, Test OpenNeuro scripts").
+3. Check that you can read and write the session document (see the next section).
+4. Read the document. DSI Studio has written the first message, which also holds the
+   codename (`code`) so you can confirm the document:
 
 ```json
-{"dsi_bridge":true,"session":"<uuid>","from":"dsi","state":"ready"}
+{"dsi_bridge":true,"session":"<uuid>","code":"neon-raven","from":"dsi","state":"ready"}
 ```
 
-4. Use that `session` value unchanged in every request. Never invent a session UUID,
+5. Use that `session` value (the UUID, not the codename) unchanged in every request. Never invent a session UUID,
    and never create another session document yourself.
 
 ## If you cannot write to the document
@@ -267,7 +279,8 @@ of an existing file, sending files to DSI Studio is not available for your produ
   latest message. Rename it only to wake DSI Studio (below).
 - After 3 minutes without a request, DSI Studio goes idle and sees a body edit only after
   a delay of up to several minutes. If no `processing` appears within 15 seconds of a
-  request, rename the document to any new title (e.g. add or bump a counter); DSI Studio
+  request, rename the document to a new title that still ends with `DSI Studio <codename>`
+  (e.g. add or bump a counter at the start); DSI Studio
   notices the rename within about 10 seconds, reads the request, and leaves idle mode.
   Do not rewrite the request. It stops polling after 1 hour without a request, and when
   the user presses Stop. A request sent after that waits unanswered. If no `processing`
