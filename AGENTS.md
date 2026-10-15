@@ -549,7 +549,7 @@ bash ./dsi.sh run_cli "--action=vis --source=C:/data/subject.fz --cmd=list_tract
 `run_cli` executes the internal CLI action in the current DSI Studio process; it
 does not start another executable. Missing `--action` defaults to `vis`. CLI actions
 do not use the session's `set_window` selection. Relative paths use this AI
-session's own current directory (remembered per chat, not process-wide), and CLI
+chat's working directory, and CLI
 actions may modify global application state.
 
 Never send an operating-system command through `run_cli`.
@@ -557,15 +557,10 @@ Never send an operating-system command through `run_cli`.
 ### 8.2 `run_shell`: every command needs local user approval
 
 ```bash
-bash ./dsi.sh run_shell "cd \"C:/data\""
-bash ./dsi.sh run_shell "cd"
-bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
+bash ./dsi.sh run_shell "cd \"C:/data\" && dir \"*.fz\" /s /b"
 ```
 
-`cd` changes this AI session's own current directory (remembered per chat, not
-process-wide) and therefore affects later relative `run_shell` and `run_cli` paths
-in the same chat; it starts no external process. Every `run_shell` command,
-including `cd`, shows the local user a confirmation dialog with the exact command text and only runs if they approve it —
+A standalone `run_shell "cd ..."` has no lasting effect: each command runs in its own shell from the chat's working directory. Put `cd` in the same command (`cd /data/sub01 && python make_report.py`), use absolute paths, or change the working directory for later commands with `set_work_dir <dir>`. Every `run_shell` command shows the local user a confirmation dialog with the exact command text and only runs if they approve it —
 there is no whitelist or character restriction anymore, the dialog is the only gate.
 This means `run_shell` cannot complete unattended with nobody at the DSI Studio
 machine to respond, and a batched command array containing `run_shell` pauses at

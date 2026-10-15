@@ -2,7 +2,7 @@
 
 `run_cli` and `run_shell` are global MainWindow commands. They remain available even when the AI session has selected a reconstruction, tracking, or image window.
 
-Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` for operating-system shell commands; every `run_shell` command, including `cd`, requires the local user to approve a confirmation dialog before it runs.
+Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` for operating-system shell commands; every `run_shell` command requires the local user to approve a confirmation dialog before it runs.
 
 ## `run_cli`
 
@@ -30,7 +30,7 @@ rec trk src ana exp atl db tmp cnt cnt_cl vis ren qc reg atk xnat img
 
 An action still enforces its own required options. For example, `vis` requires `--cmd`. If no tracking window is open it also requires `--source`; otherwise it uses the most recently created tracking window. `run_cli` does not use the AI session's `set_window` selection.
 
-`run_cli` executes inside the current DSI Studio process. It does not launch another DSI Studio executable. Relative paths use this AI session's own current directory. A prior `run_shell "cd ..."` in the same chat therefore affects later relative CLI paths; a different chat's `cd` does not. CLI actions may use or change global application state. `--thread_count` changes the process-global TIPL thread limit and is not restored after the action.
+`run_cli` executes inside the current DSI Studio process. It does not launch another DSI Studio executable. Relative paths use the chat's working directory; `run_shell "cd ..."` does not change it. CLI actions may use or change global application state. `--thread_count` changes the process-global TIPL thread limit and is not restored after the action.
 
 The request normally remains active until the internal action returns. A failed action produces `command line failed`; the captured command output may contain the detailed cause. Unused options are reported as warnings after execution and do not by themselves change a successful result into an error.
 
@@ -107,12 +107,10 @@ Confirm the intended files and overwrite behavior before using a wildcard action
 
 ## `run_shell`
 
-`run_shell` requires one non-empty command string. Its first space-delimited token is matched case-insensitively; `cd` is a built-in special case, everything else is passed to the operating system shell.
+`run_shell` requires one non-empty command string. Every command, `cd` included, is passed to the operating system shell.
 
 ```bash
-bash ./dsi.sh run_shell "cd \"C:/data\""
-bash ./dsi.sh run_shell "cd"
-bash ./dsi.sh run_shell "dir \"*.fz\" /s /b"
+bash ./dsi.sh run_shell "cd \"C:/data\" && dir \"*.fz\" /s /b"
 bash ./dsi.sh run_shell "curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""
 ```
 
@@ -126,7 +124,7 @@ Keep the entire command in one string.
 
 ### Local user confirmation
 
-Every `run_shell` command, including `cd`, shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no exemption for a plain `dir`/`ls` or `python script.py`: the command runs through a real shell (see below), so a compound string like `ls && rm file` would execute everything after `ls` too if only the first token were checked. This means:
+Every `run_shell` command shows the local user a confirmation dialog with the exact command text before it runs, and only proceeds if they approve it. There is no exemption for a plain `dir`/`ls` or `python script.py`: the command runs through a real shell (see below), so a compound string like `ls && rm file` would execute everything after `ls` too if only the first token were checked. This means:
 
 - `run_shell` blocks until a human at the DSI Studio machine responds to the dialog. It cannot complete in a fully unattended session with no local user present to approve it.
 - If the user declines, the command fails with `user declined to run this shell command`.
@@ -134,11 +132,11 @@ Every `run_shell` command, including `cd`, shows the local user a confirmation d
 
 ### `cd`
 
-`cd` is implemented directly with `QDir::setCurrent()` rather than by starting a shell, after the same confirmation dialog (it changes DSI Studio's own working directory only, no external process is started). The new directory is remembered per AI session (not process-wide) and reapplied automatically before every later `run_shell`, `run_cli`, and relative-path operation in the same chat; a different chat's `cd` never affects it. One pair of double quotes around the entire path is removed. `cd` with no path prints the current directory. Do not use `cd /d`; the remaining text is treated as the path.
+A standalone `run_shell "cd ..."` has no lasting effect: each command runs in its own shell from the chat's working directory. Put `cd` in the same command (`cd /data/sub01 && python make_report.py`), use absolute paths, or change the working directory for later commands with `set_work_dir <dir>`.
 
 ### `dir`/`ls` and other synchronous commands
 
-Any command other than `curl` (after `cd`) takes the synchronous path, run through a real shell on every OS (`cmd.exe /c` on Windows, `/bin/sh -c` on macOS/Linux), so pipes, redirection, `&&`, and glob expansion behave consistently everywhere. DSI Studio waits up to 10 minutes for it to finish; a command still running after that is killed and the request fails with `command timed out after 10 minutes` — split a longer operation into an asynchronous `curl` step (or several shorter `run_shell` calls) instead of relying on an unbounded wait. Standard output is returned and standard error is written to the DSI Studio console. The implementation checks the external exit code and fails with `command exited with code <N>` on a non-zero exit.
+Any command other than `curl` takes the synchronous path, run through a real shell on every OS (`cmd.exe /c` on Windows, `/bin/sh -c` on macOS/Linux), so pipes, redirection, `&&`, and glob expansion behave consistently everywhere. DSI Studio waits up to 10 minutes for it to finish; a command still running after that is killed and the request fails with `command timed out after 10 minutes` — split a longer operation into an asynchronous `curl` step (or several shorter `run_shell` calls) instead of relying on an unbounded wait. Standard output is returned and standard error is written to the DSI Studio console. The implementation checks the external exit code and fails with `command exited with code <N>` on a non-zero exit.
 
 ### `curl`
 
@@ -211,7 +209,7 @@ bash ./dsi.sh run_shell "python make_report.py"
 
 - Every call from an AI agent shows the local user a confirmation dialog with the full path
   and byte count; declining fails with `user declined to write this file`.
-- A relative path is resolved against this chat's current directory (`run_shell "cd ..."`).
+- A relative path is resolved against the chat's working directory.
 - The file is overwritten if it exists. The content is written byte for byte as UTF-8,
   with its own newlines and no BOM.
 - Success returns `wrote <bytes> bytes to <absolute path>`; an open or write failure

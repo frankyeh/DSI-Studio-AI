@@ -14,14 +14,14 @@ write a Google Doc can use it. It has been confirmed with ChatGPT, Claude, and M
 To confirm a new agent in GUI Web, run the full workflow: connect, `set_title`, a
 `chat`-only request, `list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate
 fasciculus, and `list_tract` showing both bundles done. In headless Web, run `set_title`,
-`run_cli`, `run_shell`, `write_text_file`, and `web_upload` instead.
+`run_cli`, `run_shell`, `write_text_file`, `web_upload`, and `web_download` instead.
 
 ## Two modes
 
 | Mode | Started by | Commands |
 |---|---|---|
 | GUI Web | **New Chat → Web** in DSI Studio | the full command center |
-| Headless Web | `dsi_studio --action=ai --agent=web` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, and `set_title` only |
+| Headless Web | `dsi_studio --action=ai --agent=web` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, and `set_title` only |
 
 Headless Web opens no window. `run_shell` and `write_text_file` wait for the user's
 approval in that terminal, and `run_cli` cannot use `--action=vis` or `--action=cnt`. Any
@@ -193,6 +193,34 @@ user's sign-in). Don't ask the user to download and re-upload it. PNG, JPEG, TXT
 and PDF are directly usable; DSI Studio formats (`.fz`, `.tt.gz`, `.nii.gz`, `.sz`) transfer, but
 reading them depends on your tools. Upload only what the task needs: the file leaves the user's
 computer.
+
+## Sending files to DSI Studio
+
+To give DSI Studio a file you made (a script, CSV/JSON, ROI or mask, image, NIfTI), fill a
+Drive slot that DSI Studio creates. DSI Studio can read only Drive files it created, so a new
+file you create yourself, even in the same folder, cannot be downloaded. For a text file
+(script, CSV, JSON), `write_text_file <name> <content>` is simpler and needs no Drive file.
+
+1. Send `web_download_prepare <file name>`. Its `attachment` holds the slot's `drive_id`:
+
+```json
+{"cmd":"web_download_prepare","status":"success","attachment":{"name":"mask.nii.gz","drive_id":"1abc...","url":"https://drive.google.com/file/d/1abc.../view"}}
+```
+
+2. With your Google Drive tools, **replace the content of that existing file** (`drive_id`) with
+   your file. Do not create a new Drive file and do not convert it to a Google Doc or Sheet.
+3. Send `web_download <drive_id>`. DSI Studio downloads the file and returns its local path:
+
+```json
+{"cmd":"web_download","status":"success","attachment":{"name":"mask.nii.gz","path":"/.../ai_projects/web_files/<session>/mask.nii.gz","mime_type":"application/octet-stream","size":1234567,"drive_id":"1abc..."}}
+```
+
+4. Use `attachment.path` in later commands, such as `run_cli` or `run_shell`.
+
+The file is saved in a folder for this session and is never opened or run automatically. An
+existing file with the same name is not replaced: prepare another name instead. The Drive slot
+is moved to the trash after a successful download. If your Drive tools cannot replace the content
+of an existing file, sending files to DSI Studio is not available for your product.
 
 ## Rules
 

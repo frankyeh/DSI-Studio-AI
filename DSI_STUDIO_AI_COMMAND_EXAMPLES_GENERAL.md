@@ -21,7 +21,7 @@ only as parameters of the documented commands below.
 | `list_recent_fib` | `["list_recent_fib"]` | List valid saved recent FIB/FZ paths using forward slashes. If none of the saved paths currently exists, print `no recent files`. Takes no arguments. |
 | `list_recent_src` | `["list_recent_src"]` | List valid saved recent SRC/SZ paths using forward slashes. If none of the saved paths currently exists, print `no recent files`. Takes no arguments. |
 | `reset_settings` | `["reset_settings"]` | Clear all application settings and synchronize them. Takes no arguments. |
-| `set_work_dir` | `["set_work_dir","C:/work"]` | Add the supplied directory to the work-directory list. Without a parameter, open a directory picker. |
+| `set_work_dir` | `["set_work_dir","C:/work"]` | Change the working directory: it becomes the current directory for relative paths in `run_shell`, `run_cli`, `write_text_file`, and `web_upload` (remembered per chat) and is added to the work-directory list. The directory must exist. Without a parameter, open a directory picker. |
 | `rename_dicom` | `["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Rename one or more DICOM files in their current parent directories. Each file is a separate command element. Without file parameters, open a file picker. |
 | `rename_dicom_dir` | `["rename_dicom_dir","C:/dicom"]` | Rename DICOM files recursively at the supplied directory. Without a parameter, open a directory picker. |
 | `convert_dicom_dir` | `["convert_dicom_dir","C:/dicom"]` | Recursively convert DICOM series in the supplied directory to SRC/SZ or NIfTI output without overwriting existing output. Without a parameter, open a directory picker. |
@@ -53,7 +53,7 @@ only as parameters of the documented commands below.
 | `save_qc_src` | `["save_qc_src","C:/report.txt","C:/data/a.sz"]` | Same as `save_qc_nii` for SRC/SZ files. |
 | `save_qc_fib` | `["save_qc_fib","C:/report.txt","C:/data/a.fz"]` | Same as `save_qc_nii` for FIB/FZ files. |
 | `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]` | Parse and execute one DSI Studio command-line string inside the running process. Missing `--action` defaults to `vis`; wildcard looping and each action's own requirements apply. |
-| `run_shell` | `["run_shell","cd \"C:\\data\""]` | Execute one shell command string. `cd` changes this AI session's own current directory (remembered per chat, reapplied on later calls); every command, including `cd`, shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
+| `run_shell` | `["run_shell","cd \"C:\\data\" && dir *.fz"]` | Execute one shell command string from the chat's working directory (a standalone `cd` has no lasting effect); every command shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
 | `write_text_file` | `["write_text_file","make_report.py","<script text>"]` | Write text to a local file exactly as sent (UTF-8, no BOM, overwrite), with no shell parsing. Every AI call asks the local user to confirm. Returns the path and byte count. Use it to write a script, then run it with `run_shell "python make_report.py"`. See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`. |
 | `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a new `view_image` window and select it. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
 | `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
@@ -133,25 +133,17 @@ wildcards, global thread settings, overwrites, or actions that depend on open wi
 ## Confirmation-gated `run_shell` commands
 
 `run_shell` accepts exactly one non-empty command string. The first token is matched
-case-insensitively; every command needs local user approval, then `cd` is handled
-inside DSI Studio and everything else is passed to the operating system shell:
+case-insensitively; every command needs local user approval and is then passed to the
+operating system shell:
 
 ```json
-["run_shell","cd \"C:\\data\""]
-["run_shell","cd"]
-["run_shell","dir \"*.fz\" /s /b"]
+["run_shell","cd \"C:\\data\" && dir \"*.fz\" /s /b"]
 ["run_shell","curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""]
 ```
 
 - Send the entire command as one command-array element.
-- `cd <path>` changes this AI session's own current directory. It is remembered per
-  chat and reapplied automatically before every later `run_shell`, `run_cli`, and
-  relative-path call in the same session -- a different chat's `cd` never affects
-  it, and it survives across separate requests in the same chat. Enclose a path
-  containing spaces in one pair of double quotes.
-- `cd` without a path reports the current directory. Do not use `cd /d`; the
-  remaining text is interpreted as the path.
-- `cd` starts no external process. Every `run_shell` command, including `cd`, shows the local user a confirmation dialog with the exact
+- A standalone `run_shell "cd ..."` has no lasting effect: each command runs in its own shell from the chat's working directory. Put `cd` in the same command (`cd /data/sub01 && python make_report.py`), use absolute paths, or change the working directory for later commands with `set_work_dir <dir>`.
+- Every `run_shell` command shows the local user a confirmation dialog with the exact
   command text and only runs if they approve it; there is no whitelist or character
   restriction anymore, the dialog is the only gate. `run_shell` therefore cannot
   complete unattended with nobody present to approve it, and a batched command array
@@ -174,7 +166,7 @@ inside DSI Studio and everything else is passed to the operating system shell:
   Poll until the entry disappears, then call `log` again to retrieve output or errors.
 - There is currently no AI command for cancelling a `curlN` task, and no completion
   timeout.
-- Relative `dir` and `curl` paths use this session's own directory selected by `cd`.
+- Relative `dir` and `curl` paths use the chat's working directory.
 - Use `curl -o` or `curl -O` instead of output redirection.
 - `run_shell` does not accept DSI Studio `--action=...` command lines. Use `run_cli`
   for a DSI Studio CLI action.
