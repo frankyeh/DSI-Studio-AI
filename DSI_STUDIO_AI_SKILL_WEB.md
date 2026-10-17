@@ -142,7 +142,8 @@ While a request is `processing`, DSI Studio may add `step` to that message:
 - `"step":"waiting_approval"` with `"approval":"<what will run>"`: nothing has run yet; the
   user must approve it on the DSI Studio computer (a dialog in GUI Web, the terminal in headless
   Web). Tell the user, keep reading, and do not resend.
-- `"step":"running"`: approved and running; a long wait is normal.
+- `"step":"running"`: approved and running; a long wait is normal. A synchronous `run_shell`
+  adds `"pid"`, its process ID.
 
 A result error that starts with `user declined` means nothing ran. Any other `run_shell` error
 (exit code, timeout) means the command ran.
@@ -299,5 +300,6 @@ of an existing file, sending files to DSI Studio is not available for your produ
   into a new agent chat.
 - If DSI Studio stopped while running a request, it does not run that request again.
   When the chat is resumed, it replaces the stale `processing` with `state:"error"` and
-  `outcome unknown` for that `id`. Check the state with a harmless command such as
-  `list_window` before repeating any work.
+  `outcome unknown` for that `id`. If it was running a shell command, the error names its
+  pid, which may still be running (for example `run_shell "ps -p <pid>"`). Check the state
+  with a harmless command such as `list_window` before repeating any work.
