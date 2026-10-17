@@ -118,7 +118,7 @@ After `open_src`, the new `recon<hex-address>` is already selected; follow
 - The optional exact lowercase prefix `dsi_studio ` is removed before parsing.
 - Missing `--action` defaults to `vis`.
 - The action runs inside the current DSI Studio process, not in a new executable.
-- Relative paths use DSI Studio's current directory.
+- Relative paths use the chat's working directory (`set_work_dir`).
 - `run_cli` does not target the AI session's `set_window` selection; each CLI action
   uses its own global command-line behavior.
 - The wildcard-aware action dispatcher is used. A source wildcard may run the action
