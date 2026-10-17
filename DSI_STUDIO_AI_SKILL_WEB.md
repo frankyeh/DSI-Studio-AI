@@ -32,14 +32,16 @@ in this session instead of trying it.
 Headless Web resumes the most recent chat by default; `--session=N` resumes the N-th listed chat
 (0 = most recent), `--session=<codename>` resumes that chat, and `--session=-1` starts a new one.
 
-Headless Web opens no window. `run_shell` and `write_text_file` wait for the user's
-approval in that terminal unless `--approval` says otherwise:
+Headless Web opens no window. `run_shell`, `write_text_file`, and `web_upload` wait for the
+user's approval in that terminal unless `--approval` says otherwise:
 
-| `--approval` | Read-only `run_shell` | Other `run_shell` | `write_text_file` |
+| `--approval` | Read-only `run_shell`, `web_upload` | Other `run_shell` | `write_text_file` |
 |---|---|---|---|
 | `manual` (default) | asks | asks | asks |
 | `read_only` | runs | asks | asks |
 | `auto` | runs | runs | runs |
+
+GUI Web always asks in a dialog for all three.
 
 A read-only command is one simple command (`pwd`, `ls`, `cat`, `head`, `tail`, `grep`, `wc`,
 `stat`, `du`, `df`, `basename`, `dirname`, `readlink`, `realpath`, `find`, `rg`, `file`) with
@@ -229,7 +231,9 @@ it and resend.
 
 `web_upload <local file>` copies one file from the user's computer to a private file in
 their `DSI Studio AI` Google Drive folder, named `<session>_<file name>`. It is never made public.
-A relative path is resolved against the chat's working directory. Save first, then upload:
+A relative path is resolved against the chat's working directory. Uploading a local file needs
+the user's approval like a read-only `run_shell` (see the `--approval` table; GUI Web always asks),
+and a declined upload fails with `user declined to upload this file`. Save first, then upload:
 
 ```json
 "command":[{"cmd":"save_lr_screen","param":"result.png"},{"cmd":"web_upload","param":"result.png"}]
@@ -262,7 +266,8 @@ file you create yourself, even in the same folder, cannot be downloaded. For a t
 
 2. With your Google Drive tools, **replace the content of that existing file** (`drive_id`) with
    your file. Do not create a new Drive file and do not convert it to a Google Doc or Sheet.
-3. Send `web_download <drive_id>`. DSI Studio downloads the file and returns its local path:
+3. Send `web_download <drive_id>`. DSI Studio downloads the file and returns its local path. A slot
+   whose content was never replaced is rejected with `the upload slot is still empty`:
 
 ```json
 {"cmd":"web_download","status":"success","attachment":{"name":"mask.nii.gz","path":"/.../ai_projects/web_files/<session>/mask.nii.gz","mime_type":"application/octet-stream","size":1234567,"drive_id":"1abc..."}}
