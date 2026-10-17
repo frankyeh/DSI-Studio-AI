@@ -554,6 +554,10 @@ actions may modify global application state.
 
 Never send an operating-system command through `run_cli`.
 
+`run_cli` is GUI-only. A headless Web session (`dsi_studio --action=ai`) rejects it: run
+DSI Studio command lines there through `run_shell` and dispatch long work through the
+scheduler, as described in `DSI_STUDIO_AI_SKILL_WEB.md`.
+
 ### 8.2 `run_shell`: every command needs local user approval
 
 ```bash
@@ -583,8 +587,9 @@ output or errors. Do not place a command that depends on the downloaded file aft
 For a Web agent, send `{"cmd":"log"}` as a command before the curl-start request.
 
 Never send credentials, tokens, or other sensitive text in a `run_shell` command —
-the local user sees the exact text in the confirmation dialog either way. Never send
-a DSI Studio `--action=...` line through `run_shell`.
+the local user sees the exact text in the confirmation dialog either way. In a GUI
+session, never send a DSI Studio `--action=...` line through `run_shell`; in a headless
+session it is the only way to run one (Section 8.1).
 
 ### 8.3 `write_text_file`: write a script, then run it
 

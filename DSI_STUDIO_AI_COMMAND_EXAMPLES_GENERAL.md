@@ -168,8 +168,9 @@ operating system shell:
   timeout.
 - Relative `dir` and `curl` paths use the chat's working directory.
 - Use `curl -o` or `curl -O` instead of output redirection.
-- `run_shell` does not accept DSI Studio `--action=...` command lines. Use `run_cli`
-  for a DSI Studio CLI action.
+- In a GUI session, use `run_cli`, not `run_shell`, for a DSI Studio CLI action.
+  `run_cli` is GUI-only; a headless Web session runs DSI Studio command lines through
+  `run_shell` (see `DSI_STUDIO_AI_SKILL_WEB.md`).
 - Do not place credentials, tokens, protected data, or untrusted command text in
   `run_shell` — the local user sees the exact text in the confirmation dialog either
   way.

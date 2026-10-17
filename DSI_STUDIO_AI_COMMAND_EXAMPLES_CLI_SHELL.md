@@ -1,6 +1,6 @@
 # DSI Studio AI CLI and Shell Commands
 
-`run_cli` and `run_shell` are global MainWindow commands. They remain available even when the AI session has selected a reconstruction, tracking, or image window.
+`run_cli` and `run_shell` are global MainWindow commands. They remain available even when the AI session has selected a reconstruction, tracking, or image window. `run_cli` is GUI-only: a headless Web session (`dsi_studio --action=ai`) rejects it and runs DSI Studio command lines through `run_shell` instead (see `DSI_STUDIO_AI_SKILL_WEB.md`).
 
 Use ordinary AI commands whenever possible. Use `run_cli` for a DSI Studio command-line action that has no direct AI command. Use `run_shell` for operating-system shell commands; every `run_shell` command requires the local user to approve a confirmation dialog before it runs.
 
@@ -242,4 +242,4 @@ Both commands are handled by MainWindow before fallback to the selected data win
 - Do not place a dependent open or processing command after `curl` in the same array.
 - Initialize `log` before asynchronous curl, then monitor the task in later requests with `list_window` and `log`.
 
-Never send a DSI Studio `--action=...` line through `run_shell`. Never send an operating-system command through `run_cli`.
+In a GUI session, never send a DSI Studio `--action=...` line through `run_shell`; use `run_cli`. In a headless session, `run_shell` is the only way to run one, as its own process, and long work goes through the scheduler. Never send an operating-system command through `run_cli`.

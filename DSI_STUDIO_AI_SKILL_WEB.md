@@ -15,14 +15,14 @@ write a Google Doc can use it. It has been confirmed with ChatGPT, Claude, and M
 To confirm a new agent in GUI Web, run the full workflow: connect, `set_title`, a
 `chat`-only request, `list_recent_fib`, open a recent `.fz`, AutoTrack left/right arcuate
 fasciculus, and `list_tract` showing both bundles done. In headless Web, run `set_title`,
-`run_cli`, `run_shell`, `write_text_file`, `web_upload`, and `web_download` instead.
+`run_shell`, `write_text_file`, `web_upload`, and `web_download` instead.
 
 ## Two modes
 
 | Mode | Started by | Commands |
 |---|---|---|
 | GUI Web | **New Chat → Web** in DSI Studio | the full command center |
-| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_cli`, `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, and `set_title` only |
+| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, and `set_title` only |
 
 A headless session's connection prompt includes "This session is headless" and its approval
 mode; the GUI prompt does not. In a headless session, use only the headless commands above, and when a request needs
@@ -46,9 +46,14 @@ A read-only command is one simple command (`pwd`, `ls`, `cat`, `head`, `tail`, `
 no `;`, `&`, `|`, `<`, `>`, `$`, backquote, or brackets, and no writing option such as
 `find -delete`/`-exec`. Anything else asks. Read-only means it cannot change files; its output
 still comes back to you, so never read credentials or keys. Answering `a` at the terminal
-switches the session to `auto`. In every mode, `run_cli` cannot use `--action=vis` or `--action=cnt`. Any
-other command returns an error; run the work as a command-line action through `run_cli`
-instead (for example `--action=atk`).
+switches the session to `auto`. Any other command, including `run_cli`, returns an error.
+
+A headless session is a mission dispatcher, not a compute worker. Run a short DSI Studio
+command line as its own process through `run_shell` (for example
+`run_shell "dsi_studio --action=qc --source=sub-01.sz"`). `run_shell` waits at most 10 minutes,
+so put long, repeated, or resource-intensive work in a script and dispatch it through the
+cluster scheduler (for example `run_shell "sbatch job.sh"`), record the job ID, return to
+waiting for commands, and check later with short commands such as `squeue`, `ls`, or `tail`.
 
 ## Read the manuals first
 
@@ -191,7 +196,7 @@ not split a string on spaces:
 {"cmd":"segment_brain","param":["human_tumor","15"]}
 ```
 
-Command routing, persistent `set_window` selection, shared window controls, `run_cli`,
+Command routing, persistent `set_window` selection, shared window controls, `run_cli` (GUI only),
 and `run_shell` work as described in `AGENTS.md` and the command examples. You have no
 file system or Python of your own on the user's computer: to produce a file there (for
 example a PPTX report), write the script with `write_text_file` and run it with
@@ -263,7 +268,7 @@ file you create yourself, even in the same folder, cannot be downloaded. For a t
 {"cmd":"web_download","status":"success","attachment":{"name":"mask.nii.gz","path":"/.../ai_projects/web_files/<session>/mask.nii.gz","mime_type":"application/octet-stream","size":1234567,"drive_id":"1abc..."}}
 ```
 
-4. Use `attachment.path` in later commands, such as `run_cli` or `run_shell`.
+4. Use `attachment.path` in later commands, such as `run_shell` (or `run_cli` in GUI Web).
 
 The file is saved in a folder for this session and is never opened or run automatically. An
 existing file with the same name is not replaced: prepare another name instead. The Drive slot
