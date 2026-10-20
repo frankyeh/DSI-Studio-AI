@@ -326,10 +326,20 @@ acquisition and brain size. Smaller output voxels increase computation and file
 size but do not restore missing information. Verify nonlinear registration,
 laterality, and attached T1w/T2w alignment.
 
+For multishell or single-shell data, QSDR can also store template-space DWI in
+the `.fz` (`dwi` in `other_output`): the scheme-balanced b-table plus one
+DWI volume per direction, with `scheme_balance` added to the steps. DSI-grid
+schemes ignore `dwi`. Use it when a template-space SRC is needed:
+`--action=rec` accepts that `.fz` as `--source` (CLI only; the GUI opens
+`.fz` as FIB), either to reconstruct again (e.g. GQI with other parameters) or
+to save it as an `.sz` with `--save_src`. An `.fz` without DWI is rejected.
+Without `--output`, the output name comes from the source name with its
+suffixes removed (e.g. `subject.qsdr.fz` gives `subject.gqi.fz`).
+
 ### 7. Request only needed outputs
 
-Possible outputs include `fa`, `md`, `ad`, `rd`, `tensor`, `gfa`, `rdi`, and
-`odf`. Full ODF storage can greatly enlarge the FZ file and is unnecessary for
+Possible outputs include `fa`, `md`, `ad`, `rd`, `tensor`, `gfa`, `rdi`,
+`odf`, and, for QSDR of shell schemes, `dwi`. Full ODF storage can greatly enlarge the FZ file and is unnecessary for
 ordinary tractography unless a downstream method explicitly needs it.
 
 ### 8. Validate the FZ
@@ -408,6 +418,14 @@ QSDR:
 
 ```bash
 dsi_studio --action=rec --source=subject.sz --method=7 --output=subject_qsdr.fz
+```
+
+QSDR with template-space DWI, then GQI or an SRC from that `.fz`:
+
+```bash
+dsi_studio --action=rec --source=subject.sz --method=7 --other_output=fa,md,rd,rdi,dwi --output=subject_qsdr.fz
+dsi_studio --action=rec --source=subject_qsdr.fz --method=4 --param=1.25 --output=subject_qsdr_gqi.fz
+dsi_studio --action=rec --source=subject_qsdr.fz --save_src=subject_qsdr.sz
 ```
 
 Available parameters may vary by version. Prefer commands captured from the
