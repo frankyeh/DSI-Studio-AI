@@ -105,6 +105,11 @@ parameter. The inventory below was checked against `view_image::command()`,
 - Commands ending in `_image` or `_label` require an existing file and map it into
   the current image space using linear interpolation for images or majority
   interpolation for labels.
+- For a FIB (`.fz`, opened in the image window or with `--action=img`), resampling
+  commands such as `regrid`, `upsampling`, `downsampling`, `transform`, and
+  `translocate` use nearest-neighbor sampling for every matrix, so the fiber
+  metrics and directions of a voxel come from the same source voxel. SRC (`.sz`)
+  images keep linear interpolation, with majority for the mask.
 - `save` can show a modal prompt when the image window was opened with additional
   batch files. Avoid unattended batch saves unless this workflow is expected.
 
