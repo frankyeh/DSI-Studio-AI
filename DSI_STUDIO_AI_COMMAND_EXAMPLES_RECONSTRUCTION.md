@@ -67,7 +67,6 @@ Both setters accept `name=value[&name=value...]`.
 | `thread_count` | Reconstruction thread count |
 | `other_output` | Comma-separated output metric IDs; `dwi` stores template-space DWI in a QSDR `.fz` (shell schemes only) |
 | `dti_ignore_high_b` | Ignore high-b-value data for tensor metrics |
-| `odf_resolving` | Enable ODF resolving |
 | `r2_weighted` | Enable R2-weighted reconstruction |
 | `param` | GQI/QSDR diffusion sampling length ratio |
 | `template` | Zero-based template index |
