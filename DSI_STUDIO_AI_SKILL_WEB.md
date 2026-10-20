@@ -31,6 +31,7 @@ in this session instead of trying it.
 
 Headless Web resumes the most recent chat by default; `--session=N` resumes the N-th listed chat
 (0 = most recent), `--session=<codename>` resumes that chat, and `--session=-1` starts a new one.
+`--remove_session=N` or `--remove_session=<codename>` removes that chat (its Doc goes to the Drive trash) and exits.
 
 Headless Web opens no window. `run_shell`, `write_text_file`, and `web_upload` wait for the
 user's approval in that terminal unless `--approval` says otherwise:
