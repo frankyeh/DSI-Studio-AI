@@ -29,9 +29,11 @@ mode; the GUI prompt does not. In a headless session, use only the headless comm
 the DSI Studio window (opening a `.fz`, rendering, or dialogs), tell the user it is not available
 in this session instead of trying it.
 
-Headless Web resumes the most recent chat by default; `--session=N` resumes the N-th listed chat
-(0 = most recent), `--session=<codename>` resumes that chat, and `--session=-1` starts a new one.
-`--remove_session=N` or `--remove_session=<codename>` removes that chat (its Doc goes to the Drive trash) and exits.
+Headless Web starts a new chat by default (`--session=-1`); `--session=N` resumes the N-th listed
+chat (0 = most recent), and `--session=<codename>` or `--session=<uuid>` resumes that chat. Each
+concurrent `dsi_studio --action=ai` process needs its own chat (do not resume a chat already served
+by another DSI Studio process). `--remove_session=N`, `--remove_session=<codename>`, or
+`--remove_session=<uuid>` removes that chat (its Doc goes to the Drive trash) and exits.
 
 Headless Web opens no window. `run_shell`, `write_text_file`, and `web_upload` wait for the
 user's approval in that terminal unless `--approval` says otherwise:
@@ -81,9 +83,9 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
    (this skill and the codename, e.g. "connect to DSI Studio neon-raven"), or just says "connect to DSI neon-raven" or,
    for example in voice mode, "connect to the latest DSI session". GUI Web copies the prompt;
    headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
-   prints a Google URL and code, which the user enters on any computer or phone. It then lets
-   the user resume a recent chat (same session document) or start a new one. A resumed
-   document may still hold an old message: read it first, keep the same `session`, and give
+   prints a Google URL and code, which the user enters on any computer or phone. By default it
+   starts a new chat, or resumes an existing chat when given `--session` (same session document).
+   A resumed document may still hold an old message: read it first, keep the same `session`, and give
    your next request an `id` greater than any `id` in it. Its terminal
    then shows only the chat history (your `chat` text, each command, errors, and approval
    prompts); `--debug` also shows DSI Studio's log and command output.
