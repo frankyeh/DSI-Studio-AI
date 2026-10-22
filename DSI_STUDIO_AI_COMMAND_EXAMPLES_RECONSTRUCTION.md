@@ -130,7 +130,7 @@ Both setters accept `name=value[&name=value...]`.
 | `swap_bxbz` | `bash ./dsi.sh swap_bxbz` | Swap b-vector X/Z. |
 | `load_bval` | `bash ./dsi.sh load_bval "C:/data/new.bval"` | Replace the b-values from an FSL bval file. The value count must equal the DWI count. Same as CLI `--bval` on `--action=rec`. |
 | `load_bvec` | `bash ./dsi.sh load_bvec "C:/data/new.bvec"` | Replace the b-vectors from an FSL bvec file (three rows or one row per DWI; y flipped as on import). Same as CLI `--bvec` on `--action=rec`. |
-| `regenerate_btable` | `bash ./dsi.sh regenerate_btable "C:/data/HCP1065.2mm.sz"` | Rebuild lost or corrupted b-vectors from a single- or multi-shell reference SRC. Groups the DWIs with b ≥ 500 into shells and matches each shell to the reference shell with the nearest mean b-value. Affinely aligns the reference b0 to this b0, then gives each DWI the correlation-weighted direction of its three best-correlated reference DWIs in the matched shell. The recorded b-values are kept, and DWIs with b < 500 are left unchanged. Leaves the b-table unchanged on failure. CLI: `--cmd=regenerate_btable=<reference.sz>`. |
+| `regenerate_btable` | `bash ./dsi.sh regenerate_btable` or `bash ./dsi.sh regenerate_btable "C:/data/reference.sz"` | Rebuild lost or corrupted b-vectors from a single- or multi-shell reference SRC. Without a parameter, it uses the current template's reference `<template>.sz` (e.g. `human.sz` for the human template; see below). Groups the DWIs with b ≥ 500 into shells and matches each shell to the reference shell with the nearest mean b-value. Affinely aligns the reference b0 to this b0, then gives each DWI the correlation-weighted direction of its three best-correlated reference DWIs in the matched shell. The recorded b-values are kept, and DWIs with b < 500 are left unchanged. Leaves the b-table unchanged on failure. CLI: `--cmd=regenerate_btable` or `--cmd=regenerate_btable=<reference.sz>`. |
 | `scheme_balance` | `bash ./dsi.sh scheme_balance` | Resample a multishell or single-shell b-table to the GQI balanced scheme and store the balanced DWI (Edit > Scheme Balance). Reconstruction then applies only the GQI weighting. Fails for DSI-grid schemes or when already applied. CLI: `--cmd=scheme_balance`. |
 | `topup` | `bash ./dsi.sh topup "C:/data/reverse_pe.rz"` | Run TOPUP using an explicit reverse-PE source. With no parameter, an AI command uses automatic reverse-PE discovery. |
 | `topup_eddy` | `bash ./dsi.sh topup_eddy "C:/data/reverse_pe.rz"` | Run TOPUP when possible, followed by EDDY. With no parameter, an AI command uses automatic reverse-PE discovery. |
@@ -175,13 +175,24 @@ Do not infer group-wide orientation from a poor-SNR outlier.
 If the b-table is missing or wrong in a way flips and swaps cannot fix, replace it:
 `load_bval` / `load_bvec` when the correct FSL files exist, or `regenerate_btable`
 with a reference SRC whose b-table is known to be correct. `regenerate_btable` replaces
-b-vectors only, so the recorded b-values must be right. Use the HCP1065 2 mm
-population-average SZ as the reference for any scan resolution:
-`https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.2mm.sz`.
-Download it once and pass the local path. Avoid `HCP1065.1mm.sz`: the whole reference
-is loaded into memory (about 11 GB at 1 mm, versus about 1.4 GB at 2 mm), and the
-direction estimate does not need the finer grid. After `regenerate_btable`, run
-`check_btable2` and inspect fiber directions before reconstruction.
+b-vectors only, so the recorded b-values must be right.
+
+- **Automatic reference:** run `regenerate_btable` without a parameter. DSI Studio
+  takes the current template's name and downloads
+  `https://github.com/data-others/atlas/releases/download/<template>/<template>.sz`
+  once to the system temp folder (`<temp>/data-others/atlas/<template>/`). It reuses
+  the file on later runs (also offline) and downloads it again if the cached copy is
+  invalid. The human template's 2 mm reference (`human/human.sz`) is published; other
+  templates' references are not yet, so for them the download fails with a clear
+  error and the b-table is left unchanged. Do not use the old HCP1065 links.
+- **Explicit reference:** `regenerate_btable=<reference.sz>` uses any SRC you supply
+  (command line or AI command only; the GUI always uses the automatic reference).
+- **Cluster or batch runs:** the temp folder is often per job (`$TMPDIR` on Slurm), so
+  download the template's `.sz` once to shared storage and pass it explicitly with
+  `--cmd=regenerate_btable=<shared path>`.
+
+After `regenerate_btable`, run `check_btable2` and inspect fiber directions before
+reconstruction.
 
 As an alternative, CLI QC can check every `.sz` independently against a selected
 template:
