@@ -252,12 +252,11 @@ When the bval/bvec are lost or corrupted rather than flipped, replace them:
 `--bval=<file> --bvec=<file>` on `--action=rec` (or `load_bval` / `load_bvec`), or
 `--cmd=regenerate_btable=<reference.sz>` (`regenerate_btable`). This rebuilds the
 b-vectors of DWIs with b ≥ 500 from the nearest-b shell of the reference and keeps the
-recorded b-values. Use the HCP1065 population-average SZ as the reference, picking the
-one whose voxel size is closer to the scan's:
-`https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.1mm.sz` (about
-1–1.5 mm) or
-`https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.2mm.sz` (about
-1.5 mm and above). Download it once and pass the local path. Then check orientation as
+recorded b-values. Use the HCP1065 2 mm population-average SZ as the reference for any
+scan resolution:
+`https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.2mm.sz`.
+Download it once and pass the local path. Avoid the 1 mm version: it needs about 11 GB
+of memory, because the whole reference is loaded. Then check orientation as
 above.
 
 To exclude corrupted volumes found in QC, use `--remove=<indices or b>value>` on
