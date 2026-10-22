@@ -65,7 +65,7 @@ Both setters accept `name=value[&name=value...]`.
 |---|---|
 | `method` | Reconstruction method: `1` DTI, `4` GQI, `7` QSDR |
 | `thread_count` | Reconstruction thread count |
-| `other_output` | Comma-separated output metric IDs; `dwi` stores template-space DWI in a QSDR `.fz` (shell schemes only); `fixel` (GQI/QSDR) refines fiber peaks analytically and stores them as `fixelN` instead of the default `indexN`, readable only by DSI Studio builds from 2026-10 on. `all` excludes `dwi`, `fixel`, and `debug` |
+| `other_output` | Comma-separated output metric IDs; `dwi` stores template-space DWI in a QSDR `.fz` (shell schemes only); `fixel` stores fiber directions as `fixelN`: GQI/QSDR refine peaks analytically instead of the default `indexN`, and DTI writes `fixel0` instead of the default `dir0`; readable only by DSI Studio builds from 2026-10 on. `all` excludes `dwi`, `fixel`, and `debug` |
 | `dti_ignore_high_b` | Ignore high-b-value data for tensor metrics |
 | `r2_weighted` | Enable R2-weighted reconstruction |
 | `param` | GQI/QSDR diffusion sampling length ratio |
