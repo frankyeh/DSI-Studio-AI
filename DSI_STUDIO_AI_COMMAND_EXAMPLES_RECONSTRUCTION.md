@@ -175,16 +175,12 @@ Do not infer group-wide orientation from a poor-SNR outlier.
 If the b-table is missing or wrong in a way flips and swaps cannot fix, replace it:
 `load_bval` / `load_bvec` when the correct FSL files exist, or `regenerate_btable`
 with a reference SRC whose b-table is known to be correct. `regenerate_btable` replaces
-b-vectors only, so the recorded b-values must be right. Use the HCP1065
-population-average SZ as the reference, and pick the one whose voxel size is closer to
-the scan's (from the `vs` reported on load):
-
-- `https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.1mm.sz`
-  (voxel size closer to 1 mm, e.g. 1.25 mm)
-- `https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.2mm.sz`
-  (voxel size closer to 2 mm, e.g. 2 or 2.5 mm)
-
-Download it once and pass the local path. After `regenerate_btable`, run
+b-vectors only, so the recorded b-values must be right. Use the HCP1065 2 mm
+population-average SZ as the reference for any scan resolution:
+`https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.2mm.sz`.
+Download it once and pass the local path. Avoid `HCP1065.1mm.sz`: the whole reference
+is loaded into memory (about 11 GB at 1 mm, versus about 1.4 GB at 2 mm), and the
+direction estimate does not need the finer grid. After `regenerate_btable`, run
 `check_btable2` and inspect fiber directions before reconstruction.
 
 As an alternative, CLI QC can check every `.sz` independently against a selected
