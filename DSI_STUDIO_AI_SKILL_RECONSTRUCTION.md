@@ -250,14 +250,17 @@ artifact-heavy outlier.
 
 When the bval/bvec are lost or corrupted rather than flipped, replace them:
 `--bval=<file> --bvec=<file>` on `--action=rec` (or `load_bval` / `load_bvec`), or
-`--cmd=regenerate_btable=<reference.sz>` (`regenerate_btable`). This rebuilds the
-b-vectors of DWIs with b ≥ 500 from the nearest-b shell of the reference and keeps the
-recorded b-values. Use the HCP1065 2 mm population-average SZ as the reference for any
-scan resolution:
-`https://github.com/data-others/atlas/releases/download/hcp1065/HCP1065.2mm.sz`.
-Download it once and pass the local path. Avoid the 1 mm version: it needs about 11 GB
-of memory, because the whole reference is loaded. Then check orientation as
-above.
+`--cmd=regenerate_btable` (`regenerate_btable`). This rebuilds the b-vectors of DWIs
+with b ≥ 500 from the nearest-b shell of the reference and keeps the recorded b-values.
+The parameterless form downloads the current template's reference
+`https://github.com/data-others/atlas/releases/download/<template>/<template>.sz`
+once to the system temp folder and reuses it. The human template's 2 mm reference
+(`human/human.sz`) is published; for other templates the reference is not yet
+available, so the command fails with a clear error and leaves the b-table unchanged.
+Do not use the retired HCP1065 links. `--cmd=regenerate_btable=<reference.sz>` uses an
+explicit reference instead. On clusters, where the temp folder is usually per job,
+download the reference once to shared storage and pass that path. Then check
+orientation as above.
 
 To exclude corrupted volumes found in QC, use `--remove=<indices or b>value>` on
 `--action=rec` or the `remove` command (same syntax, e.g. `3,10:12` or `b>3000`); the
