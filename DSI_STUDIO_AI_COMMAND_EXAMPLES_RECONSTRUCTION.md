@@ -183,13 +183,18 @@ b-vectors only, so the recorded b-values must be right.
   once to the system temp folder (`<temp>/data-others/atlas/<template>/`). It reuses
   the file on later runs (also offline) and downloads it again if the cached copy is
   invalid. The human template's 2 mm reference (`human/human.sz`) is published; other
-  templates' references are not yet, so for them the download fails with a clear
-  error and the b-table is left unchanged. Do not use the old HCP1065 links.
+  templates' references are not yet. A missing asset (404), no network without a valid
+  cache, a corrupt download, or a cancelled download reports an error and leaves the
+  b-table unchanged. Do not use the old HCP1065 links.
 - **Explicit reference:** `regenerate_btable=<reference.sz>` uses any SRC you supply
   (command line or AI command only; the GUI always uses the automatic reference).
+- **Parallel runs — important:** do not start several parameterless
+  `regenerate_btable` runs at the same time while the cache may be missing or being
+  replaced; they can race on the same cache file. Download and check the reference
+  once in a single process, then give every parallel job the explicit path
+  (`--cmd=regenerate_btable=<path>`).
 - **Cluster or batch runs:** the temp folder is often per job (`$TMPDIR` on Slurm), so
-  download the template's `.sz` once to shared storage and pass it explicitly with
-  `--cmd=regenerate_btable=<shared path>`.
+  put the template's `.sz` on persistent shared storage and pass that path.
 
 After `regenerate_btable`, run `check_btable2` and inspect fiber directions before
 reconstruction.
