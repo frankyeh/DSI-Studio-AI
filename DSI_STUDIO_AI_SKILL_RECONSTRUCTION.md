@@ -256,10 +256,13 @@ The parameterless form downloads the current template's reference
 `https://github.com/data-others/atlas/releases/download/<template>/<template>.sz`
 once to the system temp folder and reuses it. The human template's 2 mm reference
 (`human/human.sz`) is published; for other templates the reference is not yet
-available, so the command fails with a clear error and leaves the b-table unchanged.
-Do not use the retired HCP1065 links. `--cmd=regenerate_btable=<reference.sz>` uses an
-explicit reference instead. On clusters, where the temp folder is usually per job,
-download the reference once to shared storage and pass that path. Then check
+available. A missing asset, no network without a valid cache, a corrupt or cancelled
+download reports an error and leaves the b-table unchanged. Do not use the retired
+HCP1065 links. `--cmd=regenerate_btable=<reference.sz>` uses an explicit reference
+instead. **Do not run several parameterless `regenerate_btable` jobs in parallel**
+while the cache may be missing: they can race on the same cache file. Download and
+check the reference once in one process, put it on persistent shared storage (not the
+per-job `$TMPDIR` on Slurm), and pass that path to every parallel job. Then check
 orientation as above.
 
 To exclude corrupted volumes found in QC, use `--remove=<indices or b>value>` on
