@@ -12,9 +12,8 @@ Command names and text, path, or composite parameters are strings. Send standalo
 numeric parameters as JSON numbers.
 
 This file contains the complete device command inventory confirmed in the
-current source. The current command interface has no `list_device` command.
-Device indices follow current table order and cannot be discovered remotely
-through a dedicated request.
+current source. Device indices follow current table order; use `list_devices`
+to discover them.
 
 | Command | Common example | Important behavior |
 |---|---|---|
@@ -27,6 +26,11 @@ through a dedicated request.
 | `delete_device` | `["delete_device","0&2&5"]` | Delete one or more devices. Use one index or an `&`-separated index list; omit the index to use the current row. |
 | `delete_all_devices` | `["delete_all_devices"]` | Delete all devices. |
 | `save_all_devices` | `["save_all_devices","C:/output/electrodes.dv.csv"]` | Save checked devices in table order. Without a path, open a save dialog. |
+| `load_device` | `["load_device","C:/output/electrodes.dv.csv"]` | Append devices from a device file. Fails if the file yields no device. Without a path, open a file dialog. |
+| `list_devices` | `["list_devices"]` | Return a tab-separated table in `output`: index, shown (1/0), name, type, color, length, x, y, z, phi, theta. `list_device` is an alias. |
+| `list_device_types` | `["list_device_types"]` | Return the available device type names, one per line. |
+| `set_device_type` | `["set_device_type","Locator",0]` | Set one device's type (exact name from `list_device_types`, case-insensitive). Applies the GUI rules for default name and length. Omit the index to use the current row. |
+| `set_device_direction` | `["set_device_direction","30 45",0]` | Set one device's direction as `"phi theta"` in degrees or as a `"dx dy dz"` vector (normalized; zero fails). `set_device_dir` is an alias. Omit the index to use the current row. |
 | `show_device_statistics` | `["show_device_statistics"]` | Compute device statistics. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
 | `save_device_statistics` | `["save_device_statistics","C:/output/device_stat.txt"]` | Same statistics as `show_device_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_device_statistics` with no path fails with a usage error. |
 
@@ -36,7 +40,8 @@ through a dedicated request.
 - `push_device` and `pull_device` use a physical 0.5 mm movement converted using voxel size.
 - `move_device`, `push_device`, `pull_device`, and `copy_device` use the current row when the index is omitted.
 - `delete_device` accepts one index or an `&`-separated index list and uses the current row when omitted.
-- Because `list_device` does not exist, prefer current-row operations when the user has selected the intended device. Otherwise ask the user to identify the target rather than guessing an index.
+- Run `list_devices` to map names to indices before index-based commands; when names are ambiguous, ask the user rather than guessing.
+- `phi`/`theta` follow the table columns: phi is the azimuth in the x–y plane and theta the angle from +z, both in degrees.
 - `set_acpc` removes existing locator entries before creating replacements.
 - `save_all_devices` writes only checked devices.
 - `show_device_statistics` returns the report text directly to an AI caller (no dialog); a local user still sees a modal dialog. Use `save_device_statistics` instead when the result should be written to a file rather than returned.
