@@ -108,7 +108,9 @@ if($Chat) { $request.chat = $Chat }
 $pipe = $writer = $reader = $null
 try
 {
-    $pipe = [IO.Pipes.NamedPipeClientStream]::new('.','dsi-studio')
+    # DSI_STUDIO_SOCKET (set by the DSI Studio process that launched this agent) names the only server to use when present
+    $name = if($env:DSI_STUDIO_SOCKET) { $env:DSI_STUDIO_SOCKET -replace '^\\\\\.\\pipe\\','' } else { 'dsi-studio' }
+    $pipe = [IO.Pipes.NamedPipeClientStream]::new('.',$name)
     $pipe.Connect(5000)
     $writer = [IO.StreamWriter]::new($pipe,$utf8,1024,$true)
     $reader = [IO.StreamReader]::new($pipe,$utf8,$false,1024,$true)
