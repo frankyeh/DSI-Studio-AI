@@ -125,21 +125,20 @@ if chat is not None:
     request["chat"] = chat
 
 payload = json.dumps(request, separators=(",", ":"), ensure_ascii=False).encode()
-paths = []
+# DSI_STUDIO_SOCKET (set by the DSI Studio process that launched this agent) is the only server to use when present
 override = os.environ.get("DSI_STUDIO_SOCKET")
-if override:
-    paths.append(override)
+paths = [override] if override else []
 for base in (
     os.environ.get("TMPDIR"), os.environ.get("TMP"),
     os.environ.get("TEMP"), tempfile.gettempdir(), "/tmp",
 ):
-    if base:
+    if base and not override:
         path = os.path.join(base, "dsi-studio")
         if path not in paths:
             paths.append(path)
 
 errors = []
-for endpoint in paths + ["\0dsi-studio"]:
+for endpoint in paths + ([] if override else ["\0dsi-studio"]):
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
         client.settimeout(5)
