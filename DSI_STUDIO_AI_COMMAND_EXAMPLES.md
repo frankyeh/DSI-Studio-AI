@@ -29,7 +29,7 @@ Each command/interface area has one authoritative `COMMAND_EXAMPLES` document:
 
 - [Shared window selection and controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
-- [Main window, Fiber Data Hub, FIB, workspace, settings, and parameters](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
+- [Main window, Fiber Data Hub, FIB, workspace, settings, parameters, agent readiness, and chat history](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
 - [Slices and segmentation](DSI_STUDIO_AI_COMMAND_EXAMPLES_SLICE.md)
 - [Regions, atlas-overlap statistics, and tract-to-region analysis](DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md)

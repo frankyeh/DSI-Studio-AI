@@ -171,8 +171,9 @@ For each command in a request, the current dispatcher applies this order:
 1. Shared window controls: `bring_to_front`, `minimize`, `maximize`, `close`.
 2. Session commands: `set_title`, `log`, and `set_window`.
 3. Window discovery: `list_window`.
-4. All remaining commands are offered to `MainWindow` first.
-5. Only a command unknown to `MainWindow` falls through to the persistently selected
+4. Read-only system commands: `get_agent_settings` and `get_chat` (also in headless mode).
+5. All remaining commands are offered to `MainWindow` first.
+6. Only a command unknown to `MainWindow` falls through to the persistently selected
    reconstruction, tracking, image, or connectometry window.
 
 Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fib`

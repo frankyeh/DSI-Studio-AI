@@ -232,6 +232,23 @@ operation may exceed the client's waiting period while continuing inside DSI Stu
 Do not immediately resend it; inspect `list_window`, `log`, or the relevant status
 command first.
 
+### 3.6 Check agent readiness and read other chats
+
+Two read-only system commands work in both the GUI and headless sessions; full syntax is
+in `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`:
+
+```bash
+bash ./dsi.sh get_agent_settings ready      # local agents that can be invoked now (or name one agent)
+bash ./dsi.sh get_chat -5                   # the 5 most recent chats: id, title, agent, model, status
+bash ./dsi.sh get_chat <session-id> -3      # that chat's last 3 messages
+bash ./dsi.sh get_chat <session-id> 8-      # message 8 onward: only what is new since message 7
+```
+
+To follow another chat's progress, keep the reply's `messages` count and next request
+`<messages+1>-`; an empty `history` means nothing new. Reading never selects, wakes, or
+changes the chat. `ready` means installed and signed in on this host; usage limits are not
+checked.
+
 ## 4. Opening data and local input
 
 ### 4.1 Open user-supplied or recent source files
