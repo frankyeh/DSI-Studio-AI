@@ -22,7 +22,7 @@ fasciculus, and `list_tract` showing both bundles done. In headless Web, run `se
 | Mode | Started by | Commands |
 |---|---|---|
 | GUI Web | **New Chat → Web** in DSI Studio | the full command center |
-| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, `set_title`, `get_agent_settings`, `new_chat`, and `get_chat` only |
+| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, `set_title`, `get_agent_settings`, `new_chat`, `send_chat`, and `get_chat` only |
 
 A headless session's connection prompt includes "This session is headless" and its approval
 mode; the GUI prompt does not. In a headless session, use only the headless commands above, and when a request needs

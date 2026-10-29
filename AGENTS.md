@@ -240,6 +240,7 @@ These system commands work in both the GUI and headless sessions; full syntax is
 ```bash
 bash ./dsi.sh get_agent_settings ready      # local agents that can be invoked now (or name one agent)
 bash ./dsi.sh new_chat claude sonnet "Atlas QA"   # a new chat with that agent, model, and title; returns its id
+bash ./dsi.sh send_chat <session-id> "<task>"     # delegate: delivered/queued, or busy:/unsupported:/error:
 bash ./dsi.sh get_chat -5                   # the 5 most recent chats: id, title, agent, model, status
 bash ./dsi.sh get_chat <session-id> -3      # that chat's last 3 messages
 bash ./dsi.sh get_chat <session-id> 8-      # message 8 onward: only what is new since message 7
@@ -247,7 +248,8 @@ bash ./dsi.sh get_chat <session-id> 8-      # message 8 onward: only what is new
 
 To follow another chat's progress, keep the reply's `messages` count and next request
 `<messages+1>-`; an empty `history` means nothing new. Reading never selects, wakes, or
-changes the chat. `new_chat` only creates the chat; its agent starts with the first message.
+changes the chat. `new_chat` only creates the chat; its agent starts with the first message (`send_chat`). After
+`send_chat`, follow the reply with `get_chat <id> "<message+1>-"`; on `busy:`, wait and retry.
 Codex and Antigravity then replace the id with their own, so find the chat again with
 `get_chat` (agent and title). `ready` means installed and signed in on this host; usage limits are not
 checked.
