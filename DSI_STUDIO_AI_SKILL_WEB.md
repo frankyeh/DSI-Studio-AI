@@ -297,8 +297,8 @@ of an existing file, sending files to DSI Studio is not available for your produ
   request, rename the document to a new title that still contains `DSI Studio <codename>`
   (e.g. add or bump a counter at the start); DSI Studio
   notices the rename within about 10 seconds, reads the request, and leaves idle mode.
-  Do not rewrite the request. It stops polling after 1 hour without a request, and when
-  the user presses Stop. A request sent after that waits unanswered. If no `processing`
+  Do not rewrite the request. It stops polling only when the user presses Stop or closes
+  DSI Studio. A request sent after that waits unanswered. If no `processing`
   appears within 30 seconds after the rename, ask the user to press **Resume** on the chat
   in DSI Studio. Resume posts the connection prompt again, so the user can also paste it
   into a new agent chat.
