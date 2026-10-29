@@ -8,8 +8,10 @@ bash ./dsi.sh <command> [values...] [-- <command> [values...] ...] [-Chat "messa
 
 Always include `bash` before `./dsi.sh`. Do not invoke `./dsi.sh` directly.
 
-DSI Studio supplies `DSI_STUDIO_AGENT` to identify the current agent. The launcher
-then reads only that agent's native session variable:
+DSI Studio supplies `DSI_STUDIO_AGENT` to identify the current agent. A headless DSI Studio
+(`--action=ai`) also sets `DSI_STUDIO_SOCKET` for the agents it launches: the launcher then
+connects only to that instance; without it, the launcher connects to the GUI's `dsi-studio`
+server. The launcher then reads only that agent's native session variable:
 
 ```text
 Codex       -> CODEX_THREAD_ID
