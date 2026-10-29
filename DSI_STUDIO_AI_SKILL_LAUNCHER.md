@@ -115,7 +115,8 @@ bash ./dsi.sh new_chat
 This registers the agent's own session UUID as a new chat. Run it alone, without other
 commands, values, or `-Chat`. It fails with `session already exists` if the chat exists.
 Never run it automatically after `session not found`: a chat removed by the user must stay
-removed.
+removed. `new_chat` with an agent name (`new_chat claude`) is a different command: it creates
+a separate DSI-managed chat (see `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
 
 ## Launcher selection
 

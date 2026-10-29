@@ -232,13 +232,14 @@ operation may exceed the client's waiting period while continuing inside DSI Stu
 Do not immediately resend it; inspect `list_window`, `log`, or the relevant status
 command first.
 
-### 3.6 Check agent readiness and read other chats
+### 3.6 Check agent readiness, create chats, and read other chats
 
-Two read-only system commands work in both the GUI and headless sessions; full syntax is
-in `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`:
+These system commands work in both the GUI and headless sessions; full syntax is in
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`:
 
 ```bash
 bash ./dsi.sh get_agent_settings ready      # local agents that can be invoked now (or name one agent)
+bash ./dsi.sh new_chat claude sonnet "Atlas QA"   # a new chat with that agent, model, and title; returns its id
 bash ./dsi.sh get_chat -5                   # the 5 most recent chats: id, title, agent, model, status
 bash ./dsi.sh get_chat <session-id> -3      # that chat's last 3 messages
 bash ./dsi.sh get_chat <session-id> 8-      # message 8 onward: only what is new since message 7
@@ -246,7 +247,9 @@ bash ./dsi.sh get_chat <session-id> 8-      # message 8 onward: only what is new
 
 To follow another chat's progress, keep the reply's `messages` count and next request
 `<messages+1>-`; an empty `history` means nothing new. Reading never selects, wakes, or
-changes the chat. `ready` means installed and signed in on this host; usage limits are not
+changes the chat. `new_chat` only creates the chat; its agent starts with the first message.
+Codex and Antigravity then replace the id with their own, so find the chat again with
+`get_chat` (agent and title). `ready` means installed and signed in on this host; usage limits are not
 checked.
 
 ## 4. Opening data and local input
