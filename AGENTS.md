@@ -65,6 +65,11 @@ Learn DSI Studio by performing the following three requests in order. Complete a
 inspect all three replies before reading further in this file or opening any other
 DSI Studio AI document.
 
+Exception: a coding task that only reads or edits source or text files (no DSI Studio data,
+window, or analysis) skips Steps 2.1-2.3. Edit files with your own tools or with
+`patch_text_file` (Section 8.3), and check the repository with `run_shell "git status"` or
+`run_shell "git diff"`.
+
 ### 2.1 Set the task title
 
 ```bash
@@ -240,6 +245,7 @@ These system commands work in both the GUI and headless sessions; full syntax is
 ```bash
 bash ./dsi.sh get_agent_settings ready      # local agents that can be invoked now (or name one agent)
 bash ./dsi.sh new_chat claude sonnet "Atlas QA"   # a new chat with that agent, model, and title; returns its id
+bash ./dsi.sh new_chat codex default "Fix parser" C:/src/repo   # ...whose agent may write in that folder
 bash ./dsi.sh send_chat <session-id> "<task>"     # delegate: delivered/queued, or busy:/unsupported:/error:
 bash ./dsi.sh get_chat -5                   # the 5 most recent chats: id, title, agent, model, status
 bash ./dsi.sh get_chat <session-id> -3      # that chat's last 3 messages
@@ -626,6 +632,11 @@ of `echo` or heredocs, then run the script with `run_shell`:
 "command":[{"cmd":"write_text_file","param":["make_report.py","<script>"]},
            {"cmd":"run_shell","param":"python make_report.py"}]
 ```
+
+To change part of an existing text file, send `patch_text_file <filename> <unified diff>`
+instead of rewriting it: the hunks (`@@ -N,M +N,M @@`, with ` `, `-`, `+` lines) must match the
+current text exactly, or nothing changes and the reply names the first mismatched hunk; read the
+file again and resend. CRLF files stay CRLF. It also needs the local user's confirmation.
 
 Local agents that can write files and run Python with their own tools may do so directly.
 See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`.
