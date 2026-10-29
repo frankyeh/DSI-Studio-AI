@@ -247,9 +247,10 @@ bash ./dsi.sh get_chat <session-id> 8-      # message 8 onward: only what is new
 ```
 
 To follow another chat's progress, keep the reply's `messages` count and next request
-`<messages+1>-`; an empty `history` means no new message. `status` stays `Thinking` until the
-agent's turn ends; when it changes (for example to `Failed`), read `get_chat <id> -1` for the
-latest entries. Reading never selects, wakes, or
+`<messages+1>-`; an empty `history` means no new message (errors and activities after the last
+message keep its number). `status` stays `Thinking` until the agent's turn ends; when it changes
+(for example to `Failed`), or no reply arrives (a failed first launch returns to `New`), read
+`get_chat <id> -1` for the latest entries, including errors. Reading never selects, wakes, or
 changes the chat. `new_chat` only creates the chat; its agent starts with the first message (`send_chat`). After
 `send_chat`, follow the reply with `get_chat <id> "<message+1>-"`; on `busy:`, wait and retry.
 Codex and Antigravity then replace the id with their own, so find the chat again with
