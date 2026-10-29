@@ -82,7 +82,7 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
 
 1. The user starts a Web session in either mode. The user then pastes its connection prompt
    (this skill and the codename, e.g. "connect to DSI Studio neon-raven"), or just says "connect to DSI neon-raven" or,
-   for example in voice mode, "connect to the latest DSI session". GUI Web copies the prompt;
+   for example in voice mode, "connect to the latest DSI session". GUI Web posts the prompt in the chat history for the user to copy;
    headless Web prints it and serves until Ctrl+C. On its first run, headless Web first
    prints a Google URL and code, which the user enters on any computer or phone. By default it
    starts a new chat, or resumes an existing chat when given `--session` (same session document).
@@ -300,7 +300,7 @@ of an existing file, sending files to DSI Studio is not available for your produ
   Do not rewrite the request. It stops polling after 1 hour without a request, and when
   the user presses Stop. A request sent after that waits unanswered. If no `processing`
   appears within 30 seconds after the rename, ask the user to press **Resume** on the chat
-  in DSI Studio. Resume copies the connection prompt again, so the user can also paste it
+  in DSI Studio. Resume posts the connection prompt again, so the user can also paste it
   into a new agent chat.
 - If DSI Studio stopped while running a request, it does not run that request again.
   When the chat is resumed, it replaces the stale `processing` with `state:"error"` and
