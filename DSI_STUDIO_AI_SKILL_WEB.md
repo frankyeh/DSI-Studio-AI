@@ -23,7 +23,7 @@ fasciculus, and `list_tract` showing both bundles done. In headless Web, run `se
 | Mode | Started by | Commands |
 |---|---|---|
 | GUI Web | **New Chat → Web** in DSI Studio | the full command center |
-| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_shell`, `write_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, `set_title`, `get_agent_settings`, `new_chat`, `send_chat`, and `get_chat` only |
+| Headless Web | `dsi_studio --action=ai` on a remote or cluster computer | `run_shell`, `write_text_file`, `patch_text_file`, `web_upload`, `web_download_prepare`, `web_download`, `set_work_dir`, `set_title`, `get_agent_settings`, `new_chat`, `send_chat`, and `get_chat` only |
 
 A headless session's connection prompt includes "This session is headless" and its approval
 mode; the GUI prompt does not. In a headless session, use only the headless commands above, and when a request needs
@@ -39,7 +39,7 @@ by another DSI Studio process). `--remove_session=N`, `--remove_session=<codenam
 Headless Web opens no window. `run_shell`, `write_text_file`, and `web_upload` wait for the
 user's approval in that terminal unless `--approval` says otherwise:
 
-| `--approval` | Read-only `run_shell`, `web_upload` | Other `run_shell` | `write_text_file` |
+| `--approval` | Read-only `run_shell`, `web_upload` | Other `run_shell` | `write_text_file`, `patch_text_file` |
 |---|---|---|---|
 | `manual` (default) | asks | asks | asks |
 | `read_only` | runs | asks | asks |
