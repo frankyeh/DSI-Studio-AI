@@ -2,8 +2,9 @@
 
 Use this skill when the user asks you to connect to a DSI Studio Web session. Each session
 has a two-word codename such as `neon-raven`. DSI Studio creates one Google Doc per Web chat,
-in the user's `DSI Studio AI` Google Drive folder, named `DSI Studio <codename>` (after
-`set_title`: `<title> · DSI Studio <codename>`). The document body is a single-slot mailbox
+in the user's `DSI Studio AI` Google Drive folder, named `DSI Studio <codename> on <computer>`
+(after `set_title`: `<title> · DSI Studio <codename> on <computer>`), where `<computer>` is the
+host name of the machine running DSI Studio. The document body is a single-slot mailbox
 holding exactly one compact JSON message. DSI Studio reads it about every 500 ms; you
 write a request, and DSI Studio replaces it with the result.
 
@@ -91,10 +92,10 @@ Ignore launcher-only topics such as `dsi.sh` setup, session environment variable
    prompts); `--debug` also shows DSI Studio's log and command output.
 2. Find the session document:
    - **Link given** (e.g. pasted from Google Docs): use it.
-   - **Codename given:** search the `DSI Studio AI` folder for a Doc whose name ends with
+   - **Codename given:** search the `DSI Studio AI` folder for a Doc whose name contains
      `DSI Studio <codename>`.
    - **"The latest":** list the Docs in that folder, newest modified first, and take the
-     first one named `... DSI Studio <codename>`. If two or more changed in the last few
+     first one named `... DSI Studio <codename> on <computer>`. If two or more changed in the last few
      minutes, tell the user their codenames and titles and ask which one.
    After connecting by codename or "latest", tell the user the codename and title you
    connected to (e.g. "Connected to neon-raven, Test OpenNeuro scripts").
@@ -293,7 +294,7 @@ of an existing file, sending files to DSI Studio is not available for your produ
   latest message. Rename it only to wake DSI Studio (below).
 - After 3 minutes without a request, DSI Studio goes idle and sees a body edit only after
   a delay of up to several minutes. If no `processing` appears within 15 seconds of a
-  request, rename the document to a new title that still ends with `DSI Studio <codename>`
+  request, rename the document to a new title that still contains `DSI Studio <codename>`
   (e.g. add or bump a counter at the start); DSI Studio
   notices the rename within about 10 seconds, reads the request, and leaves idle mode.
   Do not rewrite the request. It stops polling after 1 hour without a request, and when
