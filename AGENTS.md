@@ -111,7 +111,7 @@ Studio:
 
 | Window | Purpose |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, opening files, templates, databases, QC, main tools, confirmation-gated shell access, and Windows desktop speech |
+| `main` | Recent files, Fiber Data Hub, XNAT, opening files, templates, databases, QC, main tools, confirmation-gated shell access, and Windows desktop speech |
 | `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
 | `image<hex-address>` | Standalone medical-image inspection and processing |
@@ -564,6 +564,31 @@ regex, and matches every file in every matching tag -- one call can download man
 files across many tags/subjects. A plain exact filename still matches only that one
 file, since the wildcard is anchored to the full name. Verify the destination
 directory's contents after network-backed work.
+
+### 7.4 XNAT
+
+DSI Studio can list and download XNAT experiments with the server and login the user
+saved in the XNAT dialog. Never ask the user for the XNAT password or pass it in a
+command. If a command reports no saved login or a failed login, ask the user to
+connect once in the XNAT dialog (`open_xnat`), then retry.
+
+```bash
+bash ./dsi.sh xnat_list
+bash ./dsi.sh xnat_list "100:200" "^ADNI"
+bash ./dsi.sh xnat_download "XNAT_E00012,XNAT_E00013"
+```
+
+`xnat_list` returns a tab-separated table, newest first, with a header row and the
+server's fields (`ID`, `label`, `project`, `date`, ...). Its optional range is `N`
+(the first N, default 100) or `from:to` (0-based, `to` excluded), counted after the
+optional case-insensitive project regex. Page through large servers with ranges
+instead of listing everything.
+
+`xnat_download` takes one parameter: the `ID` values from `xnat_list`, separated by
+commas or spaces. It downloads into the folder and sub-folder rule saved in the XNAT
+dialog, prints each experiment's output folder, returns when finished, and fails
+before downloading if any ID is unknown. Existing files are skipped, so a rerun
+fetches only what is missing. Verify the printed folders afterwards.
 
 ## 8. Internal CLI and confirmation-gated shell
 
