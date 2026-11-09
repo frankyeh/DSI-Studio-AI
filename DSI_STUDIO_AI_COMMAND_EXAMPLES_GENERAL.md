@@ -43,6 +43,8 @@ only as parameters of the documented commands below.
 | `open_auto_track` | `["open_auto_track"]` | Create and show the main AutoTrack window. Takes no arguments. |
 | `open_nonlinear_registration` | `["open_nonlinear_registration"]` | Create and show the nonlinear-registration toolbox. Takes no arguments. |
 | `open_xnat` | `["open_xnat"]` | Create and show the XNAT dialog. Takes no arguments. |
+| `xnat_list` | `["xnat_list"]`, `["xnat_list","100:200","^ADNI"]` | Return the XNAT experiments as a tab-separated table (header row first; fields include `ID`, `label`, `project`, `date`), newest first. The optional range is `N` (the first N, default 100) or `from:to` (0-based, `to` excluded) and counts only experiments in matching projects. The optional project filter is a case-insensitive regular expression; empty or omitted means all projects. Uses the server and login saved by the XNAT dialog; if none is saved or the login fails, ask the user to connect once in the XNAT dialog (`open_xnat`). |
+| `xnat_download` | `["xnat_download","XNAT_E00012,XNAT_E00013"]` | Download the scans of the listed experiments (one parameter; IDs separated by commas or spaces, as returned by `xnat_list`) into the download folder and sub-folder rule saved by the XNAT dialog, returning when finished. Each experiment's output folder is printed. Fails before downloading if any ID is not found. Same saved-login requirement as `xnat_list`. |
 | `open_console` | `["open_console"]` | Show the singleton application console. Takes no arguments. |
 | `clear_recent_src` | `["clear_recent_src"]` | Immediately clear the recent SRC/SZ table and saved `recentSrcFileList`. Takes no arguments and asks for no confirmation. |
 | `clear_recent_fib` | `["clear_recent_fib"]` | Immediately clear the recent FIB/FZ table and saved `recentFibFileList`. Takes no arguments and asks for no confirmation. |
@@ -252,6 +254,24 @@ diagnoses, so searching filenames for a condition such as `sca2` or `patient` fi
 nothing. Read the group labels from the dataset's `participants.tsv` with
 `hub_show <repo> <tag> participants.tsv` (here `sub-SCA2xx` versus `sub-controlxx`),
 then select files by subject ID.
+
+## XNAT workflow
+
+```json
+["xnat_list"]
+["xnat_list","100:200","^ADNI"]
+["xnat_download","XNAT_E00012,XNAT_E00013"]
+```
+
+- Both commands use the server, login, and download folder saved by the XNAT dialog.
+  Never request or pass the XNAT password. On `no saved XNAT login` or
+  `XNAT login failed`, ask the user to connect once in the XNAT dialog (`open_xnat`).
+- `xnat_list [range] [project-regex]`: the range is `N` (first N, default 100) or
+  `from:to` (0-based, `to` excluded), counted after the project filter. The reply is a
+  tab-separated table, newest first; use its `ID` column for downloads.
+- `xnat_download <IDs>`: one parameter with IDs separated by commas or spaces. Output
+  folders follow the dialog's saved sub-folder rule and are printed per experiment.
+  Unknown IDs fail before any download; existing files are skipped on reruns.
 
 ## Important routing and response notes
 
