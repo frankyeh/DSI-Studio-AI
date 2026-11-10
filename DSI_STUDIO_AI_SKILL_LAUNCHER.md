@@ -8,10 +8,10 @@ bash ./dsi.sh <command> [values...] [-- <command> [values...] ...] [-Chat "messa
 
 Always include `bash` before `./dsi.sh`. Do not invoke `./dsi.sh` directly.
 
-DSI Studio supplies `DSI_STUDIO_AGENT` to identify the current agent. A headless DSI Studio
-(`--action=ai`) also sets `DSI_STUDIO_SOCKET` for the agents it launches: the launcher then
-connects only to that instance; without it, the launcher connects to the GUI's `dsi-studio`
-server. The launcher then reads only that agent's native session variable:
+DSI Studio supplies `DSI_STUDIO_AGENT` and, in `DSI_STUDIO_SOCKET`, its own pipe to the
+agents it launches, so the launcher always reaches that instance. The launcher uses
+`DSI_STUDIO_SESSION` when set (see "Parallel pipelines" below); otherwise it reads only that
+agent's native session variable:
 
 ```text
 Codex       -> CODEX_THREAD_ID
@@ -117,8 +117,29 @@ bash ./dsi.sh new_chat
 This registers the agent's own session UUID as a new chat. Run it alone, without other
 commands, values, or `-Chat`. It fails with `session already exists` if the chat exists.
 Never run it automatically after `session not found`: a chat removed by the user must stay
-removed. `new_chat` with an agent name (`new_chat claude`) is a different command: it creates
+removed. With several DSI Studio instances open, also set `DSI_STUDIO_SOCKET` to the
+intended instance's pipe; otherwise the launcher reaches the first instance started.
+`new_chat` with an agent name (`new_chat claude`) is a different command: it creates
 a separate DSI-managed chat (see `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
+
+## Parallel pipelines (`DSI_STUDIO_SESSION`)
+
+Each session has its own selected window (`set_window`) and working directory. Two
+pipelines that run at the same time (for example deterministic and probabilistic
+tracking) must therefore use different sessions, even on the same DSI Studio instance
+and pipe; never share one session between concurrent pipelines. Give each pipeline a
+stable UUID of its own in `DSI_STUDIO_SESSION`, for example derived from the agent
+session and the pipeline name, and register it once with `new_chat` before its first
+command:
+
+```bash
+export DSI_STUDIO_SESSION=$(python3 -c 'import os,sys,uuid;print(uuid.uuid5(uuid.NAMESPACE_URL,os.environ["CLAUDE_CODE_SESSION_ID"]+"/"+sys.argv[1]))' deterministic)
+bash ./dsi.sh new_chat
+bash ./dsi.sh open_fib "C:/data/sub-01.fz"
+```
+
+Use the agent's own session variable in place of `CLAUDE_CODE_SESSION_ID`; any stable,
+distinct UUID works (on Windows, `New-Guid` once and reuse it).
 
 ## Launcher selection
 
@@ -158,7 +179,7 @@ arguments through `DSI_ARGC` and `DSI_ARG_<n>`, resolves the packaged `dsi.ps1`,
 starts Windows PowerShell noninteractively with the call operator. The Windows Bash
 branch contains no PowerShell heredoc and performs no Bash filesystem writes, so it
 does not depend on a writable working directory or temporary directory. It
-communicates with `\\.\pipe\dsi-studio` through `dsi.ps1` and does not require
+communicates with DSI Studio's named pipe through `dsi.ps1` and does not require
 Python.
 
 `dsi.cmd` uses the same forwarding format and deliberately does not interpolate user
