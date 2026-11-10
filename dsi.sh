@@ -55,7 +55,8 @@ session_var = session_vars.get(agent)
 if not session_var:
     fail("Missing or invalid DSI_STUDIO_AGENT.")
 
-session = os.environ.get(session_var, "").strip()
+# DSI_STUDIO_SESSION gives a pipeline its own session (current window, cwd) when several run from one agent session
+session = os.environ.get("DSI_STUDIO_SESSION", "").strip() or os.environ.get(session_var, "").strip()
 if not session:
     fail(f"Missing session ID for {agent}.")
 
@@ -125,7 +126,8 @@ if chat is not None:
     request["chat"] = chat
 
 payload = json.dumps(request, separators=(",", ":"), ensure_ascii=False).encode()
-# DSI_STUDIO_SOCKET (set by the DSI Studio process that launched this agent) is the only server to use when present
+# DSI_STUDIO_SOCKET (set by the DSI Studio process that launched this agent) is the only server to use when present;
+# without it, the legacy dsi-studio pipe reaches only the one GUI that holds the legacy lock
 override = os.environ.get("DSI_STUDIO_SOCKET")
 paths = [override] if override else []
 for base in (
