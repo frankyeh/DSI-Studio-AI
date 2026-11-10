@@ -24,7 +24,8 @@ Grok        -> GROK_SESSION_ID
 ```
 
 Do not search for, invent, replace, or pass the agent name or session value on the
-command line.
+command line. Only pipelines that run at the same time need their own sessions; see
+"Parallel pipelines" in `DSI_STUDIO_AI_SKILL_LAUNCHER.md`.
 
 Use the same launcher for Codex, Claude, Muse, Antigravity, and Grok:
 
