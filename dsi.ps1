@@ -44,6 +44,8 @@ switch($Agent)
     default       { throw 'Missing or invalid DSI_STUDIO_AGENT.' }
 }
 
+if($env:DSI_STUDIO_SESSION) { $Session = $env:DSI_STUDIO_SESSION.Trim() } # a pipeline's own session (current window, cwd)
+
 if(!$Session)
 {
     throw "Missing session ID for $Agent."
@@ -108,7 +110,8 @@ if($Chat) { $request.chat = $Chat }
 $pipe = $writer = $reader = $null
 try
 {
-    # DSI_STUDIO_SOCKET (set by the DSI Studio process that launched this agent) names the only server to use when present
+    # DSI_STUDIO_SOCKET (set by the DSI Studio process that launched this agent) names the only server to use when present;
+    # without it, the legacy dsi-studio pipe reaches only the one GUI that holds the legacy lock
     $name = if($env:DSI_STUDIO_SOCKET) { $env:DSI_STUDIO_SOCKET -replace '^\\\\\.\\pipe\\','' } else { 'dsi-studio' }
     $pipe = [IO.Pipes.NamedPipeClientStream]::new('.',$name)
     $pipe.Connect(5000)
