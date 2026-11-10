@@ -41,11 +41,6 @@ value must be an exact ID currently listed by `list_window`; an unrecognized val
 (including a bare type name like `tracking` with no hex address) fails with
 `set_window: window "<value>" not found, terminated by user?`.
 
-A failed command stops the rest of its batch: the reply's `status` is `error` and later
-commands do not run, so a failed `set_window` never lets them act on the previous
-window. A reply of `{"status":"busy"}` means another request is still running (for
-example waiting on an approval dialog) and nothing was executed; wait and retry.
-
 ## Shared controls
 
 All four commands take no parameter. Do not add a dummy value.
@@ -114,9 +109,8 @@ available for recovery.
 
 ## Busy-window behavior
 
-Shared `bring_to_front`, `minimize`, `maximize`, and `close` use a direct window
-lookup and do not acquire the ordinary command busy lock. They can therefore act on
-the selected window even while another operation reports that window as `busy`.
+Shared `bring_to_front`, `minimize`, `maximize`, and `close` act on the selected
+window even while `list_window` reports it as `busy` with background work.
 
 Use `list_window` to inspect state before a destructive `close`; a busy status does
 not imply that the shared control will be rejected.
