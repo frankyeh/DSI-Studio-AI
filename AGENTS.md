@@ -112,7 +112,7 @@ Studio:
 
 | Window | Purpose |
 |---|---|
-| `main` | Recent files, Fiber Data Hub, XNAT, opening files, templates, databases, QC, main tools, confirmation-gated shell access, and Windows desktop speech |
+| `main` | Recent files, Fiber Data Hub, XNAT, opening files, templates, databases, QC, main tools, confirmation-gated shell access, and desktop speech |
 | `recon<hex-address>` | SRC/SZ masks, source geometry, b-table operations, corrections, exports, parameters, and reconstruction |
 | `tracking<hex-address>` | Slices, segmentation, regions, tracts, tracking, rendering, devices, settings, and workspaces |
 | `image<hex-address>` | Standalone medical-image inspection and processing |
@@ -667,22 +667,22 @@ file again and resend. CRLF files stay CRLF. It also needs the local user's conf
 Local agents that can write files and run Python with their own tools may do so directly.
 See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`.
 
-## 9. Windows speech and demo mode
+## 9. Desktop speech and demo mode
 
 ### 9.1 Desktop speech
 
-On Windows, use `voice` for one concise non-empty spoken message. It can announce a
-result or explain the next visible action:
+Use `voice` for one concise non-empty spoken message on Windows, macOS, or Linux. It
+can announce a result or explain the next visible action:
 
 ```bash
 bash ./dsi.sh voice "Reconstruction is complete."
 bash ./dsi.sh voice "I will now map the left arcuate fasciculus."
 ```
 
-A successful reply means the PowerShell speech process started, not that speech has
-finished. Each call starts a separate process, so rapid calls may overlap. Keep
-spoken messages concise. Continue to provide durable user-facing information through
-`-Chat`, and do not speak sensitive content unless the user explicitly asks.
+A successful reply means the speech request was queued or started, not that speech has
+finished. Keep spoken messages concise. Continue to provide durable user-facing
+information through `-Chat`, and do not speak sensitive content unless the user
+explicitly asks.
 
 ### 9.2 Voice tutorials and demo mode
 
