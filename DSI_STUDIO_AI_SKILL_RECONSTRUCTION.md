@@ -297,6 +297,8 @@ coronal, and sagittal views.
 - A small mask truncates pathways and cortical endpoints.
 - A broad mask adds background orientations and wastes computation.
 
+**Masking Background Signals** (`mask_background_signals`) is a distinct, optional signal-weighting operation. It loads a 3D NIfTI map with the same image dimensions as the DWI and multiplies every DWI volume voxelwise by the map; it also sets the binary reconstruction mask wherever the map is greater than zero. It does **not** simply mask background voxels or estimate a probability map, and the command does not clamp the supplied weights to [0, 1]. Use it only when signal multiplication by the provided weights is intended, and preserve the original SZ before applying it. The former command name `probabilistic_masking` remains accepted for older scripts.
+
 ### 6. Select reconstruction settings
 
 #### Resampling to isotropic (recommended)
