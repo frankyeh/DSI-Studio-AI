@@ -106,7 +106,7 @@ Both setters accept `name=value[&name=value...]`.
 | `mask_fit` | `bash ./dsi.sh mask_fit` | Fit the current mask to the diffusion-sum image. |
 | `mask_negate` | `bash ./dsi.sh mask_negate` | Invert the current mask. |
 | `mask_remove_background` | `bash ./dsi.sh mask_remove_background` | Permanently zero signals outside the current mask. |
-| `probabilistic_masking` | `bash ./dsi.sh probabilistic_masking "C:/data/probability.nii.gz"` | Multiply diffusion signals by a same-dimension probability image. Omit the path for a local picker. |
+| `mask_background_signals` | `bash ./dsi.sh mask_background_signals "C:/data/probability.nii.gz"` | **Masking Background Signals**: multiply every DWI volume voxelwise by an external 3D NIfTI weight map, and set the binary reconstruction mask where the map is > 0. Image dimensions must match; this changes DWI signals, not only the mask. Omit the path for a local picker. Legacy `probabilistic_masking` remains accepted. |
 | `set_voxel_size` | `bash ./dsi.sh set_voxel_size "1.5 1.5 2.0"` | Replace the three voxel-size values without resampling. Supply all three values; omit them to let the user enter them locally. |
 | `remove` | `bash ./dsi.sh remove "0,3:5,60:end"` | Remove DWIs by zero-based index or range (`a:b`, `a:end`) or by b-value (`b>3000`, `b<100`), comma-separated. Fails if nothing matches or every DWI would be removed. Recorded as a step; same syntax as CLI `--remove`. |
 | `add_other_image` | `bash ./dsi.sh add_other_image "t1w:C:/data/T1w.nii.gz"` | Register another NIfTI image to the DWI and store it in the reconstructed FIB under the optional `name:` prefix (default: the file name). Same syntax as CLI `--other_image`. Omit the path for a local picker. |
