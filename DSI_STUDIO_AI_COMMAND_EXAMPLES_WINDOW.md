@@ -191,10 +191,10 @@ user asks "teach me how to ..." (for example, brain tumor analysis):
    reconstruction, tracking, regions, AutoTrack, connectome, differential, correlational, brain
    tumor). For depth, read the matching `DSI_STUDIO_AI_SKILL_*.md`, or the DSI Studio documentation
    at https://dsi-studio.labsolver.org/ when no skill covers it; its steps are commands with reasons.
-2. Unless the user explicitly asked for a voice tutorial, offer one with `ask_user` (e.g.
-   "Yes, with voice" or "No, text only") before using `voice` (`AGENTS.md` 9.2). Start with the plan
-   (by `voice` if accepted, otherwise in the chat), and use `ask_user` for choices the skill leaves to
-   the user (which data to open, whether to include a step).
+2. Teach with `voice` from the start (the user asked to be taught; stop if they ask for text only,
+   `AGENTS.md` 9.2). For an analysis, open with the plan; for learning the interface, go straight to
+   the first step. Use `ask_user` for choices the skill leaves to the user (which data to open,
+   whether to include a step).
 3. For each command in the skill, select its window and call `highlight_ui run:<command>`, and
    explain by `voice` (if accepted) or chat what to click, what to set, and why.
    - `menu: <path>`: tell the user the menu path.
