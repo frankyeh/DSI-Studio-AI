@@ -25,6 +25,29 @@ the session retains the closed `recon...` ID.
 The reconstruction-window dispatcher accepts one command name and at most one
 parameter. Keep multiple values or assignments in one quoted composite string.
 
+## Current GUI navigation versus AI commands
+
+The redesigned reconstruction dialog has **2a Mask**, **2b Preprocessing**,
+and **2c Methods** sidebar pages; **Edit...** reveals **Edit DWI** and
+**Edit B-table**. The Mask page no longer has Open/Save buttons: use
+**File → Open Mask...** or **File → Save Mask...** in the GUI. The AI
+`mask_open` command below still works, and GUI Save Mask is not a new
+`save_mask` AI launcher command. **Align Selected DWI...** in Edit DWI
+rigidly aligns the selected 3D DWI volume to the first DWI and rotates
+its b-vector; do not mistake it for the `align_acpc` AI command.
+
+The **Preprocessing** page has seven Yes/No questions and a GUI
+**Run Preprocessing** button that chooses a branch from reverse-PE and
+shell/DSI acquisition information, with conditional TOPUP/EDDY, motion,
+T1w distortion, bias-field correction, and resampling. It marks
+previously recorded corrections and skips recognized completed steps.
+**There is no corresponding `run_preprocessing` launcher command.**
+Agents should inspect the SRC data and processing record, choose the
+appropriate *individual* commands listed below, and avoid reapplying
+corrections. Refer to
+[`DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md`](DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md)
+for the question-by-question GUI behavior and sequencing cautions.
+
 ## Naming rule
 
 All public reconstruction operations use concise names without the old `src_`

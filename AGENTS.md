@@ -756,7 +756,23 @@ A successful `open_src` automatically selects the newly created
 `recon<hex-address>` window. Use `set_window` only when switching to another already
 open window.
 
-### 10.2 Inspect and set parameters
+### 10.2 Current reconstruction GUI and preprocessing decision flow
+
+The reconstructed UI differs from older tutorial videos: sidebar pages **2a Mask**,
+**2b Preprocessing**, and **2c Methods**, with **Edit...** revealing Edit DWI
+and Edit B-table. Mask Open/Save are in the File menu, and **Align Selected
+DWI...** is an Edit DWI button. The Preprocessing page now has **seven
+Yes/No questions** selecting a highlighted TOPUP/EDDY, motion, T1w,
+bias-field, and/or resampling path and a GUI **Run Preprocessing** button.
+This is **not** a new AI command; use individual reconstruction commands
+after assessing the acquisition and existing processing history.
+
+Read `DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md` (Current reconstruction dialog)
+for the precise current page and question behavior before guiding GUI users.
+The website [Reconstruct: SRC to FIB](https://dsi-studio.labsolver.org/doc/gui_t2.html)
+may not yet describe the newest visual decision flow.
+
+### 10.3 Inspect and set parameters
 
 ```bash
 bash ./dsi.sh list_param
@@ -768,7 +784,7 @@ bash ./dsi.sh set_params "method=4&param=1.25&thread_count=8"
 `set_param` and `set_params` both accept one
 `name=value[&name=value...]` composite parameter.
 
-### 10.3 Use concise reconstruction operation names
+### 10.4 Use concise reconstruction operation names
 
 ```bash
 bash ./dsi.sh mask_from_unet
