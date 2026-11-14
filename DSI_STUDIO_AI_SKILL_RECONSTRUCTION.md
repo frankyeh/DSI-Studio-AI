@@ -57,7 +57,7 @@ anatomically wrong.
 ## Public example datasets for tutorials
 
 Offer datasets to suit the user's goal, not only raw DICOM import.
-Read [`DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md)
+Read [`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
 for verified Fiber Data Hub examples and specific downloadable assets:
 
 - **SCA2 (`ds001378`)**: matched anatomical T1w NIfTI,
@@ -69,7 +69,7 @@ for verified Fiber Data Hub examples and specific downloadable assets:
   and FZ, suited to tumor segmentation and tractography tutorials.
   Inspect spatial alignment before mixing modalities.
 - **Raw DICOM conversion**: use the Siemens/Philips/XA30 examples
-  in [`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`](DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md)
+  in [`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
   only when DICOM parsing is the teaching goal.
 
 Source examples come from DSI Studio's
