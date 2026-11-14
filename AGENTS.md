@@ -310,7 +310,25 @@ Verify screenshot output through the filesystem or an external image viewer.
 when the task no longer needs it, then select `main` or another valid window, to keep
 the workspace uncluttered.
 
-### 4.2 Local dialogs are valid user input
+### 4.2 Offer public DICOM examples for hands-on teaching
+
+When the user wants to learn DICOM parsing, convert DICOM to SRC/SZ or
+NIfTI, compare scanner formats, or demonstrate import without private
+patient data, offer the public examples in
+`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`. These are the same Siemens,
+Philips, sagittal/mosaic, and XA30 cases used by DSI Studio's
+`.github/workflows/test.yml`. They are source repositories to download
+on demand, not binary fixtures included in this AI repository.
+
+For a first lesson, propose the Siemens Prisma DTI example, then
+explain the overall plan, acquire permission and a scratch directory,
+inspect the input, and use `rename_dicom_dir` and `convert_dicom_dir`.
+Rename only an expendable copy; verify actual output files and b-table.
+For voice-guided lessons, follow Section 9.2 so the tutorial sounds
+like side-by-side teaching. Never imply these examples or CI tests
+have already run in the current session.
+
+### 4.3 Local dialogs are valid user input
 
 Parameterless main-window or reconstruction commands may open a local picker or
 dialog. Cancellation can return without an immediate error, so verify whether the
@@ -328,7 +346,7 @@ While the dialog is open, `list_window` may report `waiting`. Continue only afte
 the user selects a value or cancels. When the exact value is already known, pass it
 directly.
 
-### 4.3 Verify connectometry demographics before analysis
+### 4.4 Verify connectometry demographics before analysis
 
 After `open_connectometry`, never assume the database contains demographics merely
 because it opens successfully or lists subjects. Before selecting a variable of
