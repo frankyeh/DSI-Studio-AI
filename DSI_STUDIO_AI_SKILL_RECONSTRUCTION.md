@@ -54,6 +54,28 @@ subject_qsdr.fz
 Never overwrite the only raw SZ file. A successfully written FZ can still be
 anatomically wrong.
 
+## Public DICOM examples for tutorials
+
+Before using patient data, offer a hands-on import lesson with the
+public DICOM fixtures used in DSI Studio's automated
+[`test.yml`](https://github.com/frankyeh/DSI-Studio/blob/master/.github/workflows/test.yml).
+See [`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`](DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md)
+for exact datasets, scanner types, download repositories, input paths,
+and the tested `--action=ren` / `--action=src` sequence.
+
+For a beginner, suggest Siemens Prisma DTI (`neurolabusc/dcm_qa_dti`,
+`In/Prisma`); for vendor and geometry comparisons, offer Philips,
+sagittal mosaic, or Siemens XA30 examples. For a structural DICOM →
+NIfTI example, the CI workflow also downloads a Figshare collection.
+
+Clone/download public example DICOM into a temporary copy **only after
+the user agrees**. DICOM rename changes filenames: never run it on
+the only copy or on original clinical files. The AI main-window
+commands are `rename_dicom_dir` and `convert_dicom_dir`; the shell
+CLI uses `--action=ren` and `--action=src`. Inspect the produced SZ
+or NIfTI and verify DWI geometry and b-table rather than assuming
+correctness from a successful process exit.
+
 ## Tutorials
 
 - [Acquisition and pipeline](https://www.youtube.com/watch?v=Sn2eH07axF4)

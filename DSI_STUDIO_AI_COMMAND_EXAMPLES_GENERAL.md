@@ -14,6 +14,19 @@ parameters as JSON numbers.
 Do not send a filesystem path by itself as a named-pipe request. Supply paths
 only as parameters of the documented commands below.
 
+## Example datasets for DICOM import lessons
+
+The DSI Studio repository's `.github/workflows/test.yml` contains
+real DICOM conversion tests. Use
+[`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`](DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md)
+to offer public Siemens, Philips, sagittal, and XA30 fixtures and a
+reproducible conversion walkthrough. For interactive AI sessions use
+the `rename_dicom_dir` / `convert_dicom_dir` commands below; the
+GitHub Actions workflow uses CLI `--action=ren` / `--action=src`.
+A DICOM `test` command is **not** part of the AI launcher.
+Only rename files in a disposable example copy, and inspect output
+before declaring the test successful.
+
 ## Main-window commands
 
 | Command | Common example | Exact behavior |
