@@ -14,7 +14,9 @@ action, one explanation, and one check:
 
 1. Select the window (`set_window`) and highlight the control in **Point at** (a ring and, if listed, a
    gesture; the highlight has no text, the instruction goes in the dialog of step 3).
-2. Explain the step in your own words from **Why** (voice or chat).
+2. Explain the step in your own words from **Why** (voice or chat). The tour is a UX tutorial: voice
+   only the action and what it does, and run the checks silently. Lessons 1 to 11 are analysis
+   tutorials: also give the plan and teach at checkpoints (`AGENTS.md` 9.2).
 3. Show the action with `ask_user_act "<action>"`, which closes by itself when the user acts on the
    highlighted control. When the action is not on it (*(say)* steps, work inside a dialog), use
    `ask_user "<action>" Done Cancel`.
