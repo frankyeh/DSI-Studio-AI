@@ -118,7 +118,7 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 | Command | Exact behavior |
 |---|---|
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is the command the control sends (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
-| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`; clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fifth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
+| `highlight_ui <id> [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports; the words go in the `ask_user` dialog, which opens beside it. `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`; clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fourth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
 | `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. |
 | `ask_user <question> [option]...` | A modeless dialog beside the highlighted control (beside its open menu for a menu item; at the top-right corner of the screen when nothing is highlighted), on top of all windows and without taking focus, so the user keeps working in DSI Studio; highlight a control first to put the question next to it, where the user is looking. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
 | `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
@@ -195,9 +195,8 @@ user asks "teach me how to ..." (for example, brain tumor analysis):
    "Yes, with voice" or "No, text only") before using `voice` (`AGENTS.md` 9.2). Start with the plan
    (by `voice` if accepted, otherwise in the chat), and use `ask_user` for choices the skill leaves to
    the user (which data to open, whether to include a step).
-3. For each command in the skill, select its window and call
-   `highlight_ui run:<command> "<short caption>"`, and explain by `voice` (if accepted) or chat what
-   to click, what to set, and why.
+3. For each command in the skill, select its window and call `highlight_ui run:<command>`, and
+   explain by `voice` (if accepted) or chat what to click, what to set, and why.
    - `menu: <path>`: tell the user the menu path.
    - A step that opens a file or folder dialog: first `set_work_dir <data folder>`, so main-window
      dialogs open there, and name the file to pick.
@@ -222,15 +221,17 @@ button is still found; do not copy control ids into notes or manuals. Some contr
 highlighted, such as reconstruction fields and tract and region table cells; describe them by label
 and position.
 
-Example: teaching tract selection (send the second request only after the user chose Select Tracts,
-Ctrl+S):
+Example: teaching tract selection (each `ask_user_act` returns `done` when the user acts):
 
 ```json
 {"command":{"cmd":"highlight_ui","param":"actionSelect_Tracts"}}
-{"command":{"cmd":"highlight_ui","param":["GLWidget","Drag across the tracts","drag"]}}
+{"command":{"cmd":"ask_user_act","param":"Choose Tract Edit > Select Tracts (Ctrl+S)"}}
+{"command":{"cmd":"highlight_ui","param":["GLWidget","drag"]}}
+{"command":{"cmd":"ask_user_act","param":"Drag a line across the tracts"}}
 ```
 
-Launcher form: `bash ./dsi.sh highlight_ui GLWidget "Drag across the tracts" drag`. Mouse steps have
+Launcher form: `bash ./dsi.sh highlight_ui GLWidget drag`, then
+`bash ./dsi.sh ask_user_act "Drag a line across the tracts"`. Mouse steps have
 no command; show them with a gesture that follows the GUI's behavior:
 
 | View | Mode | Gesture | Tell the user |
