@@ -30,6 +30,11 @@ action, one explanation, and one check:
 - Tutor commands wait while a dialog or "Finished." message is open: ask the user to close it first.
 - Never rename, overwrite, or delete the user's files in a lesson; suggest a copy or public example data
   (`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`).
+- The first time a lesson opens a tracking window, offer the **Tracking window tour** with
+  `ask_user "Quick tour of the tracking window?" Yes Skip`, run it on Yes, then continue the lesson.
+- Mouse actions have no command: add a gesture to the highlight (`click`, `double`, `right` on a
+  control; `rotate`, `zoom`, `pan`, `roll`, `wheel` in the 3D view; `freehand`, `rect`, `drag` in the
+  ROI window; see the gesture table in the window manual).
 - End every analysis lesson with Lesson 11 (Before interpreting results).
 
 ## Lesson map
@@ -38,6 +43,7 @@ action, one explanation, and one check:
 |---|---|---|---|
 | How do I get my scans into DSI Studio? | 1 Import DICOM | [Import](https://dsi-studio.labsolver.org/doc/gui_t1.html) | `DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md` |
 | How do I reconstruct fiber orientations? | 2 Reconstruct | [Reconstruct](https://dsi-studio.labsolver.org/doc/gui_t2.html) | `DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md` |
+| How do I use the tracking window? | Tracking window tour | | `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` |
 | Which pathways run through this brain? | 3 Whole-brain tracking, 4 Region-guided tracking | [Whole brain](https://dsi-studio.labsolver.org/doc/gui_t3_whole_brain.html), [ROI](https://dsi-studio.labsolver.org/doc/gui_t3_roi_tracking.html) | `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` |
 | What are the measures in a region? | 5 Region-based analysis | [Atlas regions](https://dsi-studio.labsolver.org/doc/gui_t3_roi_tracking.html#load-regions-from-built-in-atlases) | `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
 | Where is the same named bundle, and how do measures vary along it? | 6 AutoTrack and tractometry | [AutoTrack](https://dsi-studio.labsolver.org/doc/gui_t3_atk.html) | `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` |
@@ -46,7 +52,8 @@ action, one explanation, and one check:
 | Which pathways relate to a clinical variable? | 9 Correlational tractography | [Correlational](https://dsi-studio.labsolver.org/doc/gui_cx.html) | `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md` |
 | How do I evaluate a brain tumor? | 10 Brain tumor | | `DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md` |
 
-A first-time user who has DICOM data usually takes Lessons 1, 2, 3, then the analysis
+Lessons 3 to 10 work in the tracking window; a user new to it takes the **Tracking window tour**
+first. A first-time user who has DICOM data usually takes Lessons 1, 2, 3, then the analysis
 lesson that matches the question.
 
 ## Lesson 1: Import DICOM to an SRC file
@@ -83,6 +90,49 @@ template space (QSDR), as on the website pipeline step 3.
 | 6 | recon | `run:recon` (**Run Reconstruction**) | Creates the `.fz` file. It can take minutes. | `user operation` with `recon`; `list_window` turns idle; the `.fz` file exists |
 
 Explain: a written FIB can still be wrong. Lesson 3 checks it with tracking.
+
+## Tracking window tour
+
+Goal: a quick orientation to the tracking window's panels, mouse controls, and menus, so later lessons
+can say "in the region list" or "in the 3D window" without explaining them. Keep each explanation to
+one or two sentences; this is an overview, not a manual. Before: a FIB is open (`list_window` shows a
+`tracking...` window; `set_window` to it). Use `list_ui panel` to confirm the panel ids, and skip any
+panel the window does not show. Each step ends with `ask_user "<what to try>" Next Stop`.
+
+| # | Point at | Gesture | Why | Check |
+|---|---|---|---|---|
+| 1 | `GLWidget` | `rotate` | **3D window**: shows slices, regions, tracts, and devices together. Drag with the left button to rotate. | The user rotates; Next |
+| 2 | `GLWidget` | `zoom`, then `pan` | Right-drag up (or scroll) zooms; middle-drag, or Shift + drag, moves the scene. Starting a drag in a corner rolls the view (`roll`). | Next |
+| 3 | `GLWidget` | `double` | Double-clicking a region, tract, or device selects its row in its list. | Next |
+| 4 | `ROIdockWidget` | | **ROI window** ("Draw Regions"): the 2D slice used to draw and check regions. The drop-down above it (`SliceModality`) switches the image; scrolling zooms (`graphicsView` with `wheel`). | Next |
+| 5 | `tool1` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Click one to select it. | `user operation` or Next |
+| 6 | `graphicsView` | `freehand` | With the freehand tool, hold the left button and draw around an area; right-click or Shift erases. Drawing creates or edits the current region. | `list_region`, or Next |
+| 7 | `regionDockWidget` | | **Region list** ("Assign Regions"): every region with its checkbox, type (ROI, ROA, Seed, ...), and color. Checked regions are the ones shown, used for tracking, and measured. | Next |
+| 8 | `addRegionFromAtlas` | `click` | Regions can also come from a built-in atlas instead of drawing. | Next |
+| 9 | `renderingWidgetHolder` | | **Options**: tracking parameters at the top, then how slices, tracts, regions, and surfaces are drawn. `highlight_ui option:<id>` points at one setting. | Next |
+| 10 | `TractWidgetHolder` | | **Tract list**: every bundle with its checkbox and tract count. Like regions, checked tracts are the ones shown, saved, measured, or edited. | Next |
+| 11 | `perform_tracking` | `click` | **Fiber Tracking** starts tracking with the current regions and options; the result appears as a new row in the tract list. | Next |
+| 12 | `DeviceDockWidget` *(if shown)* | | **Devices**: electrodes and other devices placed in the brain. | Next |
+| 13 | `menu_File`, then each menu below | | **Menus**, one highlight each, one sentence each (the menu opens; say the name too). | Next after each |
+
+Menus, from left to right:
+
+| Menu id | Title | Say |
+|---|---|---|
+| `menu_File` | File | Open and save data for this window. |
+| `menuRegions`, `menuRegion_Edit`, `menuRegion_Move`, `menuRegions_Misc` | Regions, Region Edit, Region Move, Regions Misc | Create, load, edit, move, and measure regions. |
+| `menuTracts`, `menu_Edit`, `menuTracts_Cluster`, `menuTracts_Misc` | Tracts, Tract Edit, Tracts Cluster, Tracts Misc | Load, save, edit, cluster, and measure tracts, including AutoTrack. |
+| `menu_Slices`, `menuSegment` | Slices, Slices Segment | Add other images as slices and segment them. |
+| `menuDevices` | Devices | Add and manage devices. |
+| `menuScreen` | Screen | Save or copy screenshots of the views. |
+| `menuView` | View | Camera views and display. |
+| `menuE_xport` | Export | Export data from the window. |
+| `menuLayout` | Layout | Arrange the 3D and ROI views. |
+| `menuTools` | Records | Command history, to repeat the same steps on other data. |
+
+Close with `clear_highlight` and a one-line summary: regions are drawn in the ROI window and listed
+in the region list, Options control tracking and display, Fiber Tracking adds rows to the tract list,
+and checked rows are what commands act on.
 
 ## Lesson 3: Whole-brain fiber tracking
 
