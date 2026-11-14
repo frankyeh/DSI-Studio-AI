@@ -13,6 +13,17 @@ can be sacrificed. Interpret findings together with the neurological examination
 functional imaging when available, cortical/subcortical mapping, operative anatomy, and
 other clinical information.
 
+## Optional public teaching case
+
+For a demonstration without user patient files, **offer** the matched
+[UPenn GBM `sub-100` sample](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md)
+from Fiber Data Hub. It includes structural NIfTI (T1w, contrast T1w,
+FLAIR), a tumor segmentation and DWI GQI FZ; an SZ is optional.
+Download selected assets only with user approval. Verify matching
+subject IDs and spatial alignment between tumor labels and the FZ
+before tract-to-lesion analysis. Example output is **educational**, not
+a clinical surgical report.
+
 ## Workflow overview
 
 Presurgical:

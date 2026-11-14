@@ -54,27 +54,31 @@ subject_qsdr.fz
 Never overwrite the only raw SZ file. A successfully written FZ can still be
 anatomically wrong.
 
-## Public DICOM examples for tutorials
+## Public example datasets for tutorials
 
-Before using patient data, offer a hands-on import lesson with the
-public DICOM fixtures used in DSI Studio's automated
-[`test.yml`](https://github.com/frankyeh/DSI-Studio/blob/master/.github/workflows/test.yml).
-See [`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`](DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md)
-for exact datasets, scanner types, download repositories, input paths,
-and the tested `--action=ren` / `--action=src` sequence.
+Offer datasets to suit the user's goal, not only raw DICOM import.
+Read [`DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md)
+for verified Fiber Data Hub examples and specific downloadable assets:
 
-For a beginner, suggest Siemens Prisma DTI (`neurolabusc/dcm_qa_dti`,
-`In/Prisma`); for vendor and geometry comparisons, offer Philips,
-sagittal mosaic, or Siemens XA30 examples. For a structural DICOM →
-NIfTI example, the CI workflow also downloads a Figshare collection.
+- **SCA2 (`ds001378`)**: matched anatomical T1w NIfTI,
+  source DWI SZ, ready-to-track GQI/QSDR FZ, and `sub-all.dz`
+  for group connectometry. A small single-control example is a
+  useful first reconstruction or b-table lesson.
+- **UPenn GBM (`upenn-gbm`)**: `sub-100` has matched T1w,
+  contrast T1w, FLAIR, tumor segmentation NIfTI, diffusion SZ,
+  and FZ, suited to tumor segmentation and tractography tutorials.
+  Inspect spatial alignment before mixing modalities.
+- **Raw DICOM conversion**: use the Siemens/Philips/XA30 examples
+  in [`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`](DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md)
+  only when DICOM parsing is the teaching goal.
 
-Clone/download public example DICOM into a temporary copy **only after
-the user agrees**. DICOM rename changes filenames: never run it on
-the only copy or on original clinical files. The AI main-window
-commands are `rename_dicom_dir` and `convert_dicom_dir`; the shell
-CLI uses `--action=ren` and `--action=src`. Inspect the produced SZ
-or NIfTI and verify DWI geometry and b-table rather than assuming
-correctness from a successful process exit.
+Source examples come from DSI Studio's
+[`test.yml`](https://github.com/frankyeh/DSI-Studio/blob/master/.github/workflows/test.yml)
+and the [Fiber Data Hub](https://brain.labsolver.org).
+Use a disposable workspace with user approval; download individual
+assets, inspect actual file content and processing history, and avoid
+repeating preprocessing on already-corrected public derivatives.
+Do not infer that a prebuilt group DZ embeds its demographic file.
 
 ## Tutorials
 

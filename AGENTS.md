@@ -310,23 +310,32 @@ Verify screenshot output through the filesystem or an external image viewer.
 when the task no longer needs it, then select `main` or another valid window, to keep
 the workspace uncluttered.
 
-### 4.2 Offer public DICOM examples for hands-on teaching
+### 4.2 Offer public example datasets for hands-on teaching
 
-When the user wants to learn DICOM parsing, convert DICOM to SRC/SZ or
-NIfTI, compare scanner formats, or demonstrate import without private
-patient data, offer the public examples in
-`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`. These are the same Siemens,
-Philips, sagittal/mosaic, and XA30 cases used by DSI Studio's
-`.github/workflows/test.yml`. They are source repositories to download
-on demand, not binary fixtures included in this AI repository.
+Example-driven tutorials are **not limited to DICOM**. When a user wants
+to learn import, reconstruction, tractography, group connectometry, tumor
+segmentation, or a practical DSI Studio workflow, offer a relevant public
+example from `DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md`.
 
-For a first lesson, propose the Siemens Prisma DTI example, then
-explain the overall plan, acquire permission and a scratch directory,
-inspect the input, and use `rename_dicom_dir` and `convert_dicom_dir`.
-Rename only an expendable copy; verify actual output files and b-table.
-For voice-guided lessons, follow Section 9.2 so the tutorial sounds
-like side-by-side teaching. Never imply these examples or CI tests
-have already run in the current session.
+- **SCA2 (OpenNeuro ds001378):** matched T1w NIfTI, diffusion SZ,
+  GQI/QSDR FZ and a group DZ database with participant metadata.
+  Useful for diffusion source inspection, reconstruction and group
+  connectometry.
+- **UPenn GBM (Fiber Data Hub / TCIA):** matched structural NIfTI,
+  expert tumor segmentation, diffusion SZ and ready-to-track FZ.
+  Useful for tumor overlay, coordinate QC and tractography near a lesion.
+- **DICOM test fixtures:** Siemens, Philips, sagittal/mosaic and XA30
+  inputs documented in `DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`.
+  Use when conversion or scanner-specific parsing is the lesson.
+
+**Offer before starting.** Pick a small, matched example that suits
+the goal, explain the teaching plan, and obtain approval and a work
+directory before downloads or processing. Never automatically fetch
+an entire cohort. Check files, subject IDs, image geometry and
+actual conversion/output before claiming success. Rename DICOM only
+on an expendable copy. For voice-guided lessons, follow Section 9.2
+and teach conversationally. All examples are public-source
+references, not binary datasets checked into the AI repo.
 
 ### 4.3 Local dialogs are valid user input
 

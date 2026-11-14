@@ -18,6 +18,16 @@ computational trajectory, not an observed axon or a measure of connectivity
 strength. Anatomical validity requires source QC, justified tracking settings,
 explicit region logic, and visual inspection.
 
+## Optional public tracking examples
+
+Offer an already-reconstructed FZ from the
+[example dataset catalog](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md):
+**SCA2 `sub-control01_ses-01_dwi.gqi.fz`** for basic tracking
+and **UPenn GBM `sub-100_dwi.gqi.fz`** for tumor-aware tracking
+near a lesion (with matched structural NIfTI and segmentation).
+Use one small subject, obtain approval before downloading, and
+inspect geometry and tracking quality before interpreting pathways.
+
 ## Tutorials
 
 - https://www.youtube.com/watch?v=xyFNXB9nJ90
