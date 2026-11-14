@@ -171,6 +171,12 @@ the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the tutor
 window or ask the user, and never click or change data. See
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
+Atlas, AutoTrack, and surface steps on a native-space FIB first need a normalization of a minute or
+more. It runs in the background (the window title shows its progress), and such a step returns at
+once until it is done. Start it early with `prepare_mapping`, after telling (or, in a tutorial,
+asking) the user, and poll `prepare_mapping check` until `ready`; see "Normalization before atlas
+work" in `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`.
+
 ### 3.4 Read the log when state changed outside the agent
 
 ```bash

@@ -35,6 +35,12 @@ action, one explanation, and one check:
 - Before a main-window step that opens a file or folder dialog, run
   `set_work_dir <folder holding the lesson data>` so the dialog starts in the main window's **Work Dir**, and name the file to pick.
 - Tutor commands wait while a dialog or "Finished." message is open: ask the user to close it first.
+- When a lesson will need the template mapping (the atlas button, AutoTrack, a brain surface, an MNI
+  slice), run `prepare_mapping check` right after the FIB opens. If `needed`, ask, e.g. `ask_user
+  "The next step lines this brain up with the template, about a minute the first time. Proceed?" Yes
+  "Not now"`, and on Yes run `prepare_mapping`: it runs in the background (the window title shows
+  `- normalization N/4`), so keep teaching. Before the step that needs it, poll `prepare_mapping
+  check` until `ready` (`DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`).
 - The atlas list (`addRegionFromAtlas`) is a modeless window that stays open, so tutor commands keep
   working; its controls cannot be highlighted, so describe them by label (atlas drop-down, region
   list, **Search**, **Add**, **Close**).

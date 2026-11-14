@@ -32,6 +32,7 @@ bash ./dsi.sh resample_tract 0.5 "0&2"
 | `list_auto_tract` | `["list_auto_tract"]` | Valid hierarchical AutoTrack names. Normally call before AutoTrack (a task skill may supply verified identifiers and waive discovery). Parent entry = whole family; child only for a requested subdivision or branch. |
 | `run_auto_track` | `["run_auto_track","ProjectionBrainstem_CorticospinalTractL"]` | Exact name from `list_auto_tract` or a verified skill identifier; never guess labels. Asynchronous: launch all independent bundles back-to-back, then poll the full `list_tract` about every 10 s until every requested row is `done`; never wait serially. Standard coherent bundles: about 10,000 tracts, TIP 3–4. An optional `command[2]` (e.g. `"0:0&1:1"`) adds ROI/ROA constraints, but named entries already carry anatomical constraints, so add them only for a specific need such as isolating a minor branch. |
 | `enable_auto_tract` | `["enable_auto_tract"]` | Load the symmetric tract atlas and enable automatic-tract controls. |
+| `prepare_mapping` | `["prepare_mapping","check"]`, `["prepare_mapping"]` | Subject-to-template normalization (see below). Returns `ready` (QSDR FIB, mapping computed, or a mapping file beside the FIB, which loads at once), `running <step>/4`, `failed: <reason>`, or, with `check`, `needed`. Without `check` it starts the normalization in the background when needed and returns at once. |
 | `list_history` | `["list_history"]` | Every command recorded in this window's session, with its `index`. Check it before replaying. |
 | `run_command_history` | `["run_command_history","C:/data/subjects"]` | Replay the recorded pipeline once per file in a folder (or an `&`-joined list, `"C:/data/s1.fz&C:/data/s2.fz"`), substituting each file into the load step and remapping related load/save names. An optional `command[2]` selects indices: `"2:5"` (inclusive), `"3"`, or `"0:1&12:15&16"` (replayed in that order, to skip noise between steps). See notes below. |
 
@@ -107,6 +108,24 @@ Clustering commands delete the original bundle and replace it with clusters.
 | `recognize_and_cluster_tract` | `["recognize_and_cluster_tract",0]` | Split into atlas-recognized bundles. |
 | `cluster_tract_by_km`, `cluster_tract_by_em` | `["cluster_tract_by_km",0,"10 0"]` | K-means or expectation-maximization clusters. |
 | `cluster_tract_by_hy` | `["cluster_tract_by_hy",0,"50 1.0"]` | Hierarchical clusters plus an `others` bundle. |
+
+## Normalization before atlas work
+
+On a native-space FIB, the first use of the template mapping needs a normalization of a minute or
+more: the atlas button and `add_region_from_atlas`, AutoTrack, `enable_auto_tract`, tract
+recognition, `load_tract_atlas`, `add_surface` on a built-in slice, `add_mni_slice`, MNI/template
+tract open or save, atlas overlap statistics, template masks, and the `vol` metric. In the tracking
+window it never blocks: the first such step starts it in the background and returns at once with
+`normalization started in the background; try again when it finishes` (a user who clicks a button or
+menu item sees this as a message, before any file dialog), later ones return `normalization is running in the background (step N of 4) ...`,
+and the window title shows `- normalization N/4` until it ends (`- normalization failed: <reason>`
+on failure). A QSDR FIB needs none, and the mapping is saved beside the FIB, so it runs once per FIB.
+
+Start it early: right after opening a native-space FIB that the task will use with atlases,
+AutoTrack, or surfaces, run `prepare_mapping` (tell the user it takes about a minute; in a tutorial
+ask first, e.g. "The next step lines this brain up with the template, about a minute the first time.
+Proceed?" `Yes` `Not now`). Keep teaching or working meanwhile, and poll `prepare_mapping check`
+until `ready` before the step that needs it; on `failed`, report the reason.
 
 ## ROI settings syntax
 

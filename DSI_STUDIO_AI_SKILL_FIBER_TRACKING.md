@@ -94,6 +94,10 @@ them. Names are underscore-separated hierarchical prefixes (`Association_*`, `Pr
 use the parent (the whole left cingulum is `Association_CingulumL`, not an `Association_CingulumL_...`
 child; likewise the corpus callosum parent); choose a child only for a requested subdivision or branch.
 
+On a native-space FIB, AutoTrack needs the template mapping: run `prepare_mapping` early (it runs in
+the background, about a minute the first time) and poll `prepare_mapping check` until `ready` before
+launching (see "Normalization before atlas work" in `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`).
+
 `run_auto_track` is asynchronous: launch **all** requested bundles with the same settings first, then
 poll the full table about every 10 s until every row is `done` (no per-bundle waiting or rapid
 polling). Only then run anything depending on finished geometry or indices (statistics,
