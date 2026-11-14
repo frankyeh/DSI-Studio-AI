@@ -315,7 +315,7 @@ the workspace uncluttered.
 Example-driven tutorials are **not limited to DICOM**. When a user wants
 to learn import, reconstruction, tractography, group connectometry, tumor
 segmentation, or a practical DSI Studio workflow, offer a relevant public
-example from `DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md`.
+example from `DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`.
 
 - **SCA2 (OpenNeuro ds001378):** matched T1w NIfTI, diffusion SZ,
   GQI/QSDR FZ and a group DZ database with participant metadata.
@@ -325,7 +325,7 @@ example from `DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md`.
   expert tumor segmentation, diffusion SZ and ready-to-track FZ.
   Useful for tumor overlay, coordinate QC and tractography near a lesion.
 - **DICOM test fixtures:** Siemens, Philips, sagittal/mosaic and XA30
-  inputs documented in `DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`.
+  inputs documented in `DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`.
   Use when conversion or scanner-specific parsing is the lesson.
 
 **Offer before starting.** Pick a small, matched example that suits

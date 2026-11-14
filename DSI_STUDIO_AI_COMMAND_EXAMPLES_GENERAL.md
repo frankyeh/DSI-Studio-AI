@@ -18,7 +18,7 @@ only as parameters of the documented commands below.
 
 The DSI Studio repository's `.github/workflows/test.yml` contains
 real DICOM conversion tests. Use
-[`DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md`](DSI_STUDIO_AI_SKILL_DICOM_TEST_EXAMPLES.md)
+[`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
 to offer public Siemens, Philips, sagittal, and XA30 fixtures and a
 reproducible conversion walkthrough. For interactive AI sessions use
 the `rename_dicom_dir` / `convert_dicom_dir` commands below; the

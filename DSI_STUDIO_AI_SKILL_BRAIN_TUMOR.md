@@ -16,7 +16,7 @@ other clinical information.
 ## Optional public teaching case
 
 For a demonstration without user patient files, **offer** the matched
-[UPenn GBM `sub-100` sample](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md)
+[UPenn GBM `sub-100` sample](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
 from Fiber Data Hub. It includes structural NIfTI (T1w, contrast T1w,
 FLAIR), a tumor segmentation and DWI GQI FZ; an SZ is optional.
 Download selected assets only with user approval. Verify matching

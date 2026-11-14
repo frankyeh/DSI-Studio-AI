@@ -21,7 +21,7 @@ explicit region logic, and visual inspection.
 ## Optional public tracking examples
 
 Offer an already-reconstructed FZ from the
-[example dataset catalog](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md):
+[example dataset catalog](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md):
 **SCA2 `sub-control01_ses-01_dwi.gqi.fz`** for basic tracking
 and **UPenn GBM `sub-100_dwi.gqi.fz`** for tumor-aware tracking
 near a lesion (with matched structural NIfTI and segmentation).
