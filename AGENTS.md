@@ -174,7 +174,7 @@ download) covers it; select the covering one and `minimize`, `move_window`, or `
 
 When the user wants to learn how to do something in the GUI rather than have it done, start from
 the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the tutor commands
-`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, and `ask_user_modal`; narrate with `voice`
+`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, and `ask_user_act`; narrate with `voice`
 once the user has agreed to a voice tutorial (9.2). They only point at controls of the selected
 window or ask the user, and never click or change data. See
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
