@@ -111,10 +111,12 @@ different window layouts.
   **Run Preprocessing** button. It displays completed steps with ✓ and skips
   steps recognized as already applied in the SRC processing report.
   Do not treat its visual suggestions as proof that a correction is needed.
-- **Methods (2c):** Choose DTI, GQI, or QSDR; configure corresponding metrics
-  and sampling/template settings. The **More...** disclosure exposes advanced
-  options, including additional output metrics. The checkboxes are arranged
-  in three-column grids. For one source, an editable output filename appears
+- **Methods (2c):** Choose DTI, GQI, or QSDR. GQI and QSDR show the diffusion
+  sampling length ratio as a slider (0.10 to 3.00); QSDR also shows Template and
+  Resolution. **More...** adds the Options (high-accuracy fixel output, tensor from
+  b < 1750, ODF vectors), a **QSDR Registration** card (Manual Align, Partial FOV,
+  T1W-based QSDR), and an **Output Metrics** card. Tensor metrics are saved by every
+  method, including GQI and QSDR. For one source, an editable output filename appears
   below the pages; for a batch it is hidden.
 - **Edit DWI:** Inspect DWI volumes and their b-values, remove bad volumes,
   edit geometry, and use **Align Selected DWI...** to rigidly align the
