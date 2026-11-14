@@ -40,7 +40,7 @@ the selected window even while `list_window` reports it `busy`.
 | `minimize` | `showMinimized()`. |
 | `maximize` | `showMaximized()`. |
 | `move_window <x> <y> [width] [height]` | Restores normal state, moves the top-left corner to screen position `x`,`y`, and optionally resizes, in the pixels `list_window` reports as `geometry`. |
-| `close` | `close()` on the selected non-main window; for `main` it fails with `the main window cannot be closed by AI`. Closing a dialog cancels it, so do not close one the user is still answering. |
+| `close` | `close()` on the selected non-main window; for `main` and `agent` it fails with `the main and agent windows cannot be closed by AI`. Closing a dialog cancels it, so do not close one the user is still answering. |
 
 ```bash
 bash ./dsi.sh bring_to_front
@@ -82,8 +82,10 @@ recovery.
   "windows":{
     "main":{"status":"idle","title":"","geometry":[0,0,1280,860]},
     "tracking7ff6ab123410":{"status":"busy","title":"subject.fz","geometry":[1280,0,1280,1000]},
-    "window7ff6ab567800":{"status":"idle","title":"Fiber Data Hub","geometry":[200,120,900,700]}
-  }
+    "window7ff6ab567800":{"status":"idle","title":"Fiber Data Hub","geometry":[200,120,900,700]},
+    "agent":{"status":"idle","title":"AI Agents","geometry":[1700,500,800,900]}
+  },
+  "screens":[[0,0,2560,1400]]
 }
 ```
 
@@ -94,7 +96,10 @@ recovery.
 - `windows`: every AI-addressable window (`main`, `tracking...`, `recon...`, `image...`,
   `connectometry...`), every other visible window as `window...`, and any in-flight asynchronous
   `curlN` task, each with `status` (`idle`/`busy`/`waiting`) and `title`; windows also report
-  `geometry` as `[x, y, width, height]` in screen pixels.
+  `geometry` as `[x, y, width, height]` in screen pixels. The agent chat window is always `agent`
+  (when visible), so an agent can move it off the window it teaches.
+- `screens`: each screen's available desktop area as `[x, y, width, height]`, for placing windows
+  with `move_window`.
 - A `connectometry...` window stays `busy` for the whole asynchronous `run` (permutation test). For
   percent complete, use that window's `progress` session command (`not_started`, or
   `<running|finished|stopped>\t<percent>`; `stopped` covers this session's `stop` and a local Stop
@@ -120,7 +125,7 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is the command the control sends (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
 | `highlight_ui <id> [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports; the words go in the `ask_user` dialog, which opens beside it. `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`; clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fourth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
 | `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. |
-| `ask_user <question> [option]...` | A modeless dialog beside the highlighted control (beside its open menu for a menu item; at the top-right corner of the screen when nothing is highlighted), on top of all windows and without taking focus, so the user keeps working in DSI Studio; highlight a control first to put the question next to it, where the user is looking. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
+| `ask_user <question> [option]...` | A modeless dialog beside the highlighted control (beside its open menu for a menu item; at the center of the screen when nothing is highlighted), on top of all windows and without taking focus, so the user keeps working in DSI Studio; highlight a control first to put the question next to it, where the user is looking. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
 | `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
 | `ask_user_act <instruction>` | The `ask_user` dialog with only `Cancel`, for a step on the highlighted control: it closes by itself and returns `done` when the user acts on that control (clicks a button or view, chooses a drop-down item, finishes a drag or drawing stroke in a view, or triggers the highlighted menu item), or returns `Cancel`. Fails with `highlight a control first` when nothing is highlighted. If the click opens a modal dialog (a file dialog), `done` returns after that dialog closes. Acting another way (a shortcut, another button) does not close it. |
 
