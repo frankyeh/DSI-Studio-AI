@@ -56,25 +56,39 @@ The shared controls `bring_to_front`, `minimize`, `maximize`, `move_window`, and
 before ordinary MainWindow/window routing. `run_cli` and `run_shell` are global MainWindow commands
 with their own execution models; read their guide (Section 8) before using them.
 
-## 2. Required startup: set the task title
+## 2. Required startup sequence
 
-Send this first, as its own request, and inspect the reply before reading further in this file or
-opening any other DSI Studio AI document:
+Send these three requests in order, and inspect all three replies before reading further in this
+file or opening any other DSI Studio AI document.
+
+Exception: a coding task that only reads or edits source or text files (no DSI Studio data, window,
+or analysis) skips Steps 2.1-2.3. Edit files with your own tools or with `patch_text_file`
+(Section 8.3), and check the repository with `run_shell "git status"` or `run_shell "git diff"`.
+
+### 2.1 Set the task title
 
 ```bash
 bash ./dsi.sh set_title "<concise title derived from the user's task>"
 ```
 
-Update it when the task changes substantially, again as its own request. Then go straight to what the
-task needs; do not list recent files or send status messages unless the task calls for them.
+Update it when the task changes substantially. Send `set_title` as its own request, never combined
+with an unrelated command.
 
-Exception: a coding task that only reads or edits source or text files (no DSI Studio data, window,
-or analysis) skips the title. Edit files with your own tools or with `patch_text_file`
-(Section 8.3), and check the repository with `run_shell "git status"` or `run_shell "git diff"`.
+### 2.2 Send a progress message
 
-`-Chat "<message>"` is user-facing communication; it does not retrieve action history (use `log`). It
-is not a command: over Web it is the request's `chat` field (`{"chat":"..."}`), and
-`{"cmd":"chat"}` fails with `unknown command: chat`.
+```bash
+bash ./dsi.sh -Chat "<brief improvised message that you are reading the DSI Studio manual before continuing>"
+```
+
+`-Chat` is user-facing communication; it does not retrieve action history (use `log`). It is not a
+command: over Web it is the request's `chat` field (`{"chat":"..."}`), and `{"cmd":"chat"}` fails
+with `unknown command: chat`.
+
+### 2.3 Learn a main-window command
+
+```bash
+bash ./dsi.sh list_recent_fib
+```
 
 ## 3. Window targeting, state, and replies
 
@@ -149,14 +163,18 @@ bash ./dsi.sh close
 - `bring_to_front` restores the window to normal state, then raises and activates it.
 - `move_window <x> <y> [width] [height]` moves and resizes it, in the `geometry` pixels that
   `list_window` reports.
-- `close` closes the selected non-main window; AI cannot close `main`. Closing a dialog cancels it.
+- `close` closes the selected window; AI cannot close `main` or the agent chat window `agent`. Closing a dialog cancels it.
   A tracking-window close bypasses the local `Tractography not saved` prompt, so confirm first
   whenever unsaved tracts may exist. Put `close` last in a multi-command request, then immediately
   select `main` or another valid ID: the session still remembers the closed target.
 - These controls change only visibility, focus, position, or window state.
 
-Before talking about one window, check that no other window (for example the Fiber Data Hub after a
-download) covers it; select the covering one and `minimize`, `move_window`, or `close` it.
+Before talking about one window, check with `list_window` that no other window covers it (compare
+`geometry`), for example the Fiber Data Hub after a download, or the agent chat window itself, listed
+as `agent`. Select the covering window and `move_window` it beside the taught window (using the free
+space in `screens`, or another screen when there are several), `minimize` it, or `close` a finished
+dialog; then `set_window` back. Move the `agent` window rather than minimizing it when the user still
+chats in it.
 
 When the user wants to learn how to do something in the GUI rather than have it done, start from
 the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the tutor commands
