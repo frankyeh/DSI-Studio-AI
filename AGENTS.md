@@ -175,7 +175,7 @@ download) covers it; select the covering one and `minimize`, `move_window`, or `
 When the user wants to learn how to do something in the GUI rather than have it done, start from
 the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the tutor commands
 `list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, and `ask_user_act`; narrate with `voice`
-once the user has agreed to a voice tutorial (9.2). They only point at controls of the selected
+(9.2: by default when the user asked to be taught, otherwise once the user agrees). They only point at controls of the selected
 window or ask the user, and never click or change data. See
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
@@ -512,11 +512,12 @@ in `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
 ### 9.2 Voice tutorials and demo mode
 
-**Offer, then ask.** A voice tutorial speaks aloud on the user's computer. When a lesson, walkthrough,
-or demonstration would help, offer one proactively, but start it only after the user agrees, for
-example with `ask_user "Would you like a voice tutorial?" "Yes, with voice" "No, text only"`. Skip the
-question only when the user explicitly asked for a voice tutorial; if the user declines, teach
-through the chat and highlights without `voice`.
+**When to speak.** A voice tutorial speaks aloud on the user's computer. When the user asks to be
+taught or instructed (how to use DSI Studio or how to do an analysis), start teaching with voice
+right away, without asking; stop using `voice` if the user says to (text only). For other tasks where
+a lesson, walkthrough, or demonstration would help, offer one first and start only after the user
+agrees, for example with `ask_user "Would you like a voice tutorial?" "Yes, with voice" "No, text
+only"`; if the user declines, teach through the chat and highlights without `voice`.
 
 Speak like an experienced DSI Studio user mentoring someone at the same screen, not like an AI or a
 narrator reading a command log. Four rules:
