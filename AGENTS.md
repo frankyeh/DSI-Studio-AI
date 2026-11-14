@@ -194,10 +194,11 @@ the session still remembers the now-invalid closed target. Put `close` last in a
 multi-command request.
 
 When the user wants to learn how to do something in the GUI rather than have it done,
-teach from the matching skill with the tutor commands `list_ui`, `highlight_ui`,
-`clear_highlight`, `ask_user`, and `ask_user_modal`, and narrate with `voice` once the
-user has agreed to a voice tutorial (see 9.2). They only point at controls of the
-selected window or ask the user, and never click or change data.
+start from the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the
+tutor commands `list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, and
+`ask_user_modal`, and narrate with `voice` once the user has agreed to a voice tutorial
+(see 9.2). They only point at controls of the selected window or ask the user, and
+never click or change data.
 
 See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
@@ -912,6 +913,7 @@ source data or running reconstruction.
 - [Parameters, rendering, camera, surfaces, workspace, settings, and display](DSI_STUDIO_AI_COMMAND_EXAMPLES_RENDERING.md)
 - [Brain-tumor presurgical and postsurgical evaluation](DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md) (read only for brain-tumor tasks)
 - [Fiber-tracking workflow](DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
+- [Interactive lessons for new users](DSI_STUDIO_AI_SKILL_LESSONS.md) (read when the user asks to be taught)
 
 Read only the files relevant to the current task, then continue using
 `bash ./dsi.sh`.
