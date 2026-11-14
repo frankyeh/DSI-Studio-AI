@@ -165,21 +165,25 @@ not imply that the shared control will be rejected.
 
 ## Tutor commands: show the user where to click
 
-`list_ui`, `highlight_ui`, and `clear_highlight` teach a local user. They act on the
-selected window but never click, trigger, or change anything except the visible
-accent, and they are not recorded in the command history. Use them when the user
+`list_ui`, `highlight_ui`, `clear_highlight`, and `ask_user` teach a local user. They act
+on the selected window but never click, trigger, or change anything except the visible
+accent or the question shown, and they are not recorded in the command history. Use them when the user
 asks how to do something in the GUI; use ordinary commands when the user asks you to
 do it.
 
 | Command | Exact behavior |
 |---|---|
-| `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label"}]}`, at most 50 entries; `total` counts all matches. `filter` is a case-insensitive substring of `id` or `label`. |
+| `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is present when the control sends a command (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
 | `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
 | `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
+| `ask_user <question> [option]...` | Shows a dialog over the selected window and waits for the local user. With options, the user picks one from a list; without options, the user types an answer. The answer is the `output`; closing the dialog fails with `the user closed the question without answering`. The request does not return until the user answers. |
 
 `kind` in `list_ui` is:
 
-- `button` or `disabled button`: a visible button, by objectName;
+- `button` or `disabled button`: a visible button, by objectName; an unnamed toolbar
+  button is listed as `run:<command>`;
+- `setting` or `disabled setting`: a drop-down list or slider that sends a command (its
+  current value is never reported);
 - `pages`: the main window's page list `nav_rail` (Tractography, Correlational, Image,
   Settings);
 - `view`: the 3D view `GLWidget` or the 2D slice view `graphicsView`, the targets for
@@ -196,7 +200,10 @@ name or path (a button showing a loaded file, for example) is returned empty.
 
 `highlight_ui` results:
 
-- a button or view: `highlighted: <id>`;
+- a button, setting, or view: `highlighted: <id>`;
+- `run:<command>`: the one visible control, or else menu action, that sends that
+  command. Use `run:<command>=<param>` from `list_ui` when several controls send the
+  same command with different parameters;
 - `option:<id>`: the tree expands to it, its editor is ringed, and the output is
   `option: <tree path>`;
 - a menu action (enabled and visible): the earlier highlight is removed and nothing is drawn; the output is
@@ -205,7 +212,7 @@ name or path (a button showing a loaded file, for example) is returned empty.
 
 Failures: `control not found or not visible`, `ambiguous control`,
 `control is disabled`, and `a dialog is open; ask the user to close it first` (all
-three tutor commands except `clear_highlight` refuse while a modal dialog is open).
+tutor commands except `clear_highlight` refuse while a modal dialog is open).
 
 ### Tutor protocol
 
@@ -248,9 +255,44 @@ gesture follows the GUI's own behavior:
   polygon (click each corner, double-click to close). Right-click or Shift erases.
   Undo Edit (Ctrl+Shift+Z) reverts the last region edit.
 
-The main window's **Tutorial...** button (Settings page) runs the same walkthroughs
-locally without an agent. Its Exit button or Esc closes the panel and removes any
-highlight, including one an agent drew.
+### Teaching from a skill
+
+DSI Studio has no built-in tutorial; the agent is the tutor, and the skills are the
+lessons. When the user asks "teach me how to ..." (for example, brain tumor analysis):
+
+1. Read the matching `DSI_STUDIO_AI_SKILL_*.md` (or the DSI Studio documentation at
+   https://dsi-studio.labsolver.org/ when no skill covers it). Its steps are commands
+   with the reasons for them.
+2. Start with the plan through `voice`, and use `ask_user` for choices the skill leaves
+   to the user (for example, which data to open, or whether to include a step).
+3. For each command in the skill, select its window and call
+   `highlight_ui run:<command> "<short caption>"`. Explain the step through `voice` or
+   the chat: what to click, what to set, and why.
+   - `menu: <path>`: tell the user the menu path.
+   - `control not found or not visible`: open the page or window that holds it first
+     (`highlight_ui nav_rail` for main-window pages), or check `list_ui <command>`. If no
+     control sends the command, explain the step and offer to run it for the user.
+4. Wait for the user. Then read `log`: a `user operation` line with the same `cmd`
+   confirms the user did the step, and the lines after it show the result. Check the
+   result before the next step, as the skill does.
+5. Call `clear_highlight` when the lesson ends.
+
+The `run` link between a control and its command comes from DSI Studio itself, so a
+moved or renamed button is still found. Do not copy control ids into notes or manuals.
+
+Mouse steps in the views have no command; show them with a gesture:
+
+| View | Mode | Gesture | Tell the user |
+|---|---|---|---|
+| `GLWidget` | Select, Delete, Cut, or Paint Tracts | `drag` | Press the left button, drag a line across the tracts, and release. Paint Tracts then asks for a color. |
+| `GLWidget` | same | `shift` | Hold Shift while dragging to draw a curved line. |
+| `graphicsView` | freehand region tool | `freehand` | Hold the left button and draw around the area. Right-click, or hold Shift, to erase. |
+| `graphicsView` | rectangle tool | `rect` | Drag from one corner to the opposite corner. |
+| `graphicsView` | sphere or cube tool | `drag` | Press at the center and drag outward to set the size. |
+| `graphicsView` | polygon tool | none | Click each corner, then double-click to close the shape. |
+
+Undo is Ctrl+Z for tract edits (every checked bundle) and Ctrl+Shift+Z for region
+edits.
 
 ## Routing order
 
@@ -258,8 +300,8 @@ For each command in a request, the current dispatcher applies this order:
 
 1. Shared window controls: `bring_to_front`, `minimize`, `maximize`, `close`.
 2. Session commands: `set_title`, `log`, and `set_window`.
-3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`, and
-   `clear_highlight`.
+3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`,
+   `clear_highlight`, and `ask_user`.
 4. Read-only system commands: `get_agent_settings` and `get_chat` (also in headless mode).
 5. All remaining commands are offered to `MainWindow` first.
 6. Only a command unknown to `MainWindow` falls through to the persistently selected
