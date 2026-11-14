@@ -14,8 +14,10 @@ action, one explanation, and one check:
 
 1. Select the window (`set_window`) and highlight the control in **Point at**.
 2. Explain the step in your own words from **Why** (voice or chat).
-3. Show the action with `ask_user "<action>" Done Cancel`.
-4. After `Done`, do the **Check**; if it fails, explain what went wrong and repeat the step.
+3. Show the action with `ask_user_act "<action>"`, which closes by itself when the user acts on the
+   highlighted control. When the action is not on it (*(say)* steps, work inside a dialog), use
+   `ask_user "<action>" Done Cancel`.
+4. After `done` (or `Done`), do the **Check**; if it fails, explain what went wrong and repeat the step.
 
 - **Point at** is a `highlight_ui` target: `run:<command>` finds the control sending that command, a
   plain id is an object name, and *(say)* means nothing can be highlighted, so describe it by label and
@@ -97,7 +99,15 @@ Goal: a quick orientation to the tracking window's panels, mouse controls, and m
 can say "in the region list" or "in the 3D window" without explaining them. Keep each explanation to
 one or two sentences; this is an overview, not a manual. Before: a FIB is open (`list_window` shows a
 `tracking...` window; `set_window` to it). Use `list_ui panel` to confirm the panel ids, and skip any
-panel the window does not show. Each step ends with `ask_user "<what to try>" Next Stop`.
+panel the window does not show. Steps with a gesture or `click` end with `ask_user_act "<what to try>"`; panel overviews end with
+`ask_user "<what to try>" Next Stop`.
+
+- **Preflight.** If `list_ui panel` misses a panel because the user closed or moved docks, highlight
+  `actionRestore_window_layout` (**Layout > Restore Window Layout**) with `ask_user_act` to bring back
+  the default layout first.
+- **ROI layout.** In the 3-slice or mosaic layout a click lands on whichever slice is under the
+  cursor, so show drawing tools only in the single-slice layout: highlight `option:roi_layout` and ask
+  the user to choose **Single Slice**, or offer `set_param roi_layout 0`.
 
 | # | Point at | Gesture | Why | Check |
 |---|---|---|---|---|
