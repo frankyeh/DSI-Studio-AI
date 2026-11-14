@@ -111,19 +111,21 @@ panel the window does not show. Steps with a gesture or `click` end with `ask_us
 
 | # | Point at | Gesture | Why | Check |
 |---|---|---|---|---|
-| 1 | `GLWidget` | `rotate` | **3D window**: shows slices, regions, tracts, and devices together. Drag with the left button to rotate. | The user rotates; Next |
-| 2 | `GLWidget` | `zoom`, then `pan` | Right-drag up (or scroll) zooms; middle-drag moves the scene; Shift + left drag only tilts and Ctrl makes any drag finer. Starting a drag in a corner rolls the view (`roll`). | Next |
-| 3 | `GLWidget` | `double` | Double-clicking a region, tract, or device selects its row in its list. | Next |
-| 4 | `ROIdockWidget` | | **ROI window** ("Draw Regions"): the 2D slice used to draw and check regions. The drop-down above it (`SliceModality`) switches the image; scrolling zooms (`graphicsView` with `wheel`). | Next |
-| 5 | `tool1` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Click one to select it. | `user operation` or Next |
-| 6 | `graphicsView` | `freehand` | With the freehand tool, hold the left button and draw around an area; right-click or Shift erases. Drawing creates or edits the current region. | `list_region`, or Next |
-| 7 | `regionDockWidget` | | **Region list** ("Assign Regions"): every region with its checkbox, type (ROI, ROA, Seed, ...), and color. Checked regions are the ones shown, used for tracking, and measured. | Next |
-| 8 | `addRegionFromAtlas` | `click` | Regions can also come from a built-in atlas instead of drawing. | Next |
-| 9 | `renderingWidgetHolder` | | **Options**: tracking parameters at the top, then how slices, tracts, regions, and surfaces are drawn. `highlight_ui option:<id>` points at one setting. | Next |
-| 10 | `TractWidgetHolder` | | **Tract list**: every bundle with its checkbox and tract count. Like regions, checked tracts are the ones shown, saved, measured, or edited. | Next |
-| 11 | `perform_tracking` | `click` | **Fiber Tracking** starts tracking with the current regions and options; the result appears as a new row in the tract list. | Next |
-| 12 | `DeviceDockWidget` *(if shown)* | | **Devices**: electrodes and other devices placed in the brain. | Next |
-| 13 | `menu_File`, then each menu below | | **Menus**, one highlight each, one sentence each (the menu opens; say the name too). | Next after each |
+| 1 | `glAxiCheck`, then `glSagCheck`, `glCorCheck` | `click` | A newly opened FIB shows nothing in the 3D window: its slices are off. These checkboxes show the axial, sagittal, and coronal slices of the current image in 3D. If the user prefers, run `enable_slice "1 1 1"`. | The slices appear (`preview_screen 3d` has a `slice` block) |
+| 2 | *(agent)* | | Optionally add a brain surface for context: `set_slice 0`, then `add_surface 0 25` (warps the template; a native-space FIB may take a moment the first time; check it with `preview_screen 3d`, see the rendering manual). | `preview_screen 3d` has a `surface` block |
+| 3 | `GLWidget` | `rotate` | **3D window**: shows slices, regions, tracts, and devices together. Drag with the left button to rotate. | The user rotates (`ask_user_act`) |
+| 4 | `GLWidget` | `zoom`, then `pan` | Right-drag up (or scroll) zooms; middle-drag moves the scene; Shift + left drag only tilts and Ctrl makes any drag finer. Starting a drag in a corner rolls the view (`roll`). | `ask_user_act` |
+| 5 | `ROIdockWidget` | | **ROI window** ("Draw Regions"): the 2D slice used to draw and check regions. The drop-down above it (`SliceModality`) switches the image; scrolling zooms (`graphicsView` with `wheel`). | Next |
+| 6 | `tool1` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Click one to select it. | `ask_user_act` |
+| 7 | `graphicsView` | `freehand` | With the freehand tool, hold the left button and draw around an area; right-click or Shift erases. Drawing creates or edits the current region, which also appears in 3D. | `list_region` |
+| 8 | `regionDockWidget` | | **Region list** ("Assign Regions"): every region with its checkbox, type (ROI, ROA, Seed, ...), and color. Checked regions are the ones shown, used for tracking, and measured. | Next |
+| 9 | `addRegionFromAtlas` | `click` | Regions can also come from a built-in atlas instead of drawing. | `ask_user_act` |
+| 10 | `renderingWidgetHolder` | | **Options**: tracking parameters at the top, then how slices, tracts, regions, and surfaces are drawn. `highlight_ui option:<id>` points at one setting. | Next |
+| 11 | `TractWidgetHolder` | | **Tract list**: every bundle with its checkbox and tract count. Like regions, checked tracts are the ones shown, saved, measured, or edited. | Next |
+| 12 | `perform_tracking` | `click` | **Fiber Tracking** starts tracking with the current regions and options (with the drawn region checked, only tracts through it); the result appears as a new row in the tract list and in 3D. | `list_tract` shows the row `done` |
+| 13 | `GLWidget` | `double` | Rotate to see the tracts, then double-click a tract or region in 3D: its row is selected in its list. | `ask_user_act` |
+| 14 | `DeviceDockWidget` *(if shown)* | | **Devices**: electrodes and other devices placed in the brain. | Next |
+| 15 | `menu_File`, then each menu below | | **Menus**, one highlight each, one sentence each (the menu opens; say the name too). | Next after each |
 
 Menus, from left to right:
 
