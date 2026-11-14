@@ -195,9 +195,9 @@ multi-command request.
 
 When the user wants to learn how to do something in the GUI rather than have it done,
 teach from the matching skill with the tutor commands `list_ui`, `highlight_ui`,
-`clear_highlight`, and `ask_user`, and narrate with `voice` once the user has agreed to a
-voice tutorial (see 9.2). They only point at controls of the selected window or ask
-the user, and never click or change data.
+`clear_highlight`, `ask_user`, and `ask_user_modal`, and narrate with `voice` once the
+user has agreed to a voice tutorial (see 9.2). They only point at controls of the
+selected window or ask the user, and never click or change data.
 
 See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
