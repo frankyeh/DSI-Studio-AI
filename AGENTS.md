@@ -166,7 +166,7 @@ reads the chat; in a voice tutorial, minimize it (9.2).
 
 When the user wants to learn how to do something in the GUI rather than have it done, start from
 the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the tutor commands
-`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, and `ask_user_act`; narrate with `voice`
+`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, `ask_user_act`, and `cancel_ask_user`; narrate with `voice`
 (9.2: by default when the user asked to be taught, otherwise once the user agrees). They only point at controls of the selected
 window or ask the user, and never click or change data. See
 `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
@@ -176,6 +176,13 @@ more. It runs in the background (the window title shows its progress), and such 
 once until it is done. Start it early with `prepare_mapping`, after telling (or, in a tutorial,
 asking) the user, and poll `prepare_mapping check` until `ready`; see "Normalization before atlas
 work" in `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`.
+
+For menus, use ids from `list_ui`: highlight the parent menu first, then the item in a separate
+request. This opens the menu and applies its normal hover highlight without triggering the item.
+While a tutor question is waiting, other requests return `busy`. To dismiss it, send only
+`bash ./dsi.sh cancel_ask_user` from the same session, without parameters, other commands, or
+`-Chat`. The original question returns `Cancel`; wait for that reply before sending the next step.
+This closes only a tutor question, never a file picker or an approval dialog.
 
 ### 3.4 Read the log when state changed outside the agent
 
