@@ -166,7 +166,7 @@ Use it only when the download exists and the series really contain structural im
 1. **Offer a choice**, e.g. "Shall we use a Siemens DTI case from DSI Studio's test workflow to learn
    DICOM import and create an SRC file, or a Philips/XA30 case to compare vendors?"
 2. **Plan aloud**: inspect the series, preserve inputs, convert, review outputs, verify geometry and
-   b-table (voice: `AGENTS.md` Section 9.2: reasoning, intended action, progress, results).
+   b-table (voice: an analysis tutorial, `AGENTS.md` 9.2).
 3. **Prepare safely**: approval and a real working folder (never a private patient folder); inspect
    the decompressed source; rename only copies.
 4. **Convert**: prefer the main-window commands `rename_dicom_dir` and `convert_dicom_dir` (exact
