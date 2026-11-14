@@ -239,10 +239,10 @@ no command; show them with a gesture that follows the GUI's behavior:
 | `graphicsView` | sphere (`tool2`) or cube (`tool3`) tool | `drag` | Press at the center and drag outward to set the size. |
 | `graphicsView` | polygon tool (`tool4`) | `click`, then `double` | Click each corner, then double-click to close the shape. |
 | `graphicsView` | any | `wheel` | Scroll to zoom the slice (hold Ctrl when the view shows a scroll bar). |
-| `GLWidget` | normal | `rotate` | Drag with the left button to rotate. |
+| `GLWidget` | normal | `rotate` | Drag with the left button to rotate; hold Shift to tilt only (up/down drag, no turning), Ctrl for 16× finer moves (all drags). |
 | `GLWidget` | normal | `roll` | Start the left drag in a corner (outside the inscribed circle) to roll the view in-plane. |
 | `GLWidget` | normal | `zoom` or `wheel` | Drag up with the right button, or scroll, to zoom in. |
-| `GLWidget` | normal | `pan` | Drag with the middle button (or both buttons, or Shift or Ctrl + left) to move the scene; with Ctrl the move is 16× finer. |
+| `GLWidget` | normal | `pan` | Drag with the middle button, or both buttons, to move the scene. |
 | `GLWidget` | normal | `double` | Double-click a region, tract, or device to select its row. |
 | any button, drop-down, or tool | | `click` (`right` for a context menu) | Move to the control and click it. |
 
