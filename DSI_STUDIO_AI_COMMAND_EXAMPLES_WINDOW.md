@@ -163,13 +163,72 @@ not imply that the shared control will be rejected.
   NIfTI-to-SRC batches, etc.) without waiting for its final reply, the same way an
   active `curlN` task is already tracked in `windows`.
 
+## Tutor commands: show the user where to click
+
+`list_ui`, `highlight_ui`, and `clear_highlight` teach a local user. They act on the
+selected window but never click, trigger, or change anything except the visible
+accent, and they are not recorded in the command history. Use them when the user
+asks how to do something in the GUI; use ordinary commands when the user asks you to
+do it.
+
+| Command | Exact behavior |
+|---|---|
+| `list_ui [filter]` | Lists visible controls of the selected window as `{"total":N,"controls":[{"id","kind","label"}]}`, at most 50 entries; `total` counts all matches. `filter` is a case-insensitive substring of `id` or `label`. |
+| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id`, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`. Replaces any earlier highlight. |
+| `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
+
+`kind` in `list_ui` is:
+
+- `button` or `disabled button`: a visible button, by objectName;
+- `view`: the 3D view `GLWidget` or the 2D slice view `graphicsView`, the targets for
+  gestures;
+- `option`: an entry of the tracking window's Options tree, by option id, with its
+  tree path as `label` (for example `Tract Rendering > Tube Diameter (voxel)`);
+- `menu`: a menu action, by objectName, with its menu path as `label`.
+
+`highlight_ui` results:
+
+- a button or view: `highlighted: <id>`;
+- an option: the tree expands to it, its editor is ringed, and the output is
+  `option: <tree path>`;
+- a menu action: nothing is drawn; the output is `menu: <menu path>`, for example
+  `menu: Tracts > Save Tracts As...`. Tell the user that path.
+
+Failures: `control not found or not visible`, `ambiguous control`,
+`control is disabled`, and `a dialog is open; ask the user to close it first` (all
+three tutor commands except `clear_highlight` refuse while a modal dialog is open).
+
+Teach one step at a time: highlight, say what to do, and wait for the user before
+the next step. For example, to teach tract selection in a tracking window:
+
+```json
+{"command":{"cmd":"highlight_ui","param":"actionSelect_Tracts"}}
+{"command":{"cmd":"highlight_ui","param":["GLWidget","Drag across the tracts","drag"]}}
+```
+
+Send the second request only after the user has chosen Select Tracts (Ctrl+S). The
+launcher form is `bash ./dsi.sh highlight_ui GLWidget "Drag across the tracts" drag`. Each
+gesture follows the GUI's own behavior:
+
+- tract editing (`GLWidget`): choose Select, Delete, Cut, or Paint Tracts first, then
+  `drag` a line across the tracts; `shift` adds bend points while dragging. Undo
+  (Ctrl+Z) reverts the last edit of every checked bundle.
+- region drawing (`graphicsView`): `tool0` rectangle (`rect`), `tool1` freehand
+  (`freehand`), `tool2` sphere and `tool3` cube (`drag` out from the center), `tool4`
+  polygon (click each corner, double-click to close). Right-click or Shift erases.
+  Undo Edit (Ctrl+Shift+Z) reverts the last region edit.
+
+The main window's **Tutorial...** button runs the same walkthroughs locally without
+an agent.
+
 ## Routing order
 
 For each command in a request, the current dispatcher applies this order:
 
 1. Shared window controls: `bring_to_front`, `minimize`, `maximize`, `close`.
 2. Session commands: `set_title`, `log`, and `set_window`.
-3. Window discovery: `list_window`.
+3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`, and
+   `clear_highlight`.
 4. Read-only system commands: `get_agent_settings` and `get_chat` (also in headless mode).
 5. All remaining commands are offered to `MainWindow` first.
 6. Only a command unknown to `MainWindow` falls through to the persistently selected

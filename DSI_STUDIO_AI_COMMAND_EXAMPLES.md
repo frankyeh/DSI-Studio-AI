@@ -27,7 +27,7 @@ to another already-open window; the selection persists until changed again.
 
 Each command/interface area has one authoritative `COMMAND_EXAMPLES` document:
 
-- [Shared window selection and controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
+- [Shared window selection, controls, and GUI tutoring](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
 - [Main window, Fiber Data Hub, XNAT, FIB, workspace, settings, parameters, agent readiness, and chat history](DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md)
 - [Reconstruction commands and examples](DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md)
