@@ -62,6 +62,90 @@ anatomically wrong.
 - [Diffusion models and metrics](https://www.youtube.com/watch?v=wbrMJHD5mKs)
 - [NIfTI to tractography](https://www.youtube.com/watch?v=iuBtgGLohsg)
 
+## Current reconstruction dialog (November 2026)
+
+The current main window opens an SRC from **Tractography → 2 Reconstruct →
+SRC File(s) (*.sz)**. The adjacent **More...** section offers **Batch SRC →
+FIB** and **SRC quality control**. Once opened, the reconstruction dialog
+has three primary sidebar pages marked **2a Mask**, **2b Preprocessing**, and
+**2c Methods**. Click **Edit...** in that sidebar to expose **Edit DWI** and
+**Edit B-table**. These are GUI navigation labels, not AI launcher commands.
+The sidebar spans the dialog height; the single-file output filename field
+sits below the right-side pages. The bottom **Run Reconstruction** button
+runs the selected reconstruction method. Older tutorial videos can show
+different window layouts.
+
+- **Mask (2a):** Generate or edit a mask using thresholding, smoothing,
+  dilation/erosion, defragmentation, U-Net, or a template. Mask **Open** and
+  **Save** have moved to **File → Open Mask...** and **File → Save Mask...**;
+  they are no longer buttons in the Mask card. The AI command `mask_open`
+  remains supported and independent of the GUI menu.
+- **Preprocessing (2b):** The new diagram asks seven Yes/No questions,
+  selects a highlighted acquisition-dependent path, and provides a single
+  **Run Preprocessing** button. It displays completed steps with ✓ and skips
+  steps recognized as already applied in the SRC processing report.
+  Do not treat its visual suggestions as proof that a correction is needed.
+- **Methods (2c):** Choose DTI, GQI, or QSDR; configure corresponding metrics
+  and sampling/template settings. The **More...** disclosure exposes advanced
+  options, including additional output metrics. The checkboxes are arranged
+  in three-column grids. For one source, an editable output filename appears
+  below the pages; for a batch it is hidden.
+- **Edit DWI:** Inspect DWI volumes and their b-values, remove bad volumes,
+  edit geometry, and use **Align Selected DWI...** to rigidly align the
+  selected **3D DWI volume** to the first volume and rotate its b-vector.
+  This is not independent slice-by-slice alignment. Image and signal edit
+  cards expand on demand.
+- **Edit B-table:** Inspect and correct b-values and diffusion directions.
+  **File**, **Edit**, **B-table**, **Corrections**, and **QSDR** menus remain
+  available. Do not infer that moving or grouping buttons has removed their
+  underlying operations.
+
+### Preprocessing decision flow in the current GUI
+
+The seven questions, in displayed order, are:
+
+1. **Reverse phase-encoding b0?** Yes requests an opposite-encoding
+   image file; the available path uses TOPUP, potentially paired with EDDY.
+2. **Shell-based acquisition?** A few shells versus a DSI grid. DSI Studio
+   suggests a default from the b-values, but confirm the acquisition.
+3. **Try to save data with motion issues?** Optional motion correction on
+   applicable paths. Do not apply routinely to clean data or after EDDY.
+4. **Try T1w-based distortion correction?** Optional alternative for a
+   matching T1w input on eligible paths without reverse-phase data.
+   Selecting Yes requests a T1w image. Inspect the outcome.
+5. **Bias field already corrected?** **No** selects bias-field correction
+   if the report does not already record it; **Yes** skips it.
+6. **Need isotropic resolution?** **Yes** selects resampling when voxel
+   dimensions are unequal and this correction has not already been recorded.
+   The dialog suggests a default from voxel dimensions.
+7. **Correct eddy current distortion?** This option applies to shell-based
+   acquisitions and controls whether the eligible TOPUP path runs combined
+   TOPUP/EDDY or TOPUP alone.
+
+The four highlighted paths are determined by answers to Questions 1 and 2:
+reverse-PE present/absent × shell-based/DSI. Available steps include
+`topup_eddy`, `topup`, `eddy`, `motion_correction`,
+`correct_by_t1w`, `bias_field_correction`, and `resample`.
+**Run Preprocessing** executes the currently active steps in the displayed
+flow's defined order and stops on failure. It checks recorded report text
+to mark completed steps; report-based detection can be incomplete, so
+review the SRC processing history rather than assuming that a missing
+checkmark proves the operation was never applied.
+
+**Agent behavior:** These questions and the Run Preprocessing control are
+GUI features, not new AI launcher parameters or a new `run_preprocessing`
+command. With the AI launcher, inspect the actual acquisition, report, and
+b-table, then invoke individual documented corrections deliberately in the
+appropriate sequence. Do not automatically apply every recommended GUI
+step. For batch processing, make sure each subject genuinely shares the
+same acquisition and processing requirements.
+
+For the visible GUI workflow, consult the current website
+[Reconstruct: SRC to FIB](https://dsi-studio.labsolver.org/doc/gui_t2.html).
+When its descriptive text and the current implementation differ, verify
+the behavior against the live DSI Studio version and source code; web
+documentation and older videos may lag recent interface changes.
+
 ## Required Workflow
 
 ### 1. Define the analysis
