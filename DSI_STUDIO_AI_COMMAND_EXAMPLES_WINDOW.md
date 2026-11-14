@@ -173,8 +173,8 @@ do it.
 
 | Command | Exact behavior |
 |---|---|
-| `list_ui [filter]` | Lists visible controls of the selected window as `{"total":N,"controls":[{"id","kind","label"}]}`, at most 50 entries; `total` counts all matches. `filter` is a case-insensitive substring of `id` or `label`. |
-| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id`, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`. Replaces any earlier highlight. |
+| `list_ui [filter]` | Lists visible controls of the selected window only (not other windows it opened) as `{"total":N,"controls":[{"id","kind","label"}]}`, at most 50 entries; `total` counts all matches. `filter` is a case-insensitive substring of `id` or `label`. |
+| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id`, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
 | `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
 
 `kind` in `list_ui` is:
@@ -184,15 +184,18 @@ do it.
   gestures;
 - `option`: an entry of the tracking window's Options tree, by option id, with its
   tree path as `label` (for example `Tract Rendering > Tube Diameter (voxel)`);
-- `menu`: a menu action, by objectName, with its menu path as `label`.
+- `menu`: a visible menu action, by objectName, with its menu path as `label`.
+
+Options are listed in alphabetical order of their ids.
 
 `highlight_ui` results:
 
 - a button or view: `highlighted: <id>`;
 - an option: the tree expands to it, its editor is ringed, and the output is
   `option: <tree path>`;
-- a menu action: nothing is drawn; the output is `menu: <menu path>`, for example
-  `menu: Tracts > Save Tracts As...`. Tell the user that path.
+- a menu action: the earlier highlight is removed and nothing is drawn; the output is
+  `menu: <menu path>`, for example `menu: Tracts > Save Tracts As...`. Tell the user
+  that path.
 
 Failures: `control not found or not visible`, `ambiguous control`,
 `control is disabled`, and `a dialog is open; ask the user to close it first` (all
@@ -211,15 +214,17 @@ launcher form is `bash ./dsi.sh highlight_ui GLWidget "Drag across the tracts" d
 gesture follows the GUI's own behavior:
 
 - tract editing (`GLWidget`): choose Select, Delete, Cut, or Paint Tracts first, then
-  `drag` a line across the tracts; `shift` adds bend points while dragging. Undo
+  `drag` a line across the tracts; `shift` adds bend points while dragging. Paint Tracts
+  asks for a color after each drag. Undo
   (Ctrl+Z) reverts the last edit of every checked bundle.
 - region drawing (`graphicsView`): `tool0` rectangle (`rect`), `tool1` freehand
   (`freehand`), `tool2` sphere and `tool3` cube (`drag` out from the center), `tool4`
   polygon (click each corner, double-click to close). Right-click or Shift erases.
   Undo Edit (Ctrl+Shift+Z) reverts the last region edit.
 
-The main window's **Tutorial...** button runs the same walkthroughs locally without
-an agent.
+The main window's **Tutorial...** button (Settings page) runs the same walkthroughs
+locally without an agent. Its Exit button or Esc closes the panel and removes any
+highlight, including one an agent drew.
 
 ## Routing order
 
