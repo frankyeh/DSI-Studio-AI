@@ -110,7 +110,7 @@ recovery.
 
 ## Tutor commands: show the user where to click
 
-`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, and `ask_user_modal` teach a local user.
+`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, and `ask_user_act` teach a local user.
 They act on the selected window, never click, trigger, or change anything except the accent or the
 question shown, and are not recorded in the command history. Use them when the user asks how to do
 something in the GUI; use ordinary commands when the user asks you to do it.
@@ -122,6 +122,7 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 | `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. |
 | `ask_user <question> [option]...` | A modeless dialog at the top-right corner of the screen, on top of all windows and without taking focus, so the user keeps working in DSI Studio. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
 | `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
+| `ask_user_act <instruction>` | The `ask_user` dialog with only `Cancel`, for a step on the highlighted control: it closes by itself and returns `done` when the user acts on that control (clicks a button or view, chooses a drop-down item, finishes a drag or drawing stroke in a view, or triggers the highlighted menu item), or returns `Cancel`. Fails with `highlight a control first` when nothing is highlighted. If the click opens a modal dialog (a file dialog), `done` returns after that dialog closes. Acting another way (a shortcut, another button) does not close it. |
 
 `kind` in `list_ui`:
 
@@ -174,7 +175,7 @@ The tutor commands rely on these rules instead of extra checks:
   `clear_highlight` replaces or removes it. Only the tutoring session sends these commands or asks
   the user.
 - **Read results as text.** `list_ui` serializes a JSON object in `output`; `highlight_ui` and
-  `clear_highlight` return the plain text above; `ask_user` and `ask_user_modal` return the answer as
+  `clear_highlight` return the plain text above; `ask_user`, `ask_user_modal`, and `ask_user_act` return the answer as
   given. Failures come back in `error`.
 - **Options without changing the tree.** `highlight_ui option:<id>` expands the tree and selects the
   row; when the user only needs the location, report the `label` path from `list_ui <filter>`.
@@ -203,9 +204,11 @@ user asks "teach me how to ..." (for example, brain tumor analysis):
    - `control not found or not visible`: open the page or window holding it (`highlight_ui nav_rail`
      for pages), or check `list_ui <command>`. If no control sends the command, explain the step and
      offer to run it.
-4. Show the instruction with `ask_user "<what to do now>" Done Cancel` (add `Help` or other options
-   when useful); it stays on top while the user works, and a menu opened by `highlight_ui` stays
-   open. After `Done`, read `log`: a `user operation` line (written by the main, reconstruction, and
+4. Show the instruction with `ask_user_act "<what to do now>"` when the step is acting on the
+   highlighted control (a click, a choice, a menu item, a gesture); it returns `done` as soon as the
+   user does it. Use `ask_user "<what to do now>" Done Cancel` (add `Help` or other options when
+   useful) for steps elsewhere, such as working in a dialog. Both stay on top while the user works,
+   and a menu opened by `highlight_ui` stays open. After `done` or `Done`, read `log`: a `user operation` line (written by the main, reconstruction, and
    tracking windows) with the same `cmd` shows the user started the step, and the lines after it the
    result. Then verify the outcome with state queries (`list_window`, the window's list commands) or
    a screenshot, as the skill does: the log does not prove success, repeated changes of one
@@ -257,7 +260,7 @@ For each command, the dispatcher applies this order:
    on the selected target).
 2. Session commands: `set_title`, `log`, and `set_window`.
 3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`, `clear_highlight`,
-   `ask_user`, and `ask_user_modal`.
+   `ask_user`, `ask_user_modal`, and `ask_user_act`.
 4. Read-only system commands: `get_agent_settings` and `get_chat` (also in headless mode).
 5. All remaining commands are offered to `MainWindow` first.
 6. Only a command unknown to `MainWindow` falls through to the selected reconstruction, tracking,
