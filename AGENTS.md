@@ -690,37 +690,54 @@ Users may ask for a **voice tutorial**, spoken tutorial, demonstration, presenta
 or guided walkthrough. Treat these requests as demo mode. A voice tutorial is a live
 narrated DSI Studio workflow, not a verbal summary of commands.
 
+**Narrate the reasoning, the plan, and the live work.** Teach the audience why each
+step matters, what you intend to do next, what you are doing now, and what the result
+means. Explain practical reasoning and choices in plain language; do not recite private
+internal deliberation or invent observations. Start by explaining the goal, the
+approach, and what you expect to learn or show. As the workflow proceeds, connect
+each step to the previous finding, explain any change of plan, and summarize key
+results at natural checkpoints.
+
 **Do not run any DSI Studio command silently in voice tutorial mode.** Every command,
 including discovery, setup, processing, inspection, and status checks, must be
-preceded by a separate concise `voice` command explaining what is about to happen and,
-when useful, why. Speak first, run the command, inspect its result, then narrate the
-next command.
+preceded by a separate concise `voice` command that explains the upcoming action
+and its purpose. Speak first, run the command, inspect its reply, then explain
+what actually happened before introducing the next command. Use present-tense
+narration at the start of longer operations (for example, "I am now running
+tractography...") so listeners know what is currently happening. During
+asynchronous work, narrate meaningful confirmed progress and each status check;
+do not imply continuous progress without evidence.
 
 Example:
 
 ```bash
-bash ./dsi.sh voice "I will first list the available automatic tract names."
+bash ./dsi.sh voice "I will identify the available tract definitions first, so we can choose the correct pathway."
 bash ./dsi.sh list_auto_tract
-bash ./dsi.sh voice "I will now map the left arcuate fasciculus."
+bash ./dsi.sh voice "The left arcuate fasciculus is available. I will map it now to examine its course."
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
-bash ./dsi.sh voice "I will check whether the tractography has finished."
+bash ./dsi.sh voice "Tractography is running. I will check its status before interpreting the result."
 bash ./dsi.sh list_tract status
-bash ./dsi.sh voice "I will inspect the resulting tract bundle and its tract count."
+bash ./dsi.sh voice "I will inspect the reconstructed bundle and its tract count to evaluate the output."
 bash ./dsi.sh list_tract
 ```
 
-This narration rule applies step-by-step for the entire tutorial. There must be no
-unexplained DSI Studio command between narrated steps. Keep each spoken message short
-and natural; explain the purpose of the action rather than reading command syntax.
+The example's observations are illustrative: say that a tract is available,
+running, or complete **only if the preceding reply confirms it**. The
+narration rule applies step-by-step for the entire tutorial; there must be
+no unexplained DSI Studio command between narrated steps.
 
-Before a potentially long operation, state what is starting and what result is
-expected. For asynchronous work, narrate every subsequent status check before sending
-it. Announce completion only after the returned result confirms it.
+Keep speech concise, natural, and useful for someone following the screen.
+Describe scientific or practical meaning, not raw command syntax. Avoid repetitive
+"now I will" announcements without an explanation. Before a long operation,
+describe its purpose and the expected output; when it finishes, explain what the
+actual result shows and any limitation. If an action fails or the result differs
+from expectations, explain the issue and the next adjustment before continuing.
 
-Spoken narration must sound like the tutorial or presentation itself. Do not expose
-internal orchestration details such as cooldowns, polling mechanics, mailbox updates,
-request IDs, command arrays, or transport behavior. Base every progress statement on
-verified state and never announce completion before results confirm it.
+Spoken narration must sound like the tutorial or presentation itself. Do not
+expose internal orchestration details such as cooldowns, polling mechanics,
+mailbox updates, request IDs, command arrays, or transport behavior. Base every
+progress statement on verified state; never announce completion before results
+confirm it. Continue providing durable results through `-Chat` as in Section 9.1.
 
 ## 10. SRC/SZ reconstruction workflow
 
