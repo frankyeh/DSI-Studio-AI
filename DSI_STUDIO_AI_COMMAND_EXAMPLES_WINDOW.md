@@ -206,9 +206,11 @@ name or path (a button showing a loaded file, for example) is returned empty.
   same command with different parameters;
 - `option:<id>`: the tree expands to it, its editor is ringed, and the output is
   `option: <tree path>`;
-- a menu action (enabled and visible): the earlier highlight is removed and nothing is drawn; the output is
-  `menu: <menu path>`, for example `menu: Tracts > Save Tracts As...`. Tell the user
-  that path.
+- a menu action (enabled and visible): the earlier highlight is removed, the menus
+  open down to the item and highlight it (as hovering does; nothing is triggered), and
+  the output is `menu: <menu path>`, for example `menu: Tracts > Save Tracts As...`.
+  Tell the user that path too: the open menus close when the user clicks elsewhere, and
+  a native macOS menu bar may not open.
 
 Failures: `control not found or not visible`, `ambiguous control`,
 `control is disabled`, and `a dialog is open; ask the user to close it first` (all
