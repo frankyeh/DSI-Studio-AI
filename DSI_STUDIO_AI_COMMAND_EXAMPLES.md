@@ -55,6 +55,7 @@ Use `SKILL` documents when the task is procedural rather than a command lookup:
 - [Differential tractography](DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md)
 - [Correlational tractography](DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md)
 - [T2R connectome](DSI_STUDIO_AI_SKILL_T2R_CONNECTOME.md)
+- [Interactive lessons for new users](DSI_STUDIO_AI_SKILL_LESSONS.md)
 
 ## Chat alongside a command
 
