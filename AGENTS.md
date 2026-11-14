@@ -56,39 +56,27 @@ The shared controls `bring_to_front`, `minimize`, `maximize`, `move_window`, and
 before ordinary MainWindow/window routing. `run_cli` and `run_shell` are global MainWindow commands
 with their own execution models; read their guide (Section 8) before using them.
 
-## 2. Required startup sequence
+## 2. Required startup: title and windows
 
-Send these three requests in order, and inspect all three replies before reading further in this
-file or opening any other DSI Studio AI document.
-
-Exception: a coding task that only reads or edits source or text files (no DSI Studio data, window,
-or analysis) skips Steps 2.1-2.3. Edit files with your own tools or with `patch_text_file`
-(Section 8.3), and check the repository with `run_shell "git status"` or `run_shell "git diff"`.
-
-### 2.1 Set the task title
+Send these two requests first, in order, and inspect both replies before reading further in this file
+or opening any other DSI Studio AI document:
 
 ```bash
 bash ./dsi.sh set_title "<concise title derived from the user's task>"
+bash ./dsi.sh list_window
 ```
 
-Update it when the task changes substantially. Send `set_title` as its own request, never combined
-with an unrelated command.
+`set_title` is always its own request; update it when the task changes substantially. `list_window`
+shows which windows are open and whether DSI Studio is idle (Section 3). Then go straight to what the
+task needs; do not list recent files or send status messages unless the task calls for them.
 
-### 2.2 Send a progress message
+Exception: a coding task that only reads or edits source or text files (no DSI Studio data, window,
+or analysis) skips both. Edit files with your own tools or with `patch_text_file`
+(Section 8.3), and check the repository with `run_shell "git status"` or `run_shell "git diff"`.
 
-```bash
-bash ./dsi.sh -Chat "<brief improvised message that you are reading the DSI Studio manual before continuing>"
-```
-
-`-Chat` is user-facing communication; it does not retrieve action history (use `log`). It is not a
-command: over Web it is the request's `chat` field (`{"chat":"..."}`), and `{"cmd":"chat"}` fails
-with `unknown command: chat`.
-
-### 2.3 Learn a main-window command
-
-```bash
-bash ./dsi.sh list_recent_fib
-```
+`-Chat "<message>"` is user-facing communication; it does not retrieve action history (use `log`). It
+is not a command: over Web it is the request's `chat` field (`{"chat":"..."}`), and
+`{"cmd":"chat"}` fails with `unknown command: chat`.
 
 ## 3. Window targeting, state, and replies
 
@@ -174,7 +162,7 @@ Before talking about one window, check with `list_window` that no other window c
 as `agent`. Select the covering window and `move_window` it beside the taught window (using the free
 space in `screens`, or another screen when there are several), `minimize` it, or `close` a finished
 dialog; then `set_window` back. Move the `agent` window rather than minimizing it when the user still
-chats in it.
+reads the chat; in a voice tutorial, minimize it (9.2).
 
 When the user wants to learn how to do something in the GUI rather than have it done, start from
 the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` and teach with the tutor commands
@@ -522,6 +510,19 @@ right away, without asking; stop using `voice` if the user says to (text only). 
 a lesson, walkthrough, or demonstration would help, offer one first and start only after the user
 agrees, for example with `ask_user "Would you like a voice tutorial?" "Yes, with voice" "No, text
 only"`; if the user declines, teach through the chat and highlights without `voice`.
+
+**Clear the screen for a voice tutorial.** The agent chat window can cover the window being taught.
+In voice mode, say so and minimize it before the first step, then select the taught window again;
+the user follows the voice, highlights, and `ask_user` dialogs meanwhile. Restore it at the end:
+
+```bash
+bash ./dsi.sh voice "I'll tuck the chat window away so we can see DSI Studio. It comes back when we're done."
+bash ./dsi.sh set_window agent -- minimize -- set_window main
+# ... the tutorial ...
+bash ./dsi.sh set_window agent -- bring_to_front -- set_window main
+```
+
+Without voice the user reads the chat, so move the `agent` window aside instead (Section 3.3).
 
 Speak like an experienced DSI Studio user mentoring someone at the same screen, not like an AI or a
 narrator reading a command log. Four rules:
