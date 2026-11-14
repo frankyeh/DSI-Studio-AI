@@ -9,7 +9,7 @@ detailed skill for you.
 ## How to run a lesson
 
 Follow "Teaching from a skill" and the tutor protocol in `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md`,
-and offer a voice tutorial first unless the user asked for one (`AGENTS.md` 9.2). Each step is one human
+and teach with voice from the start, since the user asked to be taught (`AGENTS.md` 9.2). Each step is one human
 action, one explanation, and one check:
 
 1. Select the window (`set_window`) and highlight the control in **Point at** (a ring and, if listed, a
