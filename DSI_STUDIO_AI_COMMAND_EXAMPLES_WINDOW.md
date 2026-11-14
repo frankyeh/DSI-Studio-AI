@@ -165,7 +165,7 @@ not imply that the shared control will be rejected.
 
 ## Tutor commands: show the user where to click
 
-`list_ui`, `highlight_ui`, `clear_highlight`, and `ask_user` teach a local user. They act
+`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, and `ask_user_modal` teach a local user. They act
 on the selected window but never click, trigger, or change anything except the visible
 accent or the question shown, and they are not recorded in the command history. Use them when the user
 asks how to do something in the GUI; use ordinary commands when the user asks you to
@@ -176,7 +176,7 @@ do it.
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is present when the control sends a command (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
 | `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
 | `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
-| `ask_user <question> [option]...` | Shows a dialog over the selected window and waits for the local user. With up to four options, each option is a button; with more, the user picks one from a drop-down list (the first is preselected); without options, the user types an answer. The question can be any text, and options are returned exactly as given; ask several questions when more than one choice is needed. The answer is the `output`; closing the dialog fails with `the user closed the question without answering`. The request does not return until the user answers. |
+| `ask_user <question> [option]...` | Shows a modeless dialog that stays on top of all windows and waits for the local user, who can keep working in DSI Studio while it is shown. Use it for questions and for step instructions with buttons such as `Done` and `Cancel`. `ask_user_modal` takes the same values but blocks DSI Studio until the user answers; use it when the user must decide before doing anything else. With up to four options, each option is a button; with more, the user picks one from a drop-down list (the first is preselected); without options, the user types an answer. The question can be any text, and options are returned exactly as given; ask several questions when more than one choice is needed. The answer is the `output`; closing the dialog fails with `the user closed the question without answering`. The request does not return until the user answers. |
 
 `kind` in `list_ui` is:
 
@@ -225,11 +225,11 @@ Follow these rules; the tutor commands rely on them instead of extra checks.
   ID learned before that change; a reopened window can contain a same-named control.
 - **One tutor per DSI Studio instance.** The highlight is shared: any session's
   `highlight_ui` or `clear_highlight` replaces or removes it. Only the session that is
-  tutoring the user sends these commands; other sessions do not.
+  tutoring the user sends these commands or asks the user; other sessions do not.
 - **Read results as text.** The request reply is JSON, and its `output` string holds the
   result: `list_ui` returns a JSON object serialized in `output`; `highlight_ui` and
-  `clear_highlight` return the plain-text outputs listed above, and a failure comes back
-  in `error`.
+  `clear_highlight` return the plain-text outputs listed above; `ask_user` and
+  `ask_user_modal` return the user's answer as given. A failure comes back in `error`.
 - **Options without changing the tree.** `highlight_ui option:<id>` expands the Options
   tree and selects that row. When the user only needs to know where an option is, run
   `list_ui <filter>` and tell the user its `label` path instead.
@@ -277,9 +277,12 @@ lessons. When the user asks "teach me how to ..." (for example, brain tumor anal
    - `control not found or not visible`: open the page or window that holds it first
      (`highlight_ui nav_rail` for main-window pages), or check `list_ui <command>`. If no
      control sends the command, explain the step and offer to run it for the user.
-4. Wait for the user. Then read `log`: a `user operation` line with the same `cmd`
-   confirms the user did the step, and the lines after it show the result. Check the
-   result before the next step, as the skill does.
+4. Show the instruction with `ask_user "<what to do now>" Done Cancel` (add `Help` or
+   other options when useful). The dialog stays on top while the user works, so the
+   user does not need to return to the chat. When the user clicks `Done`, read `log`: a
+   `user operation` line with the same `cmd` confirms the step, and the lines after it
+   show the result. Check the result before the next step, as the skill does. On
+   `Cancel`, stop the lesson or ask what to do next.
 5. Call `clear_highlight` when the lesson ends.
 
 The `run` link between a control and its command comes from DSI Studio itself, so a
@@ -306,7 +309,7 @@ For each command in a request, the current dispatcher applies this order:
 1. Shared window controls: `bring_to_front`, `minimize`, `maximize`, `close`.
 2. Session commands: `set_title`, `log`, and `set_window`.
 3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`,
-   `clear_highlight`, and `ask_user`.
+   `clear_highlight`, `ask_user`, and `ask_user_modal`.
 4. Read-only system commands: `get_agent_settings` and `get_chat` (also in headless mode).
 5. All remaining commands are offered to `MainWindow` first.
 6. Only a command unknown to `MainWindow` falls through to the persistently selected
