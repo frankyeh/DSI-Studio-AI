@@ -193,7 +193,11 @@ After any successful close, immediately select `main` or another valid current I
 the session still remembers the now-invalid closed target. Put `close` last in a
 multi-command request.
 
-See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window rules.
+When the user wants to learn how to do something in the GUI rather than have it done,
+use the tutor commands `list_ui`, `highlight_ui`, and `clear_highlight`. They only point at
+controls of the selected window and never click or change data.
+
+See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
 ### 3.4 Read the log when state changed outside the agent
 
@@ -858,7 +862,7 @@ source data or running reconstruction.
 ## 12. Related documents
 
 - [Launcher selection, agent configuration, local Ollama models, and troubleshooting](DSI_STUDIO_AI_SKILL_LAUNCHER.md)
-- [Shared window controls](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
+- [Shared window controls and GUI tutor commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md)
 - [Internal CLI actions and confirmation-gated shell commands](DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md)
 - [Web session (any web-based AI agent)](DSI_STUDIO_AI_SKILL_WEB.md)
 - [Command index](DSI_STUDIO_AI_COMMAND_EXAMPLES.md)
