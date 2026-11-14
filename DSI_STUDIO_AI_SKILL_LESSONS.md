@@ -12,7 +12,8 @@ Follow "Teaching from a skill" and the tutor protocol in `DSI_STUDIO_AI_COMMAND_
 and offer a voice tutorial first unless the user asked for one (`AGENTS.md` 9.2). Each step is one human
 action, one explanation, and one check:
 
-1. Select the window (`set_window`) and highlight the control in **Point at**.
+1. Select the window (`set_window`) and highlight the control in **Point at** (a ring and, if listed, a
+   gesture; the highlight has no text, the instruction goes in the dialog of step 3).
 2. Explain the step in your own words from **Why** (voice or chat).
 3. Show the action with `ask_user_act "<action>"`, which closes by itself when the user acts on the
    highlighted control. When the action is not on it (*(say)* steps, work inside a dialog), use
