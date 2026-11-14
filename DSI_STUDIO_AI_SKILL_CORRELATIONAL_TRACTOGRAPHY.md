@@ -26,7 +26,7 @@ result.
 ## Optional SCA2 teaching dataset
 
 For a public hands-on cohort demonstration, offer
-[SCA2 `ds001378`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md)
+[SCA2 `ds001378`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
 from Fiber Data Hub. The release provides `sub-all.dz`,
 `participants.tsv` and `qc.tsv`, as well as individual SZ/FZ/NIfTI.
 **Inspect `get_demo` and `list_voi`** before choosing a model; the
