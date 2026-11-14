@@ -27,9 +27,8 @@ name or session value on the command line.
 
 ```bash
 bash ./dsi.sh set_title "Fiber tracking"
-bash ./dsi.sh -Chat "Reading the DSI Studio instructions."
+bash ./dsi.sh -Chat "Opening the subject's FIB file."
 bash ./dsi.sh list_window
-bash ./dsi.sh list_recent_fib
 bash ./dsi.sh set_window tracking<hex-address>
 bash ./dsi.sh set_slice 7
 bash ./dsi.sh set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
