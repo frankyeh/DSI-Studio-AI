@@ -176,7 +176,7 @@ do it.
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is present when the control sends a command (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
 | `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
 | `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
-| `ask_user <question> [option]...` | Shows a dialog over the selected window and waits for the local user. With options, the user picks one from a list; without options, the user types an answer. The answer is the `output`; closing the dialog fails with `the user closed the question without answering`. The request does not return until the user answers. |
+| `ask_user <question> [option]...` | Shows a dialog over the selected window and waits for the local user. With up to four options, each option is a button; with more, the user picks one from a drop-down list (the first is preselected); without options, the user types an answer. The question can be any text, and options are returned exactly as given; ask several questions when more than one choice is needed. The answer is the `output`; closing the dialog fails with `the user closed the question without answering`. The request does not return until the user answers. |
 
 `kind` in `list_ui` is:
 
@@ -263,11 +263,14 @@ lessons. When the user asks "teach me how to ..." (for example, brain tumor anal
 1. Read the matching `DSI_STUDIO_AI_SKILL_*.md` (or the DSI Studio documentation at
    https://dsi-studio.labsolver.org/ when no skill covers it). Its steps are commands
    with the reasons for them.
-2. Start with the plan through `voice`, and use `ask_user` for choices the skill leaves
-   to the user (for example, which data to open, or whether to include a step).
+2. Unless the user explicitly asked for a voice tutorial, offer one with `ask_user`
+   (for example, "Yes, with voice" or "No, text only") before using `voice`; see
+   `AGENTS.md` 9.2. Start with the plan (through `voice` if accepted, otherwise in the
+   chat), and use `ask_user` for choices the skill leaves to the user (for example,
+   which data to open, or whether to include a step).
 3. For each command in the skill, select its window and call
-   `highlight_ui run:<command> "<short caption>"`. Explain the step through `voice` or
-   the chat: what to click, what to set, and why.
+   `highlight_ui run:<command> "<short caption>"`. Explain the step through `voice` (if
+   accepted) or the chat: what to click, what to set, and why.
    - `menu: <path>`: tell the user the menu path.
    - `control not found or not visible`: open the page or window that holds it first
      (`highlight_ui nav_rail` for main-window pages), or check `list_ui <command>`. If no
