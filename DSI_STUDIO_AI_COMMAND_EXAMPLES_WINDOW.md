@@ -115,7 +115,7 @@ recovery.
 
 ## Tutor commands: show the user where to click
 
-`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, and `ask_user_act` teach a local user.
+`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, `ask_user_modal`, `ask_user_act`, and `cancel_ask_user` teach a local user.
 They act on the selected window, never click, trigger, or change anything except the accent or the
 question shown, and are not recorded in the command history. Use them when the user asks how to do
 something in the GUI; use ordinary commands when the user asks you to do it.
@@ -124,7 +124,8 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 |---|---|
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is the command the control sends (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
 | `highlight_ui <id> [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports; the words go in the `ask_user` dialog, which opens beside it. `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`; clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fourth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
-| `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. |
+| `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. Does not close a tutor question. |
+| `cancel_ask_user` | Closes the requesting session's active `ask_user`, `ask_user_modal`, or `ask_user_act` question. The waiting request returns `Cancel`; this command returns `cancelled`, or `nothing to cancel` if no question is open. Does not dismiss file dialogs, approval dialogs, or data windows. |
 | `ask_user <question> [option]...` | A modeless dialog beside the highlighted control (beside its open menu for a menu item; at the center of the screen when nothing is highlighted), on top of all windows and without taking focus, so the user keeps working in DSI Studio; highlight a control first to put the question next to it, where the user is looking. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
 | `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
 | `ask_user_act <instruction>` | The `ask_user` dialog with only `Cancel`, for a step on the highlighted control: it closes by itself and returns `done` when the user acts on that control (clicks a button or view, chooses a drop-down item, finishes a drag or drawing stroke in a view, or triggers the highlighted menu item), or returns `Cancel`. Fails with `highlight a control first` when nothing is highlighted. If the click opens a modal dialog (a file dialog), `done` returns after that dialog closes. Acting another way (a shortcut, another button) does not close it. |
@@ -166,8 +167,36 @@ returned empty.
   clicks elsewhere, and a native macOS menu bar may not open.
 
 Failures: `control not found or not visible`, `ambiguous control`, `control is disabled`, and
-`a dialog is open; ask the user to close it first` (every tutor command except `clear_highlight`
+`a dialog is open; ask the user to close it first` (every tutor command except `clear_highlight` and `cancel_ask_user`
 refuses while a modal dialog is open).
+
+### Opening a menu, then highlighting its item
+
+Discover both ids with `list_ui File` (use narrower filters if the result exceeds 50).
+Highlight the menu first, then its item in a separate request so the user can follow:
+
+```bash
+bash ./dsi.sh highlight_ui menu_File
+bash ./dsi.sh highlight_ui actionSave_SRC_file_as
+```
+
+These are example reconstruction-window ids; use the ids returned by the current window.
+The first request opens File; the second opens the menu chain and selects the item using the
+menu's normal hover highlight. It never triggers the action or opens a save dialog.
+
+### Cancelling a waiting tutor question
+
+Send a separate, standalone request from the same session:
+
+```bash
+bash ./dsi.sh cancel_ask_user
+```
+
+Do not batch it with another command or add parameters, `-Chat`, or reasoning. While a request
+is waiting, this exact cancellation is the only exception to `busy`; other commands still wait.
+Wait for the original request to finish with `Cancel`, then send a new highlight or question.
+The cancellation works independently of the selected window and leaves the highlight in place.
+If a file picker is also open, the user must still finish or cancel that picker.
 
 ### Tutor protocol
 
