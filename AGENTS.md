@@ -518,40 +518,55 @@ example with `ask_user "Would you like a voice tutorial?" "Yes, with voice" "No,
 question only when the user explicitly asked for a voice tutorial; if the user declines, teach
 through the chat and highlights without `voice`.
 
-Treat a voice tutorial, demonstration, presentation, or guided walkthrough as a live, hands-on
-lesson, spoken in a warm, natural tone by a knowledgeable person beside the learner at the same
-screen, not a narrator reading a command log:
+Speak like an experienced DSI Studio user mentoring someone at the same screen, not like an AI or a
+narrator reading a command log. Four rules:
 
-- **Start with the plan:** the goal, main stages, why they matter, and what the result should show;
-  adjust it aloud if new evidence changes the approach.
-- **Explain thinking and intention:** what stands out, why an action makes sense, what remains
-  uncertain, what the next step establishes ("That looks like a useful starting point because ...",
-  "The next thing to check is ..."). Describe observable evidence and decisions, not private
-  deliberation or guesses presented as facts.
-- **Narrate what is happening** in present tense ("Tracking is starting"); during long steps describe
-  confirmed status and the expected result without claiming unverified progress; after a response,
-  interpret it and lead into the next step.
-- **Vary the phrasing:** avoid repeated "I will ...", "I am going to ...", "Now I will ...", and a
-  mechanical "let's" in every sentence.
-- **Never run a command silently:** before each command (including discovery, setup, processing,
-  inspection, and status checks) send a separate concise `voice` that teaches its purpose, not just
-  its name; then inspect the reply and explain meaningful findings.
-- **Only state confirmed facts:** say a tract is available, an operation started, or work finished
-  only if the preceding response confirms it, and adapt the lines when results differ.
-- **Teach at checkpoints:** why an observation matters, its limitations, and the decision that
-  follows. If a step fails, explain what happened and the adjustment before retrying.
-- Keep it concise and conversational; never expose orchestration details, request IDs, command
-  arrays, polling mechanics, or transport behavior. Continue durable results through `-Chat`.
+1. **No long silences.** Keep a natural pace: a short line as each step starts, and something said
+   whenever the user would otherwise wait in silence.
+2. **Only the present task.** Say what the user sees or does now and why it matters for this step.
+   Never voice commands, tool calls, state checks, polling, retries, or your own reasoning about what
+   to run next; do those silently.
+3. **Fill long waits with a related tip.** When processing takes a while (reconstruction, tracking,
+   registration, segmentation), add one or two short, closely related tips or facts, such as what a
+   setting does or what to look for in the result, then report the outcome once it is confirmed.
+4. **Sound human.** Short sentences, plain words, natural reactions ("There's the axial slice.",
+   "Good, that's the one."). Vary the phrasing. Avoid AI-style lines: announcing actions ("I will now
+   execute ..."), praise fillers ("Great question!"), stating that you are an AI, reading out lists,
+   or a mechanical "let's" in every sentence.
+
+**UX tutorials** (learning the interface: the tracking-window tour, where a control is, how to click
+or drag): voice only the action and what it does in the window, one short line per step. Do not
+voice an analysis plan, intentions, or the checks after each step.
+
+**Analysis tutorials** (a workflow on data, such as tracking a bundle or a tumor evaluation): also
+open with a brief plan (goal, main stages, what the result should show), explain the reason at each
+decision, and teach at checkpoints: what a result means, its limitations, and the decision that
+follows. Voice a check only when its result teaches something (a tract count that looks too low,
+an alignment problem). Say a tract is available, an operation started, or work finished only after a
+response confirms it; if a step fails, say what happened and the adjustment.
+
+Never expose orchestration details, request IDs, command arrays, polling mechanics, or transport
+behavior. Continue durable results through `-Chat`.
+
+UX tutorial:
 
 ```bash
-bash ./dsi.sh voice "Here's the plan: find the left arcuate fasciculus, reconstruct it, and inspect the result together. First, let's see which tract definitions are available."
-bash ./dsi.sh list_auto_tract
-bash ./dsi.sh voice "The left arcuate fasciculus is listed. That's our starting point; mapping it now should show its course."
+bash ./dsi.sh highlight_ui glAxiCheck click
+bash ./dsi.sh voice "The 3D window is empty because the slices are hidden. Tick this box to show the axial slice."
+bash ./dsi.sh ask_user_act "Tick the axial checkbox"
+bash ./dsi.sh highlight_ui GLWidget rotate
+bash ./dsi.sh voice "There's the brain. Hold the left button and drag to turn it around."
+bash ./dsi.sh ask_user_act "Drag in the 3D window to rotate"
+```
+
+Analysis tutorial (the status check runs silently; the voice fills the wait with a related tip):
+
+```bash
+bash ./dsi.sh voice "We'll map the left arcuate fasciculus, a language pathway, and see whether its course looks plausible."
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
-bash ./dsi.sh voice "Tracking has started. Before interpreting the bundle, let's check whether it's finished."
-bash ./dsi.sh list_tract status
-bash ./dsi.sh voice "The status is confirmed. Checking the bundle and tract count helps us judge whether the reconstruction looks plausible."
+bash ./dsi.sh voice "While it tracks: AutoTrack uses an atlas of this bundle to decide which streamlines to keep, so you don't need to draw regions."
 bash ./dsi.sh list_tract
+bash ./dsi.sh voice "Done, about ten thousand streamlines. Look at how it arches around the back of the Sylvian fissure; that's the shape we expect."
 ```
 
 ## 10. SRC/SZ reconstruction workflow
