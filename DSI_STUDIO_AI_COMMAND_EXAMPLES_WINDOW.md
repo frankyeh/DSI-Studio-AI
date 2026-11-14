@@ -173,27 +173,33 @@ do it.
 
 | Command | Exact behavior |
 |---|---|
-| `list_ui [filter]` | Lists visible controls of the selected window only (not other windows it opened) as `{"total":N,"controls":[{"id","kind","label"}]}`, at most 50 entries; `total` counts all matches. `filter` is a case-insensitive substring of `id` or `label`. |
-| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id`, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
+| `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label"}]}`, at most 50 entries; `total` counts all matches. `filter` is a case-insensitive substring of `id` or `label`. |
+| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
 | `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
 
 `kind` in `list_ui` is:
 
 - `button` or `disabled button`: a visible button, by objectName;
+- `pages`: the main window's page list `nav_rail` (Tractography, Correlational, Image,
+  Settings);
 - `view`: the 3D view `GLWidget` or the 2D slice view `graphicsView`, the targets for
   gestures;
-- `option`: an entry of the tracking window's Options tree, by option id, with its
-  tree path as `label` (for example `Tract Rendering > Tube Diameter (voxel)`);
-- `menu`: a visible menu action, by objectName, with its menu path as `label`.
+- `option`: an entry of the tracking window's Options tree, as `option:<option id>`,
+  with its tree path as `label` (for example `option:tube_diameter`,
+  `Tract Rendering > Tube Diameter (voxel)`). The prefix keeps an option distinct from a
+  same-named toolbar button, such as the `roi_*` buttons;
+- `menu` or `disabled menu`: a visible menu action, by objectName, with its menu path as
+  `label`.
 
-Options are listed in alphabetical order of their ids.
+Options are listed in alphabetical order of their ids. A label that looks like a file
+name or path (a button showing a loaded file, for example) is returned empty.
 
 `highlight_ui` results:
 
 - a button or view: `highlighted: <id>`;
-- an option: the tree expands to it, its editor is ringed, and the output is
+- `option:<id>`: the tree expands to it, its editor is ringed, and the output is
   `option: <tree path>`;
-- a menu action: the earlier highlight is removed and nothing is drawn; the output is
+- a menu action (enabled and visible): the earlier highlight is removed and nothing is drawn; the output is
   `menu: <menu path>`, for example `menu: Tracts > Save Tracts As...`. Tell the user
   that path.
 
