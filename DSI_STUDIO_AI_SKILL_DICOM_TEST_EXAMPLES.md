@@ -1,5 +1,10 @@
 # DSI Studio DICOM example datasets for hands-on AI tutorials
 
+> This guide focuses **only on raw DICOM conversion**. For existing
+> **NIfTI, SZ, FZ, tumor segmentation and SCA2/UPenn GBM** tutorial
+> data from Fiber Data Hub, use
+> [Public example datasets](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md).
+
 These examples come from the real
 [DSI Studio Test workflow](https://github.com/frankyeh/DSI-Studio/blob/master/.github/workflows/test.yml)
 (`linux-dicom-dwi-test` and `linux-test: dicom`). They let agents offer a
