@@ -30,6 +30,9 @@ action, one explanation, and one check:
 - Before a main-window step that opens a file or folder dialog, run
   `set_work_dir <folder holding the lesson data>` so the dialog starts in the main window's **Work Dir**, and name the file to pick.
 - Tutor commands wait while a dialog or "Finished." message is open: ask the user to close it first.
+- The atlas list (`addRegionFromAtlas`) is a modeless window that stays open, so tutor commands keep
+  working; its controls cannot be highlighted, so describe them by label (atlas drop-down, region
+  list, **Search**, **Add**, **Close**).
 - Never rename, overwrite, or delete the user's files in a lesson; suggest a copy or public example data
   (`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`).
 - The first time a lesson opens a tracking window, offer the **Tracking window tour** with
@@ -119,7 +122,7 @@ panel the window does not show. Steps with a gesture or `click` end with `ask_us
 | 6 | `tool1` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Click one to select it. | `ask_user_act` |
 | 7 | `graphicsView` | `freehand` | With the freehand tool, hold the left button and draw around an area; right-click or Shift erases. Drawing creates or edits the current region, which also appears in 3D. | `list_region` |
 | 8 | `regionDockWidget` | | **Region list** ("Assign Regions"): every region with its checkbox, type (ROI, ROA, Seed, ...), and color. Checked regions are the ones shown, used for tracking, and measured. | Next |
-| 9 | `addRegionFromAtlas` | `click` | Regions can also come from a built-in atlas instead of drawing. | `ask_user_act` |
+| 9 | `addRegionFromAtlas` | `click` | Regions can also come from a built-in atlas instead of drawing. The atlas list opens beside the window and stays open while the user works; choose a region, click **Add**, and **Close** when done (the button shows the same list again). | `ask_user_act`, then `list_region` |
 | 10 | `renderingWidgetHolder` | | **Options**: tracking parameters at the top, then how slices, tracts, regions, and surfaces are drawn. `highlight_ui option:<id>` points at one setting. | Next |
 | 11 | `TractWidgetHolder` | | **Tract list**: every bundle with its checkbox and tract count. Like regions, checked tracts are the ones shown, saved, measured, or edited. | Next |
 | 12 | `perform_tracking` | `click` | **Fiber Tracking** starts tracking with the current regions and options (with the drawn region checked, only tracts through it); the result appears as a new row in the tract list and in 3D. | `list_tract` shows the row `done` |
