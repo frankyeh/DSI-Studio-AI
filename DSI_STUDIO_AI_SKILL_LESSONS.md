@@ -102,7 +102,7 @@ panel the window does not show. Each step ends with `ask_user "<what to try>" Ne
 | # | Point at | Gesture | Why | Check |
 |---|---|---|---|---|
 | 1 | `GLWidget` | `rotate` | **3D window**: shows slices, regions, tracts, and devices together. Drag with the left button to rotate. | The user rotates; Next |
-| 2 | `GLWidget` | `zoom`, then `pan` | Right-drag up (or scroll) zooms; middle-drag, or Shift + drag, moves the scene. Starting a drag in a corner rolls the view (`roll`). | Next |
+| 2 | `GLWidget` | `zoom`, then `pan` | Right-drag up (or scroll) zooms; middle-drag moves the scene; Shift + left drag only tilts and Ctrl makes any drag finer. Starting a drag in a corner rolls the view (`roll`). | Next |
 | 3 | `GLWidget` | `double` | Double-clicking a region, tract, or device selects its row in its list. | Next |
 | 4 | `ROIdockWidget` | | **ROI window** ("Draw Regions"): the 2D slice used to draw and check regions. The drop-down above it (`SliceModality`) switches the image; scrolling zooms (`graphicsView` with `wheel`). | Next |
 | 5 | `tool1` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Click one to select it. | `user operation` or Next |
