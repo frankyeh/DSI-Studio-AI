@@ -207,6 +207,26 @@ Failures: `control not found or not visible`, `ambiguous control`,
 `control is disabled`, and `a dialog is open; ask the user to close it first` (all
 three tutor commands except `clear_highlight` refuse while a modal dialog is open).
 
+### Tutor protocol
+
+Follow these rules; the tutor commands rely on them instead of extra checks.
+
+- **Fresh ids only.** After a window opens or closes, call `list_window` and
+  `set_window` again, then `list_ui` before highlighting. Never reuse an id or window
+  ID learned before that change; a reopened window can contain a same-named control.
+- **One tutor per DSI Studio instance.** The highlight is shared: any session's
+  `highlight_ui` or `clear_highlight` replaces or removes it. Only the session that is
+  tutoring the user sends these commands; other sessions do not.
+- **Read results as text.** The request reply is JSON, and its `output` string holds the
+  result: `list_ui` returns a JSON object serialized in `output`; `highlight_ui` and
+  `clear_highlight` return the plain-text outputs listed above, and a failure comes back
+  in `error`.
+- **Options without changing the tree.** `highlight_ui option:<id>` expands the Options
+  tree and selects that row. When the user only needs to know where an option is, run
+  `list_ui <filter>` and tell the user its `label` path instead.
+- **Narrow long lists.** `list_ui` returns at most 50 controls. When `total` is larger,
+  retry with a more specific `filter` rather than guessing ids.
+
 Teach one step at a time: highlight, say what to do, and wait for the user before
 the next step. For example, to teach tract selection in a tracking window:
 
