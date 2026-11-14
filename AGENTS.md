@@ -194,8 +194,9 @@ the session still remembers the now-invalid closed target. Put `close` last in a
 multi-command request.
 
 When the user wants to learn how to do something in the GUI rather than have it done,
-use the tutor commands `list_ui`, `highlight_ui`, and `clear_highlight`. They only point at
-controls of the selected window and never click or change data.
+teach from the matching skill with the tutor commands `list_ui`, `highlight_ui`,
+`clear_highlight`, and `ask_user`, and narrate with `voice`. They only point at controls
+of the selected window or ask the user, and never click or change data.
 
 See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
