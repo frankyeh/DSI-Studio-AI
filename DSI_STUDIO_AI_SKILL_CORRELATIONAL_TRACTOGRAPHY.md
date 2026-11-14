@@ -23,6 +23,17 @@ scan-pair changes and test that (1.2/1.3 below) -- still a group-level
 analysis of how much subjects changed on average, not a single subject's own
 result.
 
+## Optional SCA2 teaching dataset
+
+For a public hands-on cohort demonstration, offer
+[SCA2 `ds001378`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATASETS.md)
+from Fiber Data Hub. The release provides `sub-all.dz`,
+`participants.tsv` and `qc.tsv`, as well as individual SZ/FZ/NIfTI.
+**Inspect `get_demo` and `list_voi`** before choosing a model; the
+prebuilt database may not embed the external demographic columns.
+Do not infer a valid statistical design from file availability alone.
+Obtain user approval before downloading and starting analysis.
+
 ## Availability: reachable as a `connectometry<hex>` window
 
 `group_connectometry` (the Correlational Tractography dialog) implements its
