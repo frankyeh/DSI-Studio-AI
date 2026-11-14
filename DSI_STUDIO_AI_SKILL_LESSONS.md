@@ -1,0 +1,230 @@
+# DSI Studio Interactive Lessons for New Users
+
+Use these lessons when a user asks to be taught a workflow ("teach me how to ...").
+They follow the website's [How to Analyze dMRI](https://dsi-studio.labsolver.org/doc/how_to_analyze_dmri.html)
+page: the pipeline (acquire, preprocess, import and reconstruct, analyze) and its
+"Choose by question" table. Each lesson links the website guide for the user and the
+detailed skill for you.
+
+## How to run a lesson
+
+- Follow "Teaching from a skill" and the tutor protocol in
+  `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md`.
+- Offer a voice tutorial first unless the user asked for one (`AGENTS.md` 9.2).
+- Each step is one human action, one explanation, and one check:
+  1. Select the window (`set_window`) and highlight the control in **Point at**.
+  2. Explain the step in your own words from **Why** (voice or chat).
+  3. Show the action with `ask_user "<action>" Done Cancel`.
+  4. After `Done`, do the **Check**. If it fails, explain what went wrong and repeat the
+     step; do not move on.
+- **Point at** is a `highlight_ui` target: `run:<command>` finds the control that sends
+  that command, a plain id is an object name, and *(say)* means no control can be
+  highlighted, so describe it by its label and position.
+- `user operation` lines in `log` show what the user clicked. Confirm results with the
+  state commands named in **Check** (`list_window`, `list_slice`, `list_region`,
+  `list_tract`) or a screenshot.
+- Several steps open file dialogs or a "Finished." message. Ask the user to close
+  them before the next highlight; tutor commands wait while a dialog is open.
+- Keep the user's data safe: never rename, overwrite, or delete their files as part of a
+  lesson. Suggest a copy or public example data
+  (`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`) for practice.
+- End every analysis lesson with Lesson 11 (Before interpreting results).
+
+## Lesson map
+
+| User question | Lesson | Website guide | Detailed skill |
+|---|---|---|---|
+| How do I get my scans into DSI Studio? | 1 Import DICOM | [Import](https://dsi-studio.labsolver.org/doc/gui_t1.html) | `DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md` |
+| How do I reconstruct fiber orientations? | 2 Reconstruct | [Reconstruct](https://dsi-studio.labsolver.org/doc/gui_t2.html) | `DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md` |
+| Which pathways run through this brain? | 3 Whole-brain tracking, 4 Region-guided tracking | [Whole brain](https://dsi-studio.labsolver.org/doc/gui_t3_whole_brain.html), [ROI](https://dsi-studio.labsolver.org/doc/gui_t3_roi_tracking.html) | `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` |
+| What are the measures in a region? | 5 Region-based analysis | [Atlas regions](https://dsi-studio.labsolver.org/doc/gui_t3_roi_tracking.html#load-regions-from-built-in-atlases) | `DSI_STUDIO_AI_COMMAND_EXAMPLES_REGION.md` |
+| Where is the same named bundle, and how do measures vary along it? | 6 AutoTrack and tractometry | [AutoTrack](https://dsi-studio.labsolver.org/doc/gui_t3_atk.html) | `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` |
+| Which regions are connected, and by which bundles? | 7 Connectome (R2R and T2R) | [Connectome](https://dsi-studio.labsolver.org/doc/gui_connectome.html) | `DSI_STUDIO_AI_SKILL_T2R_CONNECTOME.md` |
+| Where did a subject change? | 8 Differential tractography | [Differential](https://dsi-studio.labsolver.org/doc/gui_t3_dt.html) | `DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md` |
+| Which pathways relate to a clinical variable? | 9 Correlational tractography | [Correlational](https://dsi-studio.labsolver.org/doc/gui_cx.html) | `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md` |
+| How do I evaluate a brain tumor? | 10 Brain tumor | | `DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md` |
+
+A first-time user who has DICOM data usually takes Lessons 1, 2, 3, then the analysis
+lesson that matches the question.
+
+## Lesson 1: Import DICOM to an SRC file
+
+Goal: create the source file (`.sz`) that holds the diffusion images and b-table.
+Before: ask with `ask_user` whether the user has one DWI series (files) or a whole
+exam (a folder). Remind them that the original DICOM files stay untouched; do not
+teach the Rename DICOM controls unless asked, because they move and rename files.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | main | `nav_rail` | Open the **Tractography** page; the numbered cards follow the pipeline: Import, Reconstruct, Track. | `list_ui tract_fmt` returns controls |
+| 2 | main | `tract_fmt_dicom` | Under **Import**, choose **DICOM**. | `list_ui convert_dicom_dir` finds a visible control |
+| 3a | main | `run:convert_dicom_dir` | For a whole exam: **DICOM folder...**, then select the parent folder. DSI Studio converts every series; DWI series become `.sz`, structural series `.nii.gz`. It reads b-values and b-vectors from the DICOM headers. A full exam can take minutes. | `user operation` with `convert_dicom_dir`, then the conversion messages in `log`; the `.sz` files exist |
+| 3b | main | `run:open_dwi_dicom` | For one series: **DICOM file(s)...**, select its files. A **B-table** window opens *(say)*: check that the b-values and directions look plausible, set the output file name, and click **OK**. | `log` and a "SRC file created" message; the `.sz` file exists |
+| 4 | main | `run:show_qc_src` *(under Reconstruct, after More...)* | Optional for one subject, recommended for a study: SRC quality control flags subjects that differ from the rest, using neighboring DWI correlation and diffusion contrast. | The QC table appears; discuss any `low-quality outlier` |
+
+Explain: the `.sz` file is the raw starting point. Keep it, and save later stages as
+new files.
+
+## Lesson 2: Reconstruct SRC to FIB
+
+Goal: estimate fiber orientations and diffusion metrics into a FIB file (`.fz`).
+Before: ask whether the study is one subject in native space (GQI) or a cohort in
+template space (QSDR), as on the website pipeline step 3.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | main | `run:open_src` | **SRC File(s) (*.sz)** opens the reconstruction window. | `list_window` shows a `recon...` window; `set_window` to it |
+| 2 | recon | `nav_rail` (**Mask** page) | The mask limits reconstruction to brain tissue. Look through the slices: it should cover the brain without large gaps or much background. Use **U-Net** or **Template** if it does not. | A screenshot of the mask, or ask the user to confirm it covers the brain |
+| 3 | recon | `nav_rail` (**Preprocessing** page) | Answer the questions about the acquisition; DSI Studio highlights only the corrections the data needs (How to preprocess dMRI). Defaults are suggested from the data; already applied steps show ✓. | The highlighted path matches the acquisition |
+| 4 | recon | `btn_Run_Preprocessing` | Runs the selected corrections in order and stops on failure. Skip it when nothing is selected. | `user operation` lines for each correction; the processing report lists them |
+| 5 | recon | `nav_rail` (**Methods** page), then `GQI` or `QSDR` | Choose the method. GQI keeps native space for one subject; QSDR maps to a template for group analysis. Both also save tensor metrics. Keep the default sampling length ratio (1.25) unless there is a reason to change it. **More...** shows the options and output metrics. | Screenshot, or ask which method is selected |
+| 6 | recon | `run:recon` (**Run Reconstruction**) | Creates the `.fz` file. It can take minutes. | `user operation` with `recon`; `list_window` turns idle; the `.fz` file exists |
+
+Explain: a written FIB can still be wrong. Lesson 3 checks it with tracking.
+
+## Lesson 3: Whole-brain fiber tracking
+
+Goal: an exploratory overview of all pathways, and a check of the reconstruction.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | main | `run:open_fib` | **FIB File (*.fz)** opens the tracking window. | `list_window` shows a `tracking...` window; `set_window` to it |
+| 2 | tracking | `option:fa_threshold` | Tracking parameters live in the Options tree. `0` means randomized or automatic defaults; keep them for a first run. | Ask the user to confirm they see **Tracking Parameters** |
+| 3 | tracking | `perform_tracking` | **Fiber Tracking** generates streamlines from the whole brain. | `list_tract` shows a bundle with streamlines and `done` |
+| 4 | tracking | `GLWidget` | Rotate and look: major pathways (corpus callosum, corticospinal tract, arcuate) should follow the anatomy. Few tracts or odd shapes point to mask, b-table, or reconstruction problems. | Screenshot; ask what the user sees |
+| 5 | tracking | `run:save_tract` | Save the tracts for later use. | `user operation` with `save_tract`; the file exists |
+
+Explain: streamlines estimate plausible trajectories; they are not axons, and their
+count is not connection strength.
+
+## Lesson 4: Region-guided (ROI) tracking
+
+Goal: isolate one pathway with regions. Before: complete Lesson 3 on the same FIB.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | tracking | `run:delete_all_tracts` | Start from an empty tract list so the new pathway is clear. | `list_tract` is empty |
+| 2 | tracking | `addRegionFromAtlas` | Load an anatomical region from a built-in atlas instead of drawing it. | `list_region` shows the new region |
+| 3 | tracking | *(say)* the region's type in the region list | Set its role. **ROI** keeps tracks passing through it; **ROA** removes them; **Seed** sets where tracking starts. Start with one well-supported ROI. | `list_region` shows the role |
+| 4 | tracking | `run:new_region`, then `graphicsView` with a gesture | To draw a region instead, create one and draw on the slice (see the gesture table in the window manual). | `list_region` shows the drawn region with voxels |
+| 5 | tracking | `perform_tracking` | Track with the region constraints. | `list_tract` shows the bundle and `done` |
+| 6 | tracking | `GLWidget` | Review against anatomy. Add a second ROI or an ROA only to remove a known competing pathway. | Screenshot; ask |
+
+Explain: the result depends on where the regions are and on the tracking thresholds.
+
+## Lesson 5: Region-based analysis
+
+Goal: a table of diffusion measures (for example FA, MD, QA) for each region.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | tracking | `addRegionFromAtlas` | Load atlas regions; they must be in the same space as the data. DSI Studio maps atlases to the subject. | `list_region` shows the regions |
+| 2 | tracking | `run:add_slice` *(optional)* | Insert another registered image (DKI, NODDI, PET) to measure it in the same regions. Wait for its registration to finish. | `list_slice` shows the new image |
+| 3 | tracking | `run:show_region_statistics` | Shows the measures for each region. | The table appears; ask the user to close it when done |
+| 4 | tracking | `run:save_region_info` *(optional)* | Save region information for later analysis. | The file exists |
+
+Explain: for a cohort in template space, the same regions can be applied to a
+connectometry database instead.
+
+## Lesson 6: AutoTrack and tractometry
+
+Goal: the same named bundle in each subject, with its statistics and profile.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | tracking | `perform_tracking` | Check whole-brain tracking first (Lesson 3); AutoTrack depends on good data and registration. | Whole-brain tracts look plausible |
+| 2 | tracking | `run:enable_auto_tract` | **Tracts > Autotrack...** enables atlas-based recognition. | The target lists appear (screenshot) |
+| 3 | tracking | *(say)* the target tract lists | Choose the bundle; a parent entry maps the whole family, a child only a branch. Do not add extra regions by default. | Ask which bundle was chosen |
+| 4 | tracking | `perform_tracking` | Generates the named bundle. | `list_tract` shows it and `done` |
+| 5 | tracking | `GLWidget` | Review in several views. A missing or incomplete bundle is not evidence of anatomical absence. | Screenshot; ask |
+| 6 | tracking | `run:show_tract_statistics` | Tract statistics: length, volume, shape, and mean measures such as QA and FA. | The table appears |
+| 7 | tracking | `actionTract_Analysis_Report` | **Tract Profile...** shows how a measure changes along the bundle. Keep the profile definition the same across subjects. | The profile appears |
+
+For several subjects, the main window's **Automatic tracking** (`run:open_auto_track`)
+runs AutoTrack in batch; test a small subset first.
+
+## Lesson 7: Connectome (R2R and T2R)
+
+Goal: R2R maps connections between region pairs; T2R maps which regions each named
+bundle reaches. Before: whole-brain tracts for R2R (Lesson 3), named bundles for T2R
+(Lesson 6). The parcellation must be in the same space as the tracts.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | tracking | `run:open_connectivity_matrix` | **R2R**: choose a parcellation atlas, **end** or **pass**, and the matrix value, then **Recalculate** *(say)*. | The matrix appears |
+| 2 | tracking | *(say)* threshold and export in that window | Thresholding changes the network and should be reported. Export the matrix, connectogram, or network measures. | The exported file exists |
+| 3 | tracking | `addRegionFromAtlas` | **T2R**: load the parcellation (or a lesion region) as regions. | `list_region` shows the parcels |
+| 4 | tracking | `run:show_t2r` | **Regions > Tract-To-Region Connectome** computes, for each checked bundle, the streamlines that pass through each checked region. | The table appears; ask the user to close it when done |
+
+Explain: T2R works on the original streamlines. Converting a tract into a region
+(`tract_to_region`) is for drawing or editing a region, not for connectivity
+statistics. Keep the tract set and parcellation identical across subjects.
+
+## Lesson 8: Differential tractography
+
+Goal: tracts showing segments whose measures changed between two scans of one subject
+(or against a reference). Before: reconstruct both scans with the same settings and
+check whole-brain tracking on the baseline (Lessons 2 and 3). Scanner or protocol
+differences can mimic change.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | tracking | `run:add_slice` | Insert the follow-up metric map exported from the follow-up FIB, and wait for registration. | `list_slice` shows it |
+| 2 | tracking | `option:dt_index1` | **Metrics1 (m1)**: the baseline metric, such as `dti_fa`. | Ask |
+| 3 | tracking | `option:dt_index2` | **Metrics2 (m2)**: the inserted follow-up map. | Ask |
+| 4 | tracking | `option:dt_threshold_type`, then `option:dt_threshold` | **Type** selects the formula, for example `(m1-m2)/m1` for a decrease; **Threshold** 0.2 maps changes above 20%. | Ask |
+| 5 | tracking | `perform_tracking` | Tracks only segments meeting the change criterion. | `list_tract` shows the result |
+| 6 | tracking | `run:show_tract_statistics` | Report volume and length of the changed segments. | The table appears |
+
+## Lesson 9: Correlational tractography (connectometry)
+
+Goal: tracts associated with a study variable across a cohort, with a false discovery
+rate. Before: every subject reconstructed with QSDR at the same resolution.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | main | `nav_rail` | Open the **Correlational** page. | `list_ui create_db_files` finds it |
+| 2 | main | `run:create_db_files` | **FIB File(s) (*.fz)...** creates the connectometry database (`.dz`) from the subjects' QSDR files. | The `.dz` file exists |
+| 3 | main | `run:open_connectometry` | **Database (*.dz)** opens the analysis window. | `list_window` shows a `connectometry...` window; `set_window` to it |
+| 4 | connectometry | `open_mr_files` (the demographics button) | Load the demographics file and check every subject's values. | Ask the user to confirm the subject count matches |
+| 5 | connectometry | *(say)* study variable, covariates, threshold | Choose the variable to study, control for covariates, and keep the default effect-size threshold for a first run. | Ask |
+| 6 | connectometry | `run` | Runs the permutation test; it can take a while. | Its `progress` command reaches `finished`; `list_window` turns idle |
+| 7 | connectometry | `show_result` | Review the tracts with positive and negative association and their FDR. | Ask the user what the report shows |
+
+The connectometry window does not log user operations; use `progress` and
+`list_window` to follow it.
+
+## Lesson 10: Brain tumor evaluation
+
+Goal: segment the lesion, map eloquent pathways, and measure their involvement. Read
+`DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md` before teaching; this lesson is the guided
+version of its presurgical steps 1 to 6. The result supports, and never replaces,
+clinical review.
+
+| # | Window | Point at | Why | Check |
+|---|---|---|---|---|
+| 1 | tracking | `run:add_slice` | Insert the structural images (T1w, contrast T1w, FLAIR) that show the lesion. | `list_slice` shows them |
+| 2 | tracking | `graphicsView` | Check alignment in three planes before using any image: the lesion and ventricles must line up with the diffusion data. | Screenshot; ask |
+| 3 | tracking | the human tumor model item from `list_ui segment_brain` (`run:segment_brain=<model>`) | **Slices > Segment** with the human tumor model gives Enhancing Tumor, Necrosis, and Peritumoral Edema. A model needing another contrast is disabled. | `list_region` shows the lesion labels by name |
+| 4 | tracking | `graphicsView` | Review the segmentation on every plane. Tumor core is enhancing tumor plus necrosis; edema stays separate. A missing label is unavailable, not zero. | Screenshot; ask |
+| 5 | tracking | `run:enable_auto_tract`, then `perform_tracking` | Map the eloquent pathways near the lesion on both sides (motor, language, vision; see the skill's table). Never use the lesion as a tracking region. | `list_tract` shows the named bundles |
+| 6 | tracking | `run:show_t2r` | With the bundles and lesion regions checked, T2R counts the streamlines of each bundle passing through each lesion region. | The table appears; record counts against each bundle's total |
+| 7 | tracking | `GLWidget` | Review each pathway against the lesion: displacement, involvement, and the healthy side. Discuss the findings as observations for clinical review. | Ask what the user concludes |
+
+The PPTX report and its figures stay agent-side (skill section 7); there is no GUI
+button for them.
+
+## Lesson 11: Before interpreting results
+
+Close every analysis lesson with these checks from the website:
+
+- **Same space:** data, regions, and parcellations are aligned in the same image space.
+- **Same settings:** reconstruction, tracking, and measurement settings are consistent
+  across subjects.
+- **Visual review:** tracts and registrations are checked against the anatomy.
+- **Streamlines are not axons:** tracking estimates plausible trajectories, and
+  streamline counts do not directly measure connection strength.
+
+Point the user to [How to interpret dMRI](https://dsi-studio.labsolver.org/doc/how_to_interpret_dmri.html)
+and [How tractography works](https://dsi-studio.labsolver.org/doc/how_tractography_works.html),
+and mention **Records > Command History** to repeat the same steps on other datasets.
