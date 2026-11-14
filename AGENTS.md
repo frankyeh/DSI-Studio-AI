@@ -686,58 +686,64 @@ explicitly asks.
 
 ### 9.2 Voice tutorials and demo mode
 
-Users may ask for a **voice tutorial**, spoken tutorial, demonstration, presentation,
-or guided walkthrough. Treat these requests as demo mode. A voice tutorial is a live
-narrated DSI Studio workflow, not a verbal summary of commands.
+Treat a **voice tutorial**, demonstration, presentation, or guided walkthrough as a live,
+hands-on lesson. Sound like a knowledgeable person sitting beside the learner and
+looking at the same DSI Studio screen, not a narrator reading a command log.
+Use a warm, natural tone and describe what the learner sees.
 
-**Narrate the reasoning, the plan, and the live work.** Teach the audience why each
-step matters, what you intend to do next, what you are doing now, and what the result
-means. Explain practical reasoning and choices in plain language; do not recite private
-internal deliberation or invent observations. Start by explaining the goal, the
-approach, and what you expect to learn or show. As the workflow proceeds, connect
-each step to the previous finding, explain any change of plan, and summarize key
-results at natural checkpoints.
+**Start with the overall plan.** Before any workflow actions, summarize the goal,
+the main stages, why they matter, and what the finished result should show.
+Keep the plan concise and adjust it aloud if new evidence changes the approach.
 
-**Do not run any DSI Studio command silently in voice tutorial mode.** Every command,
-including discovery, setup, processing, inspection, and status checks, must be
-preceded by a separate concise `voice` command that explains the upcoming action
-and its purpose. Speak first, run the command, inspect its reply, then explain
-what actually happened before introducing the next command. Use present-tense
-narration at the start of longer operations (for example, "I am now running
-tractography...") so listeners know what is currently happening. During
-asynchronous work, narrate meaningful confirmed progress and each status check;
-do not imply continuous progress without evidence.
+**Explain practical thinking and intention.** State what stands out in the data,
+why a particular action makes sense, what remains uncertain, and what the next
+step is meant to establish. For example: "That looks like a useful starting
+point because ..."; "The next thing to check is ..."; "This helps us decide
+whether ...". Describe observable evidence and decisions, not private internal
+deliberation or guesses presented as facts.
 
-Example:
+**Explain what is currently happening.** As work starts, narrate the active
+step in natural present tense: "We're checking the tract definitions now";
+"Tracking is starting"; "The software is comparing the images." During a
+long-running step, describe its confirmed status and expected result without
+claiming unverified progress. After a response, interpret what happened and
+connect it to the next action.
+
+**Avoid formulaic first-person announcements.** Do not repeatedly use
+"I will ...", "I am going to ...", or "Now I will ...". Prefer a varied
+mix of observations, intentions, invitations, and present-tense explanations.
+Do not mechanically insert "let's" in every sentence.
+
+**Never run a DSI Studio command silently in voice tutorial mode.** Before
+each command—including discovery, setup, processing, inspection, and status
+checks—send a separate concise `voice` command that explains its purpose
+or the immediate action. Run the command, inspect its reply, explain meaningful
+findings, and naturally lead into the next step. The speech should teach,
+rather than just announcing the command name.
+
+Example (assume each result is confirmed before describing it):
 
 ```bash
-bash ./dsi.sh voice "I will identify the available tract definitions first, so we can choose the correct pathway."
+bash ./dsi.sh voice "Here's the plan: find the left arcuate fasciculus, reconstruct it, and inspect the result together. First, let's see which tract definitions are available."
 bash ./dsi.sh list_auto_tract
-bash ./dsi.sh voice "The left arcuate fasciculus is available. I will map it now to examine its course."
+bash ./dsi.sh voice "The left arcuate fasciculus is listed. That's our starting point; mapping it now should show its course."
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
-bash ./dsi.sh voice "Tractography is running. I will check its status before interpreting the result."
+bash ./dsi.sh voice "Tracking has started. Before interpreting the bundle, let's check whether it's finished."
 bash ./dsi.sh list_tract status
-bash ./dsi.sh voice "I will inspect the reconstructed bundle and its tract count to evaluate the output."
+bash ./dsi.sh voice "The status is confirmed. Checking the bundle and tract count helps us judge whether the reconstruction looks plausible."
 bash ./dsi.sh list_tract
 ```
 
-The example's observations are illustrative: say that a tract is available,
-running, or complete **only if the preceding reply confirms it**. The
-narration rule applies step-by-step for the entire tutorial; there must be
-no unexplained DSI Studio command between narrated steps.
+Only say that a tract is available, an operation has started, or work has
+finished if the preceding response confirms it. Adapt the spoken lines if
+the actual result differs from the illustration.
 
-Keep speech concise, natural, and useful for someone following the screen.
-Describe scientific or practical meaning, not raw command syntax. Avoid repetitive
-"now I will" announcements without an explanation. Before a long operation,
-describe its purpose and the expected output; when it finishes, explain what the
-actual result shows and any limitation. If an action fails or the result differs
-from expectations, explain the issue and the next adjustment before continuing.
-
-Spoken narration must sound like the tutorial or presentation itself. Do not
-expose internal orchestration details such as cooldowns, polling mechanics,
-mailbox updates, request IDs, command arrays, or transport behavior. Base every
-progress statement on verified state; never announce completion before results
-confirm it. Continue providing durable results through `-Chat` as in Section 9.1.
+**Teach alongside the learner.** At natural checkpoints, discuss why the
+observation matters, its limitations, and what decision follows. If a step
+fails, explain what happened and the intended adjustment before trying again.
+Keep the narration concise and conversational. Do not expose internal
+orchestration details, request IDs, command arrays, polling mechanics,
+or transport behavior. Continue providing durable results through `-Chat`.
 
 ## 10. SRC/SZ reconstruction workflow
 
