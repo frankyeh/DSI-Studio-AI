@@ -184,8 +184,8 @@ do it.
   button is listed as `run:<command>`;
 - `setting` or `disabled setting`: a drop-down list or slider that sends a command (its
   current value is never reported);
-- `pages`: the main window's page list `nav_rail` (Tractography, Correlational, Image,
-  Settings);
+- `pages`: the page list `nav_rail` of the main window (Tractography, Correlational,
+  Image, Settings) or the reconstruction window (Mask, Preprocessing, Methods);
 - `view`: the 3D view `GLWidget` or the 2D slice view `graphicsView`, the targets for
   gestures;
 - `option`: an entry of the tracking window's Options tree, as `option:<option id>`,
@@ -193,7 +193,9 @@ do it.
   `Tract Rendering > Tube Diameter (voxel)`). The prefix keeps an option distinct from a
   same-named toolbar button, such as the `roi_*` buttons;
 - `menu` or `disabled menu`: a visible menu action, by objectName, with its menu path as
-  `label`.
+  `label`. A generated item without a name, such as each U-Net model under
+  Slices > Segment, is listed as `run:<command>=<param>`, for example
+  `run:segment_brain=<model>`, with `<param>` being what the item sends.
 
 Options are listed in alphabetical order of their ids. A label that looks like a file
 name or path (a button showing a loaded file, for example) is returned empty.
@@ -202,8 +204,8 @@ name or path (a button showing a loaded file, for example) is returned empty.
 
 - a button, setting, or view: `highlighted: <id>`;
 - `run:<command>`: the one visible control, or else menu action, that sends that
-  command. Use `run:<command>=<param>` from `list_ui` when several controls send the
-  same command with different parameters;
+  command. When several send it with different parameters (`ambiguous control`), use
+  `run:<command>=<param>` from `list_ui`;
 - `option:<id>`: the tree expands to it, its editor is ringed, and the output is
   `option: <tree path>`;
 - a menu action (enabled and visible): the earlier highlight is removed, the menus
@@ -262,7 +264,10 @@ gesture follows the GUI's own behavior:
 DSI Studio has no built-in tutorial; the agent is the tutor, and the skills are the
 lessons. When the user asks "teach me how to ..." (for example, brain tumor analysis):
 
-1. Read the matching `DSI_STUDIO_AI_SKILL_*.md` (or the DSI Studio documentation at
+1. For a new user, start from the matching lesson in
+   `DSI_STUDIO_AI_SKILL_LESSONS.md` (import, reconstruction, tracking, regions,
+   AutoTrack, connectome, differential, correlational, brain tumor). For more depth,
+   read the matching `DSI_STUDIO_AI_SKILL_*.md` (or the DSI Studio documentation at
    https://dsi-studio.labsolver.org/ when no skill covers it). Its steps are commands
    with the reasons for them.
 2. Unless the user explicitly asked for a voice tutorial, offer one with `ask_user`
@@ -279,14 +284,22 @@ lessons. When the user asks "teach me how to ..." (for example, brain tumor anal
      control sends the command, explain the step and offer to run it for the user.
 4. Show the instruction with `ask_user "<what to do now>" Done Cancel` (add `Help` or
    other options when useful). The dialog stays on top while the user works, so the
-   user does not need to return to the chat. When the user clicks `Done`, read `log`: a
-   `user operation` line (written by the main, reconstruction, and tracking windows) with the same `cmd` confirms the step, and the lines after it
-   show the result. Check the result before the next step, as the skill does. On
-   `Cancel`, stop the lesson or ask what to do next.
+   user does not need to return to the chat. `ask_user` does not take focus, so a menu
+   opened by `highlight_ui` stays open. When the user clicks `Done`, read `log`: a
+   `user operation` line (written by the main, reconstruction, and tracking windows)
+   with the same `cmd` shows the user started the step, and the lines after it show the
+   result. Then verify the outcome with state queries (`list_window`, the window's list
+   commands) or a screenshot, as the skill does: the log does not prove success,
+   repeated changes of one tracking-window setting (a slider drag) are merged into one
+   line that may appear only after the user's next operation, and some results (such as T2R tables)
+   appear in dialogs the user must close. On `Cancel`, stop the lesson or ask what to do
+   next.
 5. Call `clear_highlight` when the lesson ends.
 
 The `run` link between a control and its command comes from DSI Studio itself, so a
 moved or renamed button is still found. Do not copy control ids into notes or manuals.
+Some controls cannot be highlighted, such as reconstruction fields and cells of the
+tract and region tables; describe them by their label and position instead.
 
 Mouse steps in the views have no command; show them with a gesture:
 
