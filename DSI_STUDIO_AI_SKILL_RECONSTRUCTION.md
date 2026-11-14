@@ -1,574 +1,318 @@
 # DSI Studio Reconstruction Guide for AI Agents
 
-Reconstruction converts diffusion signals into fiber orientations and metrics:
+Reconstruction turns diffusion signals into fiber orientations and metrics:
+`DICOM or NIfTI + bval/bvec → SZ → reconstruction → FZ`.
 
-```text
-DICOM or NIfTI + bval/bvec → SZ → reconstruction → FZ
-```
+## Starting points (two routes; do not mix them)
 
-## Starting points
+**From DICOM.** Convert with `convert_dicom_dir` (GUI: File → Open Source Images), pointed at the
+parent folder holding all series (it recurses). b-values and b-vectors come from the DICOM headers, so
+there are no separate bval/bvec files. A full multi-series exam takes minutes (e.g. 250+ s for 30+
+series including multi-shell DWI). DWI series become `.sz`, structural series `.nii.gz`. Most DICOM
+files have generic or duplicate names and need `rename_dicom_dir` first, which **permanently destroys
+the original names**: warn the user and suggest backing up or copying the folder if names matter.
 
-There are two entry routes. Do not mix them up.
+**From NIfTI.** A 4D DWI NIfTI plus matching `.bval` and `.bvec`, corresponding volume-for-volume,
+opened with `open_dwi_nifti` (or `save_nifti` on an open source). BIDS naming
+(`sub-<label>[_ses-<label>]_dwi.nii.gz` with `.bval`/`.bvec`/`.json`; spot the `_dwi.nii.gz` suffix in a
+`dir` listing) → `bids_to_src` on the folder converts all DWI sets at once. Check the dataset README
+before deciding on preprocessing: a supplied reverse-encoding DWI means TOPUP/eddy still has to run;
+data documented as corrected go straight to reconstruction. Assume neither.
 
-**From DICOM:** Convert first with `convert_dicom_dir` (or File → Open
-Source Images). Point it at the parent folder containing all series, not at
-an individual series folder; it converts recursively. DSI Studio reads
-b-values and b-vectors directly from the DICOM headers during conversion. Do
-not look for separate bval/bvec files; they do not exist for a DICOM start.
-Expect conversion to take minutes for a full multi-series exam (e.g. 250+
-seconds for 30+ series including multi-shell DWI). DWI series become `.sz`;
-structural series become `.nii.gz`.
+Either way the first product is `subject_raw.sz`; **never overwrite it**. Keep each important stage
+(`subject_raw.sz`, `subject_preprocessed.sz`, `subject_gqi.fz`, `subject_qsdr.fz`). A successfully
+written FZ can still be anatomically wrong.
 
-Warning: most DICOM files arrive with generic or duplicate filenames and need
-renaming (`rename_dicom_dir`) before conversion. Renaming destroys the original
-filenames permanently. Warn the user before renaming, and suggest backing up
-or copying the DICOM folder first if the original names matter to them.
+## Example data and tutorials
 
-**From NIfTI:** The starting point is a 4D DWI NIfTI plus its matching
-`.bval` and `.bvec` files. All three must be present and correspond
-volume-for-volume before opening. Use `open_dwi_nifti` or `save_nifti` on an
-already-open source.
+Offer data to suit the goal ([`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
+lists verified Fiber Data Hub assets): **SCA2 (`ds001378`)** has matched T1w NIfTI, source DWI SZ,
+ready-to-track GQI/QSDR FZ, and `sub-all.dz` (a small single control suits a first reconstruction or
+b-table lesson); **UPenn GBM (`upenn-gbm`)** `sub-100` has T1w, contrast T1w, FLAIR, tumor segmentation,
+SZ, and FZ (inspect alignment before mixing modalities); the Siemens/Philips/XA30 DICOM examples only
+when DICOM parsing is the lesson. Sources: DSI Studio's
+[`test.yml`](https://github.com/frankyeh/DSI-Studio/blob/master/.github/workflows/test.yml) and the
+[Fiber Data Hub](https://brain.labsolver.org). Use a disposable workspace with approval, download
+individual assets, inspect content and processing history, don't re-preprocess corrected public
+derivatives, and don't assume a prebuilt DZ embeds its demographics.
 
-If the NIfTI files follow BIDS naming (`sub-<label>[_ses-<label>]_dwi.nii.gz`
-with matching `.bval`/`.bvec`/`.json`), use `bids_to_src` on the BIDS folder
-instead — it finds and converts all DWI sets at once. Identify BIDS by the
-`_dwi.nii.gz` suffix in a `dir` listing.
-
-NIfTI data may or may not be preprocessed already. Check the dataset README
-or description before deciding: if a reverse-encoding DWI is supplied
-alongside (e.g. a second NIfTI with opposite phase encoding), TOPUP/eddy
-still needs to run. If the data is documented as already corrected, skip
-preprocessing and go straight to reconstruction. Do not assume either way.
-
-In both cases the first saved product is `subject_raw.sz`. Never overwrite it.
-
-Preserve the raw input and each important processing stage:
-
-```text
-subject_raw.sz
-subject_preprocessed.sz
-subject_gqi.fz
-subject_qsdr.fz
-```
-
-Never overwrite the only raw SZ file. A successfully written FZ can still be
-anatomically wrong.
-
-## Public example datasets for tutorials
-
-Offer datasets to suit the user's goal, not only raw DICOM import.
-Read [`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
-for verified Fiber Data Hub examples and specific downloadable assets:
-
-- **SCA2 (`ds001378`)**: matched anatomical T1w NIfTI,
-  source DWI SZ, ready-to-track GQI/QSDR FZ, and `sub-all.dz`
-  for group connectometry. A small single-control example is a
-  useful first reconstruction or b-table lesson.
-- **UPenn GBM (`upenn-gbm`)**: `sub-100` has matched T1w,
-  contrast T1w, FLAIR, tumor segmentation NIfTI, diffusion SZ,
-  and FZ, suited to tumor segmentation and tractography tutorials.
-  Inspect spatial alignment before mixing modalities.
-- **Raw DICOM conversion**: use the Siemens/Philips/XA30 examples
-  in [`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
-  only when DICOM parsing is the teaching goal.
-
-Source examples come from DSI Studio's
-[`test.yml`](https://github.com/frankyeh/DSI-Studio/blob/master/.github/workflows/test.yml)
-and the [Fiber Data Hub](https://brain.labsolver.org).
-Use a disposable workspace with user approval; download individual
-assets, inspect actual file content and processing history, and avoid
-repeating preprocessing on already-corrected public derivatives.
-Do not infer that a prebuilt group DZ embeds its demographic file.
-
-## Tutorials
-
-- [Acquisition and pipeline](https://www.youtube.com/watch?v=Sn2eH07axF4)
-- [Reconstruction tutorial](https://www.youtube.com/watch?v=-J8qBMiHQHk)
-- [DTI quality control](https://www.youtube.com/watch?v=stL4GMeTC1I)
-- [Diffusion models and metrics](https://www.youtube.com/watch?v=wbrMJHD5mKs)
-- [NIfTI to tractography](https://www.youtube.com/watch?v=iuBtgGLohsg)
+Videos: [Acquisition and pipeline](https://www.youtube.com/watch?v=Sn2eH07axF4),
+[Reconstruction tutorial](https://www.youtube.com/watch?v=-J8qBMiHQHk),
+[DTI quality control](https://www.youtube.com/watch?v=stL4GMeTC1I),
+[Diffusion models and metrics](https://www.youtube.com/watch?v=wbrMJHD5mKs),
+[NIfTI to tractography](https://www.youtube.com/watch?v=iuBtgGLohsg) (older videos show older layouts).
 
 ## Current reconstruction dialog (November 2026)
 
-The current main window opens an SRC from **Tractography → 2 Reconstruct →
-SRC File(s) (*.sz)**. The adjacent **More...** section offers **Batch SRC →
-FIB** and **SRC quality control**. Once opened, the reconstruction dialog
-has three primary sidebar pages marked **2a Mask**, **2b Preprocessing**, and
-**2c Methods**. Click **Edit...** in that sidebar to expose **Edit DWI** and
-**Edit B-table**. These are GUI navigation labels, not AI launcher commands.
-The sidebar spans the dialog height; the single-file output filename field
-sits below the right-side pages. The bottom **Run Reconstruction** button
-runs the selected reconstruction method. Older tutorial videos can show
-different window layouts.
+GUI navigation labels, not AI commands. Open an SRC from **Tractography → 2 Reconstruct → SRC File(s)
+(*.sz)**; the adjacent **More...** offers **Batch SRC → FIB** and **SRC quality control**. The dialog
+sidebar (full height) has **2a Mask**, **2b Preprocessing**, **2c Methods**, and **Edit...** (exposing
+**Edit DWI** and **Edit B-table**); the single-file output filename sits below the right-side pages and
+**Run Reconstruction** runs the selected method. Moving or grouping buttons did not remove operations;
+the **File**, **Edit**, **B-table**, **Corrections**, and **QSDR** menus remain. For the visible
+workflow see [Reconstruct: SRC to FIB](https://dsi-studio.labsolver.org/doc/gui_t2.html); when web text
+or videos lag, the live build and source win.
 
-- **Mask (2a):** Generate or edit a mask using thresholding, smoothing,
-  dilation/erosion, defragmentation, U-Net, or a template. Mask **Open** and
-  **Save** have moved to **File → Open Mask...** and **File → Save Mask...**;
-  they are no longer buttons in the Mask card. The AI command `mask_open`
-  remains supported and independent of the GUI menu.
-- **Preprocessing (2b):** The new diagram asks seven Yes/No questions,
-  selects a highlighted acquisition-dependent path, and provides a single
-  **Run Preprocessing** button. It displays completed steps with ✓ and skips
-  steps recognized as already applied in the SRC processing report.
-  Do not treat its visual suggestions as proof that a correction is needed.
-- **Methods (2c):** Choose DTI, GQI, or QSDR. GQI and QSDR show the diffusion
-  sampling length ratio as a slider (0.10 to 3.00); QSDR also shows Template and
-  Resolution. **More...** adds the Options (high-accuracy fixel output, tensor from
-  b < 1750, ODF vectors), a **QSDR Registration** card (Manual Align, Partial FOV,
-  T1W-based QSDR), and an **Output Metrics** card. Tensor metrics are saved by every
-  method, including GQI and QSDR. For one source, an editable output filename appears
-  below the pages; for a batch it is hidden.
-- **Edit DWI:** Inspect DWI volumes and their b-values, remove bad volumes,
-  edit geometry, and use **Align Selected DWI...** to rigidly align the
-  selected **3D DWI volume** to the first volume and rotate its b-vector.
-  This is not independent slice-by-slice alignment. Image and signal edit
-  cards expand on demand.
-- **Edit B-table:** Inspect and correct b-values and diffusion directions.
-  **File**, **Edit**, **B-table**, **Corrections**, and **QSDR** menus remain
-  available. Do not infer that moving or grouping buttons has removed their
-  underlying operations.
+- **Mask (2a):** thresholding, smoothing, dilation/erosion, defragmentation, U-Net, or template. Open
+  and Save are now **File → Open Mask...** / **File → Save Mask...** (the AI command `mask_open` is
+  independent of the menu).
+- **Preprocessing (2b):** seven Yes/No questions select a highlighted path, run by one **Run
+  Preprocessing** button; completed steps show ✓ and steps the SRC report records as applied are
+  skipped. Its suggestions are not proof a correction is needed.
+- **Methods (2c):** DTI, GQI, or QSDR. GQI and QSDR show the diffusion sampling length ratio slider
+  (0.10 to 3.00); QSDR adds Template and Resolution. **More...** adds Options (high-accuracy fixel
+  output, tensor from b < 1750, ODF vectors), a **QSDR Registration** card (Manual Align, Partial FOV,
+  T1W-based QSDR), and an **Output Metrics** card. Every method, including GQI and QSDR, saves tensor
+  metrics. The editable output filename appears for one source and is hidden for a batch.
+- **Edit DWI:** inspect volumes and b-values, remove bad volumes, edit geometry; **Align Selected
+  DWI...** rigidly aligns the selected **3D DWI volume** to the first volume and rotates its b-vector
+  (not slice-by-slice). Image and signal cards expand on demand.
+- **Edit B-table:** inspect and correct b-values and directions.
 
-### Preprocessing decision flow in the current GUI
+**Preprocessing questions** (displayed order):
 
-The seven questions, in displayed order, are:
+1. **Reverse phase-encoding b0?** Yes requests the opposite-encoding file; that path uses TOPUP,
+   possibly with EDDY.
+2. **Shell-based acquisition?** Few shells vs a DSI grid; a default is suggested from the b-values but
+   confirm it.
+3. **Try to save data with motion issues?** Optional motion correction; not routinely for clean data or
+   after EDDY.
+4. **Try T1w-based distortion correction?** Optional for a matching T1w on eligible paths without
+   reverse-phase data; requests a T1w. Inspect the outcome.
+5. **Bias field already corrected?** No selects bias-field correction unless the report records it.
+6. **Need isotropic resolution?** Yes selects resampling for unequal voxel dimensions not already
+   resampled (default suggested from voxel size).
+7. **Correct eddy current distortion?** Shell-based only; chooses combined TOPUP/EDDY or TOPUP alone on
+   the TOPUP path.
 
-1. **Reverse phase-encoding b0?** Yes requests an opposite-encoding
-   image file; the available path uses TOPUP, potentially paired with EDDY.
-2. **Shell-based acquisition?** A few shells versus a DSI grid. DSI Studio
-   suggests a default from the b-values, but confirm the acquisition.
-3. **Try to save data with motion issues?** Optional motion correction on
-   applicable paths. Do not apply routinely to clean data or after EDDY.
-4. **Try T1w-based distortion correction?** Optional alternative for a
-   matching T1w input on eligible paths without reverse-phase data.
-   Selecting Yes requests a T1w image. Inspect the outcome.
-5. **Bias field already corrected?** **No** selects bias-field correction
-   if the report does not already record it; **Yes** skips it.
-6. **Need isotropic resolution?** **Yes** selects resampling when voxel
-   dimensions are unequal and this correction has not already been recorded.
-   The dialog suggests a default from voxel dimensions.
-7. **Correct eddy current distortion?** This option applies to shell-based
-   acquisitions and controls whether the eligible TOPUP path runs combined
-   TOPUP/EDDY or TOPUP alone.
+Questions 1 and 2 pick one of four paths (reverse-PE present/absent × shell/DSI). Steps: `topup_eddy`,
+`topup`, `eddy`, `motion_correction`, `correct_by_t1w`, `bias_field_correction`, `resample`, run in the
+flow's order and stopping on failure. Completion detection reads report text and can be incomplete:
+check the processing history rather than trusting a missing ✓. **Agents:** these are GUI features, not
+launcher parameters, and there is no `run_preprocessing` command. Inspect the acquisition, report, and
+b-table, then invoke individual documented corrections deliberately and in order; never apply every
+suggested step automatically, and batch only subjects that truly share requirements.
 
-The four highlighted paths are determined by answers to Questions 1 and 2:
-reverse-PE present/absent × shell-based/DSI. Available steps include
-`topup_eddy`, `topup`, `eddy`, `motion_correction`,
-`correct_by_t1w`, `bias_field_correction`, and `resample`.
-**Run Preprocessing** executes the currently active steps in the displayed
-flow's defined order and stops on failure. It checks recorded report text
-to mark completed steps; report-based detection can be incomplete, so
-review the SRC processing history rather than assuming that a missing
-checkmark proves the operation was never applied.
-
-**Agent behavior:** These questions and the Run Preprocessing control are
-GUI features, not new AI launcher parameters or a new `run_preprocessing`
-command. With the AI launcher, inspect the actual acquisition, report, and
-b-table, then invoke individual documented corrections deliberately in the
-appropriate sequence. Do not automatically apply every recommended GUI
-step. For batch processing, make sure each subject genuinely shares the
-same acquisition and processing requirements.
-
-For the visible GUI workflow, consult the current website
-[Reconstruct: SRC to FIB](https://dsi-studio.labsolver.org/doc/gui_t2.html).
-When its descriptive text and the current implementation differ, verify
-the behavior against the live DSI Studio version and source code; web
-documentation and older videos may lag recent interface changes.
-
-## Required Workflow
+## Required workflow
 
 ### 1. Define the analysis
 
-Choose the reconstruction from the downstream goal:
-
 | Method | Use when |
 |---|---|
-| **GQI** | Native-space tractography, crossing fibers, tractometry, or subject-specific connectomes |
-| **DTI** | Tensor metrics are required or the acquisition cannot support robust crossing-fiber reconstruction |
-| **QSDR** | Group analysis, connectometry, or another workflow requiring a common template space |
+| **GQI** | Native-space tractography, crossing fibers, tractometry, subject-specific connectomes |
+| **DTI** | Tensor metrics are required, or the acquisition cannot support robust crossing-fiber reconstruction |
+| **QSDR** | Group analysis, connectometry, or other common-template-space workflows |
 
-Do not choose QSDR merely for convenience. Native-space GQI is preferable for
-individual anatomy, lesions, distortion, and presurgical work.
+Never choose QSDR for convenience: native GQI is preferable for individual anatomy, lesions,
+distortion, and presurgical work.
 
-### 2. Inspect the source before reconstruction
+### 2. Inspect the source
 
-Do not ask the user to describe their files. Ask only for the data location,
-then inspect it yourself with `run_shell` (`dir "<path>"` on Windows,
-`ls "<path>"` elsewhere). Identify DICOM series folders vs NIfTI+bval/bvec
-sets from the listing before deciding the starting route.
+Ask only for the data location, never for a description; inspect it with `run_shell`
+(`dir "<path>"` on Windows, `ls "<path>"` elsewhere) and tell DICOM series folders from
+NIfTI+bval/bvec sets. Confirm dimensions, voxel size, volume count, b-values, b-vector count, coverage,
+orientation, motion, distortion, slice dropout, spikes, background noise, neighboring-DWI correlation,
+and volume-to-b-table correspondence. Stop and report severe corruption: parameters cannot recover
+missing slices, poor coverage, very low SNR, too few directions, or unacquired susceptibility data.
 
-Confirm:
+### 3. Apply only justified corrections, in order
 
-- dimensions, voxel size, volume count, b-values, and b-vector count;
-- brain coverage and image orientation;
-- motion, distortion, slice dropout, signal spikes, and background noise;
-- neighboring-DWI correlation;
-- correspondence between every image volume and b-table row.
+`--action=rec` lays steps out in this sequence; follow it manually in the GUI:
 
-Stop and report severe corruption. Reconstruction parameters cannot recover
-missing slices, inadequate coverage, very low SNR, insufficient directions, or
-susceptibility information that was never acquired.
+1. **b-table flips/swaps** first (spatial operations transform b-vectors with the image).
+2. **Image orientation** (rotation, flips); b-vectors follow.
+3. **TOPUP**: susceptibility distortion (needs reverse-phase data).
+4. **EDDY**: eddy currents and motion. Without reverse-phase data, **T1w distortion correction**
+   (`correct_by_t1w`) replaces TOPUP and runs after EDDY or motion correction.
+5. **Bias field correction**: smooth coil-sensitivity intensity variation biases QA; fix before
+   reconstruction.
+6. **Isotropic resampling** (section 6).
+7. **Mask**, after all geometric changes.
 
-### 3. Apply only justified corrections
+Keep the original geometry for acquisition-dependent corrections (TOPUP/EDDY, motion, distortion), then
+resample; never resample first. Decide by available data, not habit:
 
-Follow this order. The `--action=rec` CLI lays the steps out in this
-sequence; when using the GUI, do them in the same order manually:
+- **Reverse-phase b0** → TOPUP, then EDDY (`--rev_pe=<rev_b0> --save_src=subject_preprocessed.sz`,
+  then `--cmd="[Step T2][Corrections][EDDY]"`), except DSI/HDFT.
+  `--rev_pe=<file>` triggers TOPUP **followed by EDDY**; for TOPUP only use
+  `--cmd="topup=<file>+motion_correction"`.
+- **DSI/HDFT (23 b-values, e.g. 258 directions)** → TOPUP plus built-in motion correction, no EDDY
+  (EDDY handles many distinct b-values poorly). Never run motion correction after EDDY; they overlap.
+- **Single-shell (one b-value) or multi-shell (2–3)** → EDDY (with TOPUP when reverse-phase exists).
+- **No reverse-phase, T1w available** → EDDY (or motion correction), then `correct_by_t1w=<T1w>|<mm>`
+  (GUI **[Corrections][T1w Distortion Correction...]**). It converts the first b0 to T1-like contrast,
+  brain-extracts and bias-corrects the T1w, rigidly aligns T1w to b0, estimates a nonlinear warp along
+  the image y axis (AP–PA) only, warps all DWIs once from native data with T1-guided interpolation and
+  Jacobian modulation, and rebuilds the mask. Only for AP/PA phase encoding (not LR/RL); volumes must
+  already be aligned to the first b0 (hence EDDY first). The resolution (`|1.5`, `|1.0`, or `|0`
+  native) replaces resampling: don't resample again. It errors on deformation folding or failed T1w
+  brain extraction: report it, don't retry blindly. Inspect the corrected b0 against the attached T1w.
+- **No reverse-phase, no T1w** → EDDY alone; susceptibility distortion stays uncorrected, so never
+  claim otherwise.
+- **Clean single-shell, minimal motion** → EDDY optional; inspect first, never preprocess by default.
 
-1. **b-table flips/swaps** — first, before any image rotation or resampling.
-   Spatial operations transform b-vectors along with the image; fixing the
-   b-table first keeps everything consistent.
-2. **Image orientation** (rotation, flips) — b-vectors transform with it.
-3. **TOPUP** — susceptibility distortion correction (needs reverse-phase data).
-4. **EDDY** — eddy-current and motion correction.
-   **T1w distortion correction** (`correct_by_t1w`) — the alternative to
-   TOPUP when there is no reverse-phase data; run it after EDDY or motion
-   correction (see below).
-5. **Bias field correction** — coil sensitivity creates smooth
-   signal-intensity variation across the image that biases the final QA
-   values. Correct it before reconstruction.
-6. **Resampling to isotropic** — see section 6 for resolution choice.
-7. **Mask** — generate or refine after all geometric changes.
+**Finding the reverse-phase series.** Commonly one direction carries the full DWI and the reverse only
+b0 (or a few b0s): look for a much smaller second run of the same protocol (e.g. `dir258_2` beside
+`dir258_1`); SBRef images hint at run structure. Don't work out AP/PA vs LR/RL yourself: DSI Studio
+pairs opposite directions automatically (also from NIfTI JSON sidecars), and `--rev_pe` takes `.nii.gz`
+or `.sz`. The reverse data must match the main DWI's dimensions; pick the DWI whose geometry matches.
+Patterns seen (DSI-Studio-Test/topup):
 
-Geometry principle: keep the original DWI geometry while applying corrections
-that depend on the original acquisition (TOPUP/EDDY, motion, distortion),
-then resample before reconstruction. Do not resample first.
+- **AP/PA** (most common): `s12_dMRI_dir258_1_HDFT` (full AP) + `s14_dMRI_dir258_2_HDFT` (b0 PA); the
+  reverse may be named `DWIB0REVPE`.
+- **PA/AP**: full `HCPDTI` (PA) + `DWIB0REVPE_b0` (AP).
+- **LR/RL** (HCP-style): `100206_3T_DWI_dir95_3mm` (LR) + `.rz` reverse file (RL).
+- **Full + Full** (both full protocol; slower) and **Full + multiple b0**.
 
-Decide from what data is available, not from habit:
+`.rz` is DSI Studio's reverse-phase extension. TOPUP writes `<name>.topup.AP_PA.nii.gz` (or
+`.topup.RL_LR.nii.gz`), `<name>.topup.acqparams.txt`, and a `.topup_log`; if present, TOPUP already ran.
 
-- **Reverse-phase b0 available** → run TOPUP for susceptibility distortion,
-  then EDDY for eddy currents and motion.
-  (`--rev_pe=<rev_b0> --save_src=subject_preprocessed.sz`, then
-  `--cmd="[Step T2][Corrections][EDDY]"` — *unless* it is DSI/HDFT data)
-- **DSI/HDFT data (23 b-values, e.g. 258 directions)** → TOPUP plus
-  DSI Studio's built-in motion correction, no EDDY. EDDY does not work well
-  with the large number of distinct b-values in DSI acquisitions. Do not run
-  motion correction if EDDY is done — they do similar jobs.
-- **Single-shell (one b-value) or multi-shell (2–3 b-values)** → use EDDY
-  (with TOPUP if reverse-phase data is available).
+Rules: avoid repeated interpolation, registration, smoothing, or resampling; save corrections as a new
+SZ (`subject_preprocessed.sz`); state which artifact each operation addresses.
 
-  Caution: `--rev_pe=<file>` triggers TOPUP **followed by EDDY**. For
-  TOPUP-only, use `--cmd="topup=<file>+motion_correction"` instead.
-
-  How to spot the reverse-phase series in a DICOM listing: in the common
-  AP-PA pattern, only one phase-encoding direction carries the full DWI;
-  the reversed direction has only b0 (or a few b0 volumes) for TOPUP. Look
-  for a second run of the same protocol (e.g. `dir258_2` next to `dir258_1`)
-  that is much smaller than the full run. SBRef images paired with each run
-  also hint at the run structure.
-
-  Do not try to determine whether it is AP/PA or LR/RL yourself. As long as
-  the two runs have opposite phase-encoding directions, DSI Studio figures
-  out the pair automatically (it also reads phase direction from NIfTI JSON
-  sidecars when present). `--rev_pe` accepts `.nii.gz` or `.sz`.
-
-  When several DWI series exist, match by image dimension: the reverse-phase
-  data must have the same dimensions as the main DWI for TOPUP. A series
-  with different dimensions cannot be paired — pick the DWI whose geometry
-  matches the reverse data.
-
-  Reverse-phase patterns seen in practice (see DSI-Studio-Test/topup):
-
-  - **AP/PA** (most common): full DWI one way, b0-only the other.
-    Example: `s12_dMRI_dir258_1_HDFT` (full AP) + `s14_dMRI_dir258_2_HDFT`
-    (b0 PA). The reverse may be named `DWIB0REVPE`.
-  - **PA/AP** (flipped): same as above with directions swapped.
-    Example: full `HCPDTI` (PA) + `DWIB0REVPE_b0` (AP).
-  - **LR/RL** (HCP-style, less common): full DWI both ways or full + b0.
-    Example: `100206_3T_DWI_dir95_3mm` (LR) + `.rz` reverse file (RL).
-  - **Full + Full**: both directions carry the full protocol (larger, slower).
-  - **Full + multiple b0**: reversed side has several b0 volumes.
-
-  File clues: DSI Studio uses the `.rz` extension for reverse-phase data.
-  After TOPUP it writes `<name>.topup.AP_PA.nii.gz` (or `.topup.RL_LR.nii.gz`),
-  `<name>.topup.acqparams.txt`, and a `.topup_log`. Presence of these outputs
-  means TOPUP already ran — do not run it again.
-
-- **No reverse-phase data, T1w available** → EDDY (or motion correction)
-  first, then `correct_by_t1w=<T1w>|<mm>`
-  (GUI: **[Corrections][T1w Distortion Correction...]**). It uses only the
-  first b0 and converts it to T1-like contrast. It then brain-extracts and
-  bias-corrects the T1w, rigidly aligns the T1w to the b0, and estimates a
-  nonlinear warp restricted to the image y axis (AP–PA). All DWI volumes are
-  warped once from the native data with T1-guided interpolation and Jacobian
-  signal modulation, and the mask is rebuilt.
-  - Assumes the phase-encoding direction is along the image y axis (AP/PA).
-    Do not use it for LR/RL acquisitions.
-  - The same warp is applied to every volume, so volumes must already be
-    aligned to the first b0; that is why EDDY/motion correction comes first.
-  - The output resolution (`|1.5`, `|1.0`, or `|0` for native) replaces a
-    separate resampling step. Do not resample again afterward.
-  - It fails with an error when it finds folding in the deformation or
-    cannot extract the T1w brain. Report the error; do not retry blindly.
-  - Inspect the corrected b0 against the T1w (attach the T1w) before
-    reconstruction.
-- **No reverse-phase data and no T1w** → EDDY alone for motion and eddy
-  currents. Accept that susceptibility distortion cannot be fully corrected;
-  do not claim otherwise.
-- **Clean single-shell data, minimal motion** → EDDY is optional. Inspect
-  first; do not preprocess by default.
-
-Rules:
-
-- Avoid repeated interpolation, registration, smoothing, or resampling.
-- Isotropic resampling is recommended for anisotropic data; see section 6.
-  It does not create true spatial resolution.
-- Save corrected data as a new SZ file (`subject_preprocessed.sz`).
-- State which artifact each operation addresses.
-
-#### QC the preprocessed SZ (especially for groups)
-
-After preprocessing, run QC on the `.sz` and check NDC (neighboring DWI
-correlation) and contrast:
-
-- TOPUP corrects deformation only; it does not improve NDC or contrast.
-- After TOPUP the images are masked (background zeroed), so unmasked NDC
-  and contrast always increase artificially. Compare **masked NDC** only —
-  a small drop is fine. Do not attribute contrast gains to motion
-  correction or EDDY without checking; masking alone inflates contrast.
-- If masked NDC drops substantially or bad slices appear, something is
-  wrong — stop and investigate before reconstructing.
-- NDC also identifies acquisition issues (motion, dropout, spikes).
-- When processing a group: preprocess all subjects first, then run QC
-  across all `.sz` files to confirm everything is good. DSI Studio flags
-  outliers in the QC report — follow up on every flagged subject. Note:
-  outlier detection only works with a group of `.sz` files; a single
-  subject will never be flagged as an outlier.
+**QC the preprocessed SZ** (NDC = neighboring DWI correlation, and contrast). TOPUP fixes deformation
+only, not NDC or contrast, and masks the background, which inflates unmasked NDC and contrast: compare
+**masked NDC** only (a small drop is fine) and never credit contrast gains to EDDY/motion correction
+unchecked. A substantial masked-NDC drop or bad slices: stop and investigate. NDC also reveals motion,
+dropout, and spikes. For a group, preprocess everyone, then QC all `.sz` together and follow up every
+outlier the report flags (outlier detection needs a group; one subject is never flagged).
 
 ### 4. Verify image and b-table orientation
 
-Check left-right, anterior-posterior, superior-inferior, laterality, and template
-compatibility. Image flips or axis swaps must transform b-vectors consistently.
-After any orientation operation, recheck anatomical landmarks and record the
-change; an apparently plausible image may still be mirrored.
+Check left-right, anterior-posterior, superior-inferior, laterality, and template compatibility; flips
+and axis swaps must transform b-vectors consistently. Recheck landmarks and record each orientation
+change: a plausible image may still be mirrored. Flipped b-tables are common, especially from NIfTI and
+in animals. Checks (CLI `--check_btable`):
 
-A flipped b-table is a common mistake, especially with NIfTI as the source or
-in animal studies. Two checking routines exist (CLI: `--check_btable`):
+- **Template-aware** (`--check_btable=1`, or `--cmd="check_btable"`): align to the template and compare
+  major tract directions; when a template fits.
+- **No-template** (`--check_btable=1` without `--template`, or `--cmd="check_btable2"`): 24-candidate
+  permutation/flip check.
+- Batch: `dsi_studio --action=qc --source=*.sz --check_btable=1` (add `--template=<name>` for the
+  template-aware check).
 
-- **Template-aware** (`--check_btable=1`, or `--cmd="check_btable"`): align
-  the data to the template and verify that major tract directions match the
-  template anatomy. Use when a suitable template is available.
-- **No-template** (`--check_btable=1` without `--template`, or
-  `--cmd="check_btable2"`): 24-candidate b-vector permutation/flip check.
-  Use when no template fits.
+A convention found on a good representative scan (e.g. `021fx`) can be applied as a **b-table-only**
+correction to scans sharing it, e.g. `--cmd="swap_bybz+flip_bx"` (swap y/z, then flip x; chain with
+`+`); never infer a group correction from a low-SNR or artifact-heavy outlier.
 
-For batch QC across subjects: `dsi_studio --action=qc --source=*.sz
---check_btable=1` (add `--template=<name>` for the template-aware check).
+**Lost or corrupted bval/bvec**: replace them with `--bval=<file> --bvec=<file>` on `--action=rec` (or
+`load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which rebuilds b-vectors
+of DWIs with b ≥ 500 from the reference's nearest-b shell, keeping recorded b-values. The parameterless
+form downloads
+`https://github.com/data-others/atlas/releases/download/<template>/<template>.sz` once to the system
+temp folder and reuses it; only the human 2 mm reference (`human/human.sz`) is published so far. A
+missing asset, no network without cache, or a corrupt/cancelled download errors and leaves the b-table
+unchanged; never use the retired HCP1065 links. `--cmd=regenerate_btable=<reference.sz>` takes an
+explicit reference. **Never run several parameterless `regenerate_btable` jobs in parallel** while the
+cache may be missing (they race on one file): download and check it once, put it on persistent shared
+storage (not per-job `$TMPDIR` on Slurm), and pass that path to every job. Then check orientation.
 
-If a good-quality representative scan reveals a consistent swap/flip
-convention (e.g. `021fx`), apply the matching **b-table-only** correction to
-scans sharing that acquisition convention:
-`--cmd="swap_bybz+flip_bx"` (swap y/z, then flip x). Chain multiple
-operations with `+`. Do not infer a group-wide correction from a low-SNR or
-artifact-heavy outlier.
+Exclude corrupted volumes with `--remove=<indices or b>value>` on `--action=rec` or the `remove`
+command (e.g. `3,10:12` or `b>3000`); it is recorded in the steps and report.
 
-When the bval/bvec are lost or corrupted rather than flipped, replace them:
-`--bval=<file> --bvec=<file>` on `--action=rec` (or `load_bval` / `load_bvec`), or
-`--cmd=regenerate_btable` (`regenerate_btable`). This rebuilds the b-vectors of DWIs
-with b ≥ 500 from the nearest-b shell of the reference and keeps the recorded b-values.
-The parameterless form downloads the current template's reference
-`https://github.com/data-others/atlas/releases/download/<template>/<template>.sz`
-once to the system temp folder and reuses it. The human template's 2 mm reference
-(`human/human.sz`) is published; for other templates the reference is not yet
-available. A missing asset, no network without a valid cache, a corrupt or cancelled
-download reports an error and leaves the b-table unchanged. Do not use the retired
-HCP1065 links. `--cmd=regenerate_btable=<reference.sz>` uses an explicit reference
-instead. **Do not run several parameterless `regenerate_btable` jobs in parallel**
-while the cache may be missing: they can race on the same cache file. Download and
-check the reference once in one process, put it on persistent shared storage (not the
-per-job `$TMPDIR` on Slurm), and pass that path to every parallel job. Then check
-orientation as above.
+Automatic checks are evidence, not proof: confirm with anatomy, local fiber directions, and whole-brain
+tractography, cautiously for low-SNR, low-direction, partial-coverage, animal, or pathological data.
 
-To exclude corrupted volumes found in QC, use `--remove=<indices or b>value>` on
-`--action=rec` or the `remove` command (same syntax, e.g. `3,10:12` or `b>3000`); the
-removal is recorded in the reconstruction steps and report.
-
-Automatic b-table checking is evidence, not proof. Confirm its result using
-anatomy, local fiber directions, and whole-brain tractography. Be cautious with
-low-SNR, low-direction, partial-coverage, animal, or severely pathological data.
-
-Know the agent's limits and handle them without asking the user to inspect:
-
-- **Brain not in axial view** (common in animal scans): hard for the agent to
-  detect from numbers alone. Image dimensions can hint (e.g. the longest axis
-  is not superior-inferior), but human brains are rarely flipped — an
-  occasional z-flip is the main human case.
-- **Mask quality**: the agent cannot reliably judge a mask from metrics
-  alone.
-
-  The template alignment done for the b-table check covers both: its R² is
-  also an orientation and mask QC metric (CLI: `--export_r` writes a `.rXX`
-  file with the registration R²). If R² is poor, warn the user that
-  wrong orientation or a bad mask are likely causes — do not ask them to
-  inspect images; state the finding and what it implies.
+**Agent limits, handled without asking the user to inspect:** a brain not in axial view (common in
+animals; dimensions may hint, e.g. the longest axis is not superior-inferior; humans rarely flip, mainly
+an occasional z-flip), and mask quality, which metrics cannot judge. The b-table check's template R²
+covers both (CLI `--export_r` writes a `.rXX` file): if poor, state that wrong orientation or a bad mask
+is likely and what it implies.
 
 ### 5. Inspect the mask
 
-The mask should include the entire brain and peripheral white matter without
-admitting excessive background or disconnected fragments. Inspect axial,
-coronal, and sagittal views.
+It should include the whole brain and peripheral white matter without excess background or fragments;
+inspect all three planes. Too small truncates pathways and cortical endpoints; too broad adds
+background orientations and computation.
 
-- A small mask truncates pathways and cortical endpoints.
-- A broad mask adds background orientations and wastes computation.
-
-**Masking Background Signals** (`mask_background_signals`) is a distinct, optional signal-weighting operation. It loads a 3D NIfTI map with the same image dimensions as the DWI and multiplies every DWI volume voxelwise by the map; it also sets the binary reconstruction mask wherever the map is greater than zero. It does **not** simply mask background voxels or estimate a probability map, and the command does not clamp the supplied weights to [0, 1]. Use it only when signal multiplication by the provided weights is intended, and preserve the original SZ before applying it. The former command name `probabilistic_masking` remains accepted for older scripts.
+**Masking Background Signals** (`mask_background_signals`; old name `probabilistic_masking` still
+accepted) is an optional signal-weighting step: it multiplies every DWI voxelwise by a 3D NIfTI map of
+the DWI's dimensions (weights not clamped to [0, 1]) and sets the binary mask where the map > 0. It is
+not simple background masking or probability estimation. Use it only when that multiplication is
+intended, and preserve the original SZ first.
 
 ### 6. Select reconstruction settings
 
-#### Resampling to isotropic (recommended)
+**Isotropic resampling (recommended).** Anisotropic voxels (e.g. 0.5 mm in-plane, 5 mm slices) hurt
+tractography: resample between in-plane and slice thickness (e.g. 1 or 2 mm for 0.5×0.5×5 mm) before
+reconstruction. It gives consistent step geometry, not true resolution.
 
-Anisotropic voxels are bad for tractography. Many scanners acquire high
-in-plane resolution (e.g. 0.5 mm) with thick slices (e.g. 5 mm). Resample to
-isotropic at a resolution between the in-plane and slice thickness — e.g.
-1 mm or 2 mm for 0.5×0.5×5 mm data. This does not create true spatial
-resolution, but it gives tractography consistent step geometry. Check the
-voxel size during source inspection (section 2) and resample before
-reconstruction if the slice thickness is much larger than the in-plane
-resolution.
+**GQI.** Start near **1.25** (in-vivo human) or **0.6** (ex-vivo). These are starting points: when
+optimizing, compare several ratios and take the highest that resolves expected crossings without false
+secondary fibers in coherent regions such as the corpus callosum (too low merges crossings; too high
+creates spurious orientations).
 
-#### GQI
+**DTI.** FA, MD, AD, RD, tensor elements, principal eigenvectors; one tensor cannot resolve multiple
+populations. For multishell data consider fitting only suitable lower b-values and record the shells.
 
-Start near:
-
-- **1.25** for typical in-vivo human diffusion MRI;
-- **0.6** for typical ex-vivo diffusion MRI.
-
-These are starting points, not constants. When optimization is needed, compare
-several sampling-length ratios. Select the highest value that resolves expected
-crossings without producing false secondary fibers in coherent regions such as
-the corpus callosum. A low value may merge crossings; an excessive value may
-create spurious orientations.
-
-#### DTI
-
-Use DTI for FA, MD, AD, RD, tensor elements, and principal eigenvectors. A
-single tensor cannot resolve multiple fiber populations. For multishell data,
-consider restricting conventional tensor fitting to suitable lower b-values
-and record the shells used.
-
-#### QSDR
-
-Select the correct species template and a resolution appropriate to the
-acquisition and brain size. Smaller output voxels increase computation and file
-size but do not restore missing information. Verify nonlinear registration,
-laterality, and attached T1w/T2w alignment.
-
-For multishell or single-shell data, QSDR can also store template-space DWI in
-the `.fz` (`dwi` in `other_output`): the scheme-balanced b-table plus one
-DWI volume per direction, with `scheme_balance` added to the steps. DSI-grid
-schemes ignore `dwi`. Use it when a template-space SRC is needed:
-`--action=rec` accepts that `.fz` as `--source` (CLI only; the GUI opens
-`.fz` as FIB), either to reconstruct again (e.g. GQI with other parameters) or
-to save it as an `.sz` with `--save_src`. An `.fz` without DWI is rejected.
-Without `--output`, the output name comes from the source name with its
-suffixes removed (e.g. `subject.qsdr.fz` gives `subject.gqi.fz`).
+**QSDR.** Correct species template; resolution suited to acquisition and brain size (smaller voxels cost
+time and space and restore nothing). Verify nonlinear registration, laterality, and attached T1w/T2w
+alignment. For multishell or single-shell data, `dwi` in `other_output` stores template-space DWI in the
+`.fz` (scheme-balanced b-table, one volume per direction, `scheme_balance` added to the steps; DSI grids
+ignore it). `--action=rec` then accepts that `.fz` as `--source` (CLI only; the GUI opens `.fz` as FIB)
+to reconstruct again or save an `.sz` with `--save_src`; an `.fz` without DWI is rejected. Without
+`--output`, the name drops the source suffixes (`subject.qsdr.fz` gives `subject.gqi.fz`).
 
 ### 7. Request only needed outputs
 
-Possible outputs include `fa`, `md`, `ad`, `rd`, `tensor`, `gfa`, `rdi`,
-`odf`, and, for QSDR of shell schemes, `dwi`. Full ODF storage can greatly enlarge the FZ file and is unnecessary for
-ordinary tractography unless a downstream method explicitly needs it.
+Options: `fa`, `md`, `ad`, `rd`, `tensor`, `gfa`, `rdi`, `odf`, and `dwi` (QSDR, shell schemes). Full
+ODF storage greatly enlarges the FZ and is unnecessary for ordinary tractography.
 
 ### 8. Validate the FZ
 
-Standard post-reconstruction steps:
-
-1. Open the `.fz` with `open_fib`.
-2. Load the common structural images as slice backgrounds with `add_slice`:
-   T1w, T2w, FLAIR, and any other available structural contrasts. This is
-   standard — load all of them, not just the T1w, for full anatomical
-   reference.
-
-Then inspect:
-
-- anisotropy contrast and laterality;
-- dominant directions in coherent white matter;
-- plausible multiple directions in known crossing regions;
-- the mask boundary;
-- QSDR alignment when applicable;
-- whole-brain tractography and major commissural/projection pathways.
-
-Do not validate reconstruction from one QA, FA, or color map alone. Widespread
-tract failure usually indicates source quality, b-table, orientation, mask, or
-reconstruction problems rather than one tract definition.
+`open_fib` the `.fz` and `add_slice` all available structural contrasts (T1w, T2w, FLAIR, others), not
+just T1w. Inspect anisotropy contrast and laterality, dominant directions in coherent white matter,
+plausible crossings, the mask boundary, QSDR alignment, and whole-brain tractography with major
+commissural/projection pathways. Never validate from one QA, FA, or color map; widespread tract failure
+points to source quality, b-table, orientation, mask, or reconstruction, not one tract definition.
 
 ### 9. Batch only compatible inputs
 
-Use one batch only when every dataset should receive the same corrections,
-orientation operations, mask strategy, reconstruction method, template,
-sampling length, resolution, and outputs. Separate heterogeneous acquisitions,
-species, orientations, or subjects needing unique corrections.
+One batch only when all datasets share corrections, orientation operations, mask strategy, method,
+template, sampling length, resolution, and outputs; separate heterogeneous acquisitions, species,
+orientations, or subjects needing unique fixes.
 
-## Common Failures
+## Common failures
 
 | Observation | Check first |
 |---|---|
-| Major tracts have globally wrong directions | Image orientation and b-table flips/swaps |
-| Implausible secondary directions in coherent white matter | Sampling length, noise, and b-table |
-| Crossings are not resolved | Sampling length and acquisition angular sampling |
-| Fibers appear outside the brain | Mask extent and background noise |
-| Peripheral pathways are missing | Restrictive mask |
-| QSDR anatomy is distorted | Template, orientation, registration, and pathology |
-| Many AutoTrack bundles fail | SRC quality, motion, b-table, mask, and whole-brain tracking |
-| Left and right are reversed | Flip/swap history and handedness |
-| FZ is unexpectedly large | Full ODF or unused metrics |
+| Globally wrong tract directions | Image orientation, b-table flips/swaps |
+| Implausible secondary directions in coherent WM | Sampling length, noise, b-table |
+| Crossings unresolved | Sampling length, angular sampling |
+| Fibers outside the brain | Mask extent, background noise |
+| Peripheral pathways missing | Restrictive mask |
+| QSDR anatomy distorted | Template, orientation, registration, pathology |
+| Many AutoTrack bundles fail | SRC quality, motion, b-table, mask, whole-brain tracking |
+| Left and right reversed | Flip/swap history and handedness |
+| FZ unexpectedly large | Full ODF or unused metrics |
 
-Do not repeatedly tune parameters to make a poor acquisition look attractive.
+Never keep tuning parameters to make a poor acquisition look attractive.
 
-## Example Commands
-
-Default native-space GQI:
+## Example commands
 
 ```bash
+# native GQI; batch
 dsi_studio --action=rec --source=subject.sz --method=4 --param=1.25 --output=subject_gqi.fz
-```
-
-Batch GQI:
-
-```bash
 dsi_studio --action=rec --source=*.sz --method=4 --param=1.25 --output=fib/
-```
-
-EDDY followed by GQI:
-
-```bash
+# EDDY then GQI
 dsi_studio --action=rec --source=subject.sz --cmd="[Step T2][Corrections][EDDY]" --method=4 --param=1.25 --output=subject_gqi.fz
-```
-
-TOPUP/EDDY preparation using reverse-phase data:
-
-```bash
+# TOPUP/EDDY preparation with reverse-phase data
 dsi_studio --action=rec --source=subject_raw.sz --rev_pe=subject_rev_b0.nii.gz --save_src=subject_preprocessed.sz
-```
-
-QSDR:
-
-```bash
+# QSDR
 dsi_studio --action=rec --source=subject.sz --method=7 --output=subject_qsdr.fz
-```
-
-QSDR with template-space DWI, then GQI or an SRC from that `.fz`:
-
-```bash
+# QSDR with template-space DWI, then GQI or an SRC from that .fz
 dsi_studio --action=rec --source=subject.sz --method=7 --other_output=fa,md,rd,rdi,dwi --output=subject_qsdr.fz
 dsi_studio --action=rec --source=subject_qsdr.fz --method=4 --param=1.25 --output=subject_qsdr_gqi.fz
 dsi_studio --action=rec --source=subject_qsdr.fz --save_src=subject_qsdr.sz
 ```
 
-Available parameters may vary by version. Prefer commands captured from the
-current GUI command history when reproducing an interactive workflow.
+Parameters vary by version; prefer commands from the current GUI command history when reproducing an
+interactive workflow.
 
-## Record for Reproducibility
+## Record for reproducibility
 
-Record:
-
-- DSI Studio version and all input/output filenames;
-- acquisition dimensions, voxel size, volumes, shells, and phase encoding;
-- reverse-phase input, TOPUP, EDDY, motion, and bad-slice results;
-- neighboring-DWI correlation;
-- every image and b-table flip or axis swap;
-- mask source and edits;
-- resampling;
-- reconstruction method and GQI sampling length;
-- QSDR template and resolution;
-- DTI shell selection;
-- requested metrics, ODF setting, and attached images;
-- post-reconstruction and whole-brain tracking QC.
+DSI Studio version and all filenames; acquisition dimensions, voxel size, volumes, shells, phase
+encoding; reverse-phase input, TOPUP, EDDY, motion, bad-slice results; neighboring-DWI correlation;
+every image and b-table flip or swap; mask source and edits; resampling; method and GQI sampling length;
+QSDR template and resolution; DTI shell selection; requested metrics, ODF setting, attached images;
+post-reconstruction and whole-brain tracking QC.

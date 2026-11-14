@@ -8,26 +8,28 @@ detailed skill for you.
 
 ## How to run a lesson
 
-- Follow "Teaching from a skill" and the tutor protocol in
-  `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md`.
-- Offer a voice tutorial first unless the user asked for one (`AGENTS.md` 9.2).
-- Each step is one human action, one explanation, and one check:
-  1. Select the window (`set_window`) and highlight the control in **Point at**.
-  2. Explain the step in your own words from **Why** (voice or chat).
-  3. Show the action with `ask_user "<action>" Done Cancel`.
-  4. After `Done`, do the **Check**. If it fails, explain what went wrong and repeat the
-     step; do not move on.
-- **Point at** is a `highlight_ui` target: `run:<command>` finds the control that sends
-  that command, a plain id is an object name, and *(say)* means no control can be
-  highlighted, so describe it by its label and position.
-- `user operation` lines in `log` show what the user clicked. Confirm results with the
-  state commands named in **Check** (`list_window`, `list_slice`, `list_region`,
-  `list_tract`) or a screenshot.
-- Several steps open file dialogs or a "Finished." message. Ask the user to close
-  them before the next highlight; tutor commands wait while a dialog is open.
-- Keep the user's data safe: never rename, overwrite, or delete their files as part of a
-  lesson. Suggest a copy or public example data
-  (`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`) for practice.
+Follow "Teaching from a skill" and the tutor protocol in `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md`,
+and offer a voice tutorial first unless the user asked for one (`AGENTS.md` 9.2). Each step is one human
+action, one explanation, and one check:
+
+1. Select the window (`set_window`) and highlight the control in **Point at**.
+2. Explain the step in your own words from **Why** (voice or chat).
+3. Show the action with `ask_user "<action>" Done Cancel`.
+4. After `Done`, do the **Check**; if it fails, explain what went wrong and repeat the step.
+
+- **Point at** is a `highlight_ui` target: `run:<command>` finds the control sending that command, a
+  plain id is an object name, and *(say)* means nothing can be highlighted, so describe it by label and
+  position.
+- `user operation` lines in `log` show what the user clicked; confirm results with the **Check** state
+  commands (`list_window`, `list_slice`, `list_region`, `list_tract`) or a screenshot.
+- Before each step, check `list_window` for a window covering the one being taught (e.g. the Fiber Data
+  Hub after a download, or a result table) and `minimize`, `move_window`, or `close` it (`AGENTS.md`
+  3.3).
+- Before a main-window step that opens a file or folder dialog, run
+  `set_work_dir <folder holding the lesson data>` so the dialog starts in the main window's **Work Dir**, and name the file to pick.
+- Tutor commands wait while a dialog or "Finished." message is open: ask the user to close it first.
+- Never rename, overwrite, or delete the user's files in a lesson; suggest a copy or public example data
+  (`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`).
 - End every analysis lesson with Lesson 11 (Before interpreting results).
 
 ## Lesson map

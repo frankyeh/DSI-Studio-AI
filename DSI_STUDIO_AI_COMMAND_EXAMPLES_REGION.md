@@ -1,146 +1,93 @@
 # DSI Studio AI Region Command Examples and Inventory
 
-Use these with a `tracking<hex-address>` window. Select it once before sending
-any command below:
+Complete region inventory confirmed in the current source. Use these in a `tracking<hex-address>`
+window, selected once with `bash ./dsi.sh set_window tracking<hex-address>` (it persists until
+changed). Names and text, path, or composite parameters are strings; send a single index or number
+as a JSON number and keep an `&`-separated list as a string. Discover indices and roles with
+`list_region` before mutating, and confirm deletion, merging, overwrite, and mask replacement.
 
-```bash
-bash ./dsi.sh set_window tracking<hex-address>
-```
+## Inventory
 
-The selection persists for the session until changed by another `set_window` call.
-Command names and text, path, or composite parameters are strings. Send standalone
-numeric parameters as JSON numbers.
-
-This file contains the complete region command inventory confirmed in the
-current source.
-
-`region_action_<operation>` uses `command[1]` for one region index or an
-`&`-separated index list. When `command[1]` is supplied, exactly those regions
-are used in the supplied order regardless of their checked/shown state. When it is
-omitted for an `all` or `sort` action, DSI Studio instead collects the currently
-checked/shown regions in table-index order. Commands that need an additional threshold
-or voxel radius use `command[2]`. Send a single index or numeric value as a number;
-keep an `&`-separated list as a string.
-
-| Command | Common example | Important behavior |
+| Command | Example | Behavior |
 |---|---|---|
-| `list_region` | `["list_region"]` | List region index, visibility, name, type, color, dimensions, and resolution. |
-| `list_atlas` | `["list_atlas"]` or `["list_atlas","<atlas name or index>"]` | Without an argument: list every atlas for the *current* template only (atlas index, name, region count). With an atlas name or the index from that listing: list that one atlas's region index and name. |
-| `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]` | Add labels 5 and 6 from atlas 2 of template 0. Discover label IDs first with `list_atlas "<atlas name or index>"`; do not guess them. |
-| `add_region_from_atlas` | `["add_region_from_atlas","0 2"]` | Add every label from atlas 2 of template 0. This form does not require individual label IDs. |
-| `set_region_name` | `["set_region_name",0,"Tumor Core"]` | Rename a region by index. |
-| `set_region_type` | `["set_region_type",0,3]` | Set region role: `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, `6=Limiting`. |
-| `set_region_color` | `["set_region_color",0,4294901760]` | Set packed Qt ARGB color for a region. |
-| `show_only_regions` | `["show_only_regions","0&3&5"]` | Check/show only the listed `&`-separated region indices and uncheck/hide all others. This also selects exactly those rows for checked-region operations such as `show_region_statistics`. |
-| `new_region` | `["new_region"]` | Create an empty region in current slice space. |
-| `new_region_whole_brain_seed` | `["new_region_whole_brain_seed"]` | Create a whole-brain seed using the current `otsu_threshold` parameter multiplied by the FIB FA Otsu threshold. |
-| `new_region_whole_brain_seed` | `["new_region_whole_brain_seed",0.6]` | Create the whole-brain seed using an explicit Otsu ratio of `0.6`, independent of the current setting. |
-| `new_region_from_threshold` | `["new_region_from_threshold",0.6]` | Create a region by thresholding the current slice. See footnote 1. |
-| `new_region_from_mni` | `["new_region_from_mni","0 -10 21 5"]` | Create a spherical region from MNI coordinates and voxel radius. |
-| `new_region_from_sphere` | `["new_region_from_sphere","80 100 80 5"]` | Create a spherical region from image-space coordinates and voxel radius. |
-| `open_region` | `["open_region","C:/data/seed.nii.gz"]` | Open one native-space region file; one command may also load a multi-label NIfTI. |
-| `open_mni_region` | `["open_mni_region","C:/data/atlas_roi.nii.gz"]` | Map to MNI space, then load the supplied region file into subject space. |
-| `save_region` | `["save_region","C:/output/seed.nii.gz",0]` | Save region 0. An unsupported or missing extension is changed by appending `.nii.gz`. |
-| `save_4d_region` | `["save_4d_region","C:/output/regions_4d.nii.gz"]` | Save checked regions as a 4D NIfTI and companion label file. |
-| `save_all_regions` | `["save_all_regions","C:/output/regions.nii.gz"]` | Save checked regions as one 3D label NIfTI. |
-| `save_all_regions_to_folder` | `["save_all_regions_to_folder","C:/output/regions"]` | Save each checked region as a separate file using the current ROI output format. |
-| `save_region_info` | `["save_region_info","C:/output/seed_info.txt",0]` | Save coordinates, fiber directions, and quantitative values for one region index. |
-| `load_region_color` | `["load_region_color","C:/data/region_colors.txt"]` | Load either positional RGB/RGBA colors or name-keyed TSV. Positional input requires one nonblank row per current region in table order, with a consistent 3 (RGB) or 4 (RGBA) integer values per row, separated by spaces or tabs. RGB defaults alpha to 255; RGBA preserves the supplied alpha. TSV input uses `region name<TAB>R<TAB>G<TAB>B<TAB>A` and must name every current region exactly once. All channels must be 0-255; mixed formats, malformed counts/values and unknown, duplicate, or missing names fail before any region color is changed. |
-| `save_region_color` | `["save_region_color","C:/output/region_colors.txt"]` | Save one RGBA line for every region in table order. |
-| `delete_region` | `["delete_region","0&2&5"]` | Delete one or more regions. Use one index or an `&`-separated index list; omit the index to use the current row. |
+| `list_region` | `["list_region"]` | Index, visibility, name, type, color, dimensions, and resolution. |
+| `list_atlas` | `["list_atlas"]`, `["list_atlas","<atlas name or index>"]` | Without an argument, every atlas of the *current* template (index, name, region count); with an atlas name or index from that list, its region indices and names. Never guess labels from another source. |
+| `add_region_from_atlas` | `["add_region_from_atlas","0 2 5&6"]`, `["add_region_from_atlas","0 2"]` | Add labels 5 and 6 of atlas 2 of template 0 (discover label IDs with `list_atlas` first), or, in the two-element form, every label of that atlas without label IDs. It changes the active template ID first. |
+| `set_region_name` | `["set_region_name",0,"Tumor Core"]` | Rename a region. |
+| `set_region_type` | `["set_region_type",0,3]` | Role: `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, `6=Limiting`. |
+| `set_region_color` | `["set_region_color",0,4294901760]` | Packed Qt ARGB color. |
+| `show_only_regions` | `["show_only_regions","0&3&5"]` | Check/show only the listed regions, unchecking/hiding the rest; this selects the rows for checked-region operations such as `show_region_statistics`. |
+| `check_region` | `["check_region","0&2&5",1]` | Set the checked/shown state (`1` check/show, `0` uncheck/hide) of one index or a list; an empty index uses the current row. |
+| `check_all_regions`, `uncheck_all_regions` | `["check_all_regions"]` | Check/show or uncheck/hide all regions. |
+| `new_region` | `["new_region"]` | Empty region in current slice space. |
+| `new_region_whole_brain_seed` | `["new_region_whole_brain_seed"]`, `["new_region_whole_brain_seed",0.6]` | Whole-brain seed at the current `otsu_threshold` parameter × the FIB FA Otsu threshold, or at an explicit Otsu ratio (`0.6`) regardless of the setting. |
+| `new_region_from_threshold` | `["new_region_from_threshold",0.6]` | Append a region, then call `region_action_threshold` on the current slice. If threshold selection is canceled or fails, the empty region remains; unattended, give an explicit threshold and verify with `list_region`. |
+| `new_region_from_mni`, `new_region_from_sphere` | `["new_region_from_mni","0 -10 21 5"]`, `["new_region_from_sphere","80 100 80 5"]` | Spherical region from MNI or image-space coordinates and a voxel radius. |
+| `open_region` | `["open_region","C:/data/seed.nii.gz"]` | Open one native-space region file, or a multi-label NIfTI in one command. |
+| `open_mni_region` | `["open_mni_region","C:/data/atlas_roi.nii.gz"]` | Map to MNI space, then load the file into subject space. |
+| `save_region` | `["save_region","C:/output/seed.nii.gz",0]` | Save one region; an unsupported or missing extension gets `.nii.gz` appended. |
+| `save_4d_region` | `["save_4d_region","C:/output/regions_4d.nii.gz"]` | Checked regions as a 4D NIfTI plus companion label file. |
+| `save_all_regions` | `["save_all_regions","C:/output/regions.nii.gz"]` | Checked regions as one 3D label NIfTI. |
+| `save_all_regions_to_folder` | `["save_all_regions_to_folder","C:/output/regions"]` | Each checked region as a separate file in the current ROI output format. |
+| `save_region_info` | `["save_region_info","C:/output/seed_info.txt",0]` | Coordinates, fiber directions, and quantitative values of one region. |
+| `load_region_color` | `["load_region_color","C:/data/region_colors.txt"]` | Positional or name-keyed colors. Positional: one nonblank row per current region in table order, consistently 3 (RGB, alpha 255) or 4 (RGBA) integers separated by spaces or tabs. TSV: `region name<TAB>R<TAB>G<TAB>B<TAB>A`, naming every region exactly once. Channels must be 0-255; mixed formats, malformed counts or values, and unknown, duplicate, or missing names fail before any color changes. |
+| `save_region_color` | `["save_region_color","C:/output/region_colors.txt"]` | One RGBA line per region in table order. |
+| `delete_region` | `["delete_region","0&2&5"]` | Delete one region or a list; omitted index: the current row. |
 | `delete_all_regions` | `["delete_all_regions"]` | Delete all regions. |
-| `copy_region` | `["copy_region",0]` | Duplicate one region and insert the copy immediately after it. All later row indices shift by one; call `list_region` again before using subsequent indices. |
-| `merge_regions` | `["merge_regions","0&1&2"]` | Merge regions 0, 1, and 2 into region 0 and remove the later rows. |
-| `merge_regions` | `["merge_regions"]` | Merge all currently checked regions into the first checked region; at least two must be checked. |
-| `check_region` | `["check_region","0&2&5",1]` | Set one or more regions' checked/shown state. Use one index or an `&`-separated index list; `1` checks/shows and `0` unchecks/hides. An empty index uses the current row. |
-| `check_all_regions` | `["check_all_regions"]` | Check/show all regions. |
-| `uncheck_all_regions` | `["uncheck_all_regions"]` | Uncheck/hide all regions. |
-| `move_up_region` | `["move_up_region",3]` | Move one region up in table order. |
-| `move_down_region` | `["move_down_region",3]` | Move one region down in table order. |
-| `move_region` | `["move_region","80 100 80",3]` | Move region 3 so its center is at the specified location in that region's space. Empty regions return success without moving. |
-| `move_slice_to_region` | `["move_slice_to_region",3]` | Move slice crosshairs to a region center. |
-| `show_region_statistics` | `["show_region_statistics"]` | Compute statistics for checked regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. If the opened FIB is a connectometry database, it also adds one `<subject> mean_<metric>` row per subject per stored metric within the checked region, without needing a full correlational-tractography run — see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`. |
-| `show_region_overlap_statistics` | `["show_region_overlap_statistics",3,"CHA"]` | Compute intersections between one source region and every nonempty label of a built-in atlas **without changing the Region table**. `command[1]` is the region index; omit it only when intentionally using the current row. AI/Internal callers must provide `command[2]` as the exact atlas name; a local GUI user may omit the atlas and choose it from a dialog. Each nonempty atlas label becomes a result column, zero-overlap labels are omitted, and the rows are the same ordinary region statistics returned for temporary intersection regions. The source region itself is not a result column. |
-| `save_region_statistics` | `["save_region_statistics","C:/output/region_stat.txt"]` | Same statistics as `show_region_statistics`, but always written to the given path (no dialog, no direct-response text), for any caller. The path is required — a bare `save_region_statistics` with no path fails with a usage error. |
-| `show_t2r` | `["show_t2r"]` | Compute tract-to-region connectivity for checked tracts and regions. AI callers get the text directly in `output`; a local user instead sees it in a modal dialog. |
-| `save_t2r` | `["save_t2r","C:/output/tract_to_region.txt"]` | Same as `show_t2r`, but always written to the given path, for any caller. The path is required. |
-| `open_connectivity_matrix` | `["open_connectivity_matrix","C:/output/sub01.connectivity.mat"]` | Load a region-to-region matrix for 3D graph display (the GUI's Visualize Graph). The file must exist and end in `.mat` or `.txt` (any case); otherwise the command fails with a usage or `cannot find` error. A `.mat` file must contain a square matrix named `connectivity`; if it also names a built-in `atlas` (not `roi`) whose label count matches, all regions are replaced by that atlas's regions. A `.txt` file holds a whitespace-separated square matrix. The matrix size must equal the current region count. On success `region_graph` is turned on, all regions are checked, and AI callers get one line, e.g. `connectivity matrix 116x116 loaded (values -0.21 to 0.84); graph display enabled` (the full matrix goes only to a local user's log). AI callers must supply the file; omitting it returns a usage error. Inspect the graph with `preview_screen 3d` or a screenshot. |
-| `region_action_shiftx` | `["region_action_shiftx",0]` | Shift region 0 by +1 voxel in X. |
-| `region_action_shiftnx` | `["region_action_shiftnx",0]` | Shift region 0 by -1 voxel in X. |
-| `region_action_shifty` | `["region_action_shifty",0]` | Shift region 0 by +1 voxel in Y. |
-| `region_action_shiftny` | `["region_action_shiftny",0]` | Shift region 0 by -1 voxel in Y. |
-| `region_action_shiftz` | `["region_action_shiftz",0]` | Shift region 0 by +1 voxel in Z. |
-| `region_action_shiftnz` | `["region_action_shiftnz",0]` | Shift region 0 by -1 voxel in Z. |
-| `region_action_flipx` | `["region_action_flipx",0]` | Flip region 0 along X. |
-| `region_action_flipy` | `["region_action_flipy",0]` | Flip region 0 along Y. |
-| `region_action_flipz` | `["region_action_flipz",0]` | Flip region 0 along Z. |
-| `region_action_smoothing` | `["region_action_smoothing",0]` | Morphologically smooth region 0. |
-| `region_action_erosion` | `["region_action_erosion",0]` | Erode region 0. |
-| `region_action_dilation` | `["region_action_dilation",0]` | Dilate region 0. |
-| `region_action_opening` | `["region_action_opening",0]` | Apply morphological opening to region 0. |
-| `region_action_closing` | `["region_action_closing",0]` | Apply morphological closing to region 0. |
-| `region_action_defragment` | `["region_action_defragment",0]` | Keep the principal connected component of region 0. |
-| `region_action_negate` | `["region_action_negate",0]` | Invert the mask of region 0. |
-| `region_action_dilation_by_voxel` | `["region_action_dilation_by_voxel",0,2]` | Dilate region 0 by a radius of 2 voxels. |
-| `region_action_threshold` | `["region_action_threshold",0,0.6]` | Replace region 0 with the current-slice mask above `0.6`; a negative threshold selects the low-pass side. |
-| `region_action_threshold_current` | `["region_action_threshold_current",0,0.6]` | Retain only existing region-0 voxels above `0.6`. |
-| `region_action_dilation_by_threshold` | `["region_action_dilation_by_threshold",0,0.6]` | Grow region 0 using the current slice and threshold `0.6`. |
-| `region_action_erosion_by_threshold` | `["region_action_erosion_by_threshold",0,0.6]` | Shrink region 0 using the current slice and threshold `0.6`. |
-| `region_action_separate` | `["region_action_separate",0]` | Split region 0 into connected-component regions. |
-| `region_action_sort_name` | `["region_action_sort_name","0&1&2"]` | Sort the supplied rows by name; repeating the same sort reverses the order. |
-| `region_action_sort_x` | `["region_action_sort_x","0&1&2"]` | Sort the supplied rows by X position. |
-| `region_action_sort_y` | `["region_action_sort_y","0&1&2"]` | Sort the supplied rows by Y position. |
-| `region_action_sort_z` | `["region_action_sort_z","0&1&2"]` | Sort the supplied rows by Z position. |
-| `region_action_sort_size` | `["region_action_sort_size","0&1&2"]` | Sort the supplied rows by region volume. |
+| `copy_region` | `["copy_region",0]` | Duplicate a region and insert the copy right after it; every later index shifts, so run `list_region` again. |
+| `merge_regions` | `["merge_regions","0&1&2"]`, `["merge_regions"]` | Merge the listed regions into the first and remove the others; without a list, merge the checked regions (at least two) into the first checked. |
+| `move_up_region`, `move_down_region` | `["move_up_region",3]` | Move one region up or down in table order. |
+| `move_region` | `["move_region","80 100 80",3]` | Center the region at the location, in that region's space; an empty region succeeds without moving. |
+| `move_slice_to_region` | `["move_slice_to_region",3]` | Move the slice crosshairs to a region center. |
+| `show_region_statistics` | `["show_region_statistics"]` | Statistics of checked regions: text in `output` for AI callers, a modal dialog for a local user. On a connectometry database FIB it adds one `<subject> mean_<metric>` row per subject per stored metric, without a correlational-tractography run (`DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`). |
+| `save_region_statistics` | `["save_region_statistics","C:/output/region_stat.txt"]` | The same, always written to the required path for any caller (no dialog, no response text); a bare call fails with a usage error. |
+| `show_region_overlap_statistics` | `["show_region_overlap_statistics",3,"CHA"]` | Intersect one region (`command[1]`; omit only to use the current row on purpose) with every nonempty label of a built-in atlas **without changing the Region table**. AI/Internal callers must give the exact atlas name (`command[2]`, not a runtime index); a local user may pick it in a dialog. Each nonempty label becomes a column (zero-overlap labels omitted; the source region is not a column), with ordinary region-statistics rows. No `save_*` counterpart exists: capture the returned text. |
+| `show_t2r` | `["show_t2r"]` | Tract-to-region connectivity of the checked tracts and regions: text in `output` for AI callers, a modal dialog for a local user. |
+| `save_t2r` | `["save_t2r","C:/output/tract_to_region.txt"]` | The same, written to the required path for any caller. |
+| `open_connectivity_matrix` | `["open_connectivity_matrix","C:/output/sub01.connectivity.mat"]` | Load a region-to-region matrix for 3D graph display (the GUI's Visualize Graph). AI callers must give an existing `.mat` or `.txt` file (any case), else a usage or `cannot find` error. A `.mat` needs a square matrix named `connectivity`; if it also names a built-in `atlas` (not `roi`) with a matching label count, all regions are replaced by that atlas's regions. A `.txt` holds a whitespace-separated square matrix. Its size must equal the region count. On success `region_graph` turns on, all regions are checked, and AI callers get one line, e.g. `connectivity matrix 116x116 loaded (values -0.21 to 0.84); graph display enabled` (the full matrix goes only to a local user's log). Inspect with `preview_screen 3d` or a screenshot. |
+
+## `region_action_<operation>`
+
+`command[1]` is one region index or an `&`-separated list, used in the supplied order regardless of
+checked/shown state. When it is omitted for an `all` or `sort` action, the checked/shown regions are
+used in table-index order. An additional threshold or voxel radius goes in `command[2]`.
+
+| Command | Example | Behavior |
+|---|---|---|
+| `region_action_shiftx`, `region_action_shiftnx`, `region_action_shifty`, `region_action_shiftny`, `region_action_shiftz`, `region_action_shiftnz` | `["region_action_shiftx",0]` | Shift by +1 or -1 (`n`) voxel in X, Y, or Z. |
+| `region_action_flipx`, `region_action_flipy`, `region_action_flipz` | `["region_action_flipx",0]` | Flip along X, Y, or Z. |
+| `region_action_smoothing`, `region_action_erosion`, `region_action_dilation`, `region_action_opening`, `region_action_closing` | `["region_action_smoothing",0]` | Morphological smoothing, erosion, dilation, opening, or closing. |
+| `region_action_defragment` | `["region_action_defragment",0]` | Keep the principal connected component. |
+| `region_action_negate` | `["region_action_negate",0]` | Invert the mask. |
+| `region_action_dilation_by_voxel` | `["region_action_dilation_by_voxel",0,2]` | Dilate by a radius of 2 voxels. |
+| `region_action_threshold` | `["region_action_threshold",0,0.6]` | Replace the region with the current-slice mask above `0.6`; a negative threshold selects the low-pass side. |
+| `region_action_threshold_current` | `["region_action_threshold_current",0,0.6]` | Keep only existing voxels above `0.6`. |
+| `region_action_dilation_by_threshold`, `region_action_erosion_by_threshold` | `["region_action_dilation_by_threshold",0,0.6]` | Grow or shrink the region using the current slice and threshold `0.6`. |
+| `region_action_separate` | `["region_action_separate",0]` | Split into connected-component regions. |
+| `region_action_sort_name`, `region_action_sort_x`, `region_action_sort_y`, `region_action_sort_z`, `region_action_sort_size` | `["region_action_sort_name","0&1&2"]` | Sort the rows by name (repeating reverses the order), X, Y, or Z position, or volume. |
 | `region_action_1st_ex_all` | `["region_action_1st_ex_all","0&1&2"]` | Subtract regions 1 and 2 from region 0. |
 | `region_action_all_ex_1st` | `["region_action_all_ex_1st","0&1&2"]` | Subtract region 0 from regions 1 and 2. |
-| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Preserve the first explicitly supplied region and replace later supplied regions in place with their intersections with it. Explicit indices are used in the supplied order regardless of checked/shown state. If the index list is omitted, only checked/shown regions are used, in table-index order. The first region defines the output dimensions and transform. |
+| `region_action_all_inter_1st` | `["region_action_all_inter_1st","0&1&2"]` | Keep the first region and replace each later one in place with its intersection with the first, which defines the output dimensions and transform. Prefer an explicit ordered list with the defining region first; use disposable copies to keep originals. |
 | `region_action_all_to_1st` | `["region_action_all_to_1st","0&1&2"]` | Assign and smooth later labels within the first region. |
-| `region_action_refine_all` | `["region_action_refine_all","0&1&2"]` | Refine all supplied labels using the current slice intensity image. |
+| `region_action_refine_all` | `["region_action_refine_all","0&1&2"]` | Refine all supplied labels with the current slice intensity image. |
 
-## Safety and discovery notes
+For statistics-only overlap with a built-in atlas, prefer
+`show_region_overlap_statistics <region-index> <atlas-name>`: it maps atlas labels into the source
+region's space, reports only nonempty intersections, and creates no rows. Use `add_region_from_atlas`
+with explicit region operations only when atlas region objects are needed for visualization,
+editing, tracking constraints, or downstream mask operations.
 
-- Discover current region indices and roles with `list_region` before mutation.
-- Re-run `list_region` after `copy_region`; insertion shifts every later row index.
-- For statistics-only overlap between one region and a built-in atlas, prefer
-  `show_region_overlap_statistics <region-index> <atlas-name>`. It maps atlas labels
-  into the source region's space, reports only nonempty intersections, and does not
-  create or modify Region-table rows. Use `add_region_from_atlas` plus explicit region
-  operations only when actual atlas region objects are needed for visualization,
-  editing, tracking constraints, or downstream mask operations.
-- For `region_action_all_inter_1st`, prefer an explicit ordered index list and put
-  the region whose grid/transform should define the result first. Explicit indices are
-  used regardless of checked/shown state. If the index list is omitted, only
-  checked/shown regions are used and table-index order determines which region is
-  first. Later regions are modified in place; use disposable copies when the originals
-  must be preserved.
-- `list_atlas` with an atlas name or index lists that atlas's region names and
-  indices; do not guess them from any other source. For
-  `show_region_overlap_statistics`, the atlas argument is the exact atlas name rather
-  than a runtime atlas index.
-- The two-element `add_region_from_atlas` form adds all labels in one call and
-  needs no prior label discovery.
-- Confirm deletion, merging, overwrite, and mask-replacement operations.
-- For AI callers, `show_*` statistics commands return text directly; local GUI users
-  may see a modal dialog. Use the corresponding `save_*` command when a persistent
-  output file is needed. `show_region_overlap_statistics` currently has no separate
-  `save_*` command for AI; capture its returned text when persistent output is not
-  otherwise requested.
-- `add_region_from_atlas` changes the active template ID before adding labels.
+## Region Window parameters
 
-## Region Window parameter reference
-
-These are the `ROI` parameters from the embedded `:/data/options.txt` resource.
-Use live discovery before changing a value:
+These are the `ROI` parameters of the embedded `:/data/options.txt` resource. Check live values with
+`list_param` first; `set_param` takes numbers as JSON numbers, `set_params` one combined string. Enum
+values are zero-based.
 
 ```json
 ["list_param","roi_zoom"]
 ["set_param","roi_zoom",5.0]
 ["set_params","roi_zoom=5.0&roi_opacity=0.8&roi_draw_edge=1"]
 ```
-
-Send numeric values as JSON numbers with `set_param`. `set_params` keeps its
-combined assignment expression as one string. Enum values are zero-based.
 
 | Parameter ID | UI setting | Accepted value | Default |
 |---|---|---|---|
@@ -165,10 +112,3 @@ combined assignment expression as one string. Enum values are zero-based.
 | `roi_mosaic_column` | Mosaic Column Number | integer `0–30`; step `5` | `0` |
 | `roi_mosaic_skip_row` | Mosaic Skip Row | integer `0–10`; step `1` | `1` |
 | `roi_format` | Default Output Format | `0`=nii.gz; `1`=mat; `2`=txt | `0` (nii.gz) |
-
-## Footnotes
-
-1. `new_region_from_threshold` appends a region before calling
-   `region_action_threshold`. If threshold selection is canceled or the action
-   fails, the appended empty region is not removed. For unattended use, provide
-   an explicit threshold and verify the new region with `list_region`.

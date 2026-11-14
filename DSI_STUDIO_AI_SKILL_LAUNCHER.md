@@ -1,32 +1,29 @@
 # DSI Studio AI Launcher
 
-Use the Bash launcher whenever Bash is available:
+Use the Bash launcher whenever Bash is available, always with `bash` before `./dsi.sh` (never
+`./dsi.sh` directly):
 
 ```bash
 bash ./dsi.sh <command> [values...] [-- <command> [values...] ...] [-Chat "message"]
 ```
 
-Always include `bash` before `./dsi.sh`. Do not invoke `./dsi.sh` directly.
-
-DSI Studio supplies `DSI_STUDIO_AGENT` and, in `DSI_STUDIO_SOCKET`, its own pipe to the
-agents it launches, so the launcher always reaches that instance. The launcher uses
-`DSI_STUDIO_SESSION` when set (see "Parallel pipelines" below); otherwise it reads only that
-agent's native session variable:
+DSI Studio supplies `DSI_STUDIO_AGENT` and, in `DSI_STUDIO_SOCKET`, its own pipe to the agents it
+launches, so the launcher always reaches that instance. The launcher uses `DSI_STUDIO_SESSION` when
+set ("Parallel pipelines"); otherwise it reads only that agent's native session variable, supplied
+to the agent's tool subprocesses:
 
 ```text
-Codex       -> CODEX_THREAD_ID
-Claude      -> CLAUDE_CODE_SESSION_ID
-Muse        -> MUSE_SESSION_ID
-Antigravity -> ANTIGRAVITY_CONVERSATION_ID
-Grok        -> GROK_SESSION_ID
+Codex       -> CODEX_THREAD_ID                 (supplied by Codex)
+Claude      -> CLAUDE_CODE_SESSION_ID          (Claude Code, to its Bash and PowerShell tools)
+Muse        -> MUSE_SESSION_ID                 (DSI Studio, the same UUID as its MSP session)
+Antigravity -> ANTIGRAVITY_CONVERSATION_ID     (Antigravity)
+Grok        -> GROK_SESSION_ID                 (Grok)
 ```
 
-The launcher does not infer the agent from whichever session variables happen to be
-present. Do not pass an agent name or session ID on the command line.
+The launcher never infers the agent from whichever variables are present and never accepts an agent
+name or session value on the command line.
 
-## Common syntax
-
-Single commands remain unchanged:
+## Syntax
 
 ```bash
 bash ./dsi.sh set_title "Fiber tracking"
@@ -35,31 +32,31 @@ bash ./dsi.sh list_window
 bash ./dsi.sh list_recent_fib
 bash ./dsi.sh set_window tracking<hex-address>
 bash ./dsi.sh set_slice 7
-```
-
-Use `--` to separate multiple DSI Studio commands in one request. Commands are sent
-as one ordered batch and DSI Studio executes them sequentially, stopping the batch if
-a command fails:
-
-```bash
 bash ./dsi.sh set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
-```
-
-`-Chat` is a request-level option, not a command. It may accompany either a single
-command or a batch and applies once to the whole request:
-
-```bash
 bash ./dsi.sh voice "I will inspect the available tracts." -- list_auto_tract \
   -Chat "Starting a narrated tractography step."
 ```
 
-Do not place an empty command before, after, or between `--` separators.
+- `--` separates commands into one ordered array (the same request protocol DSI Studio already
+  supports), executed sequentially and stopped at the first failure. Batch only commands that do not
+  need earlier replies; when a later command depends on a returned ID, filename, tract name, window
+  ID, status, or other value, send separate requests and inspect each reply. Never put an empty
+  command before, after, or between `--` separators.
+- `-Chat` is a request-level option, not a command: one message for the whole single command or
+  batch.
+- Voice tutorials may alternate narration and known actions in a batch; each `voice` stays a separate
+  command:
+
+```bash
+bash ./dsi.sh voice "I will hide the image slices." -- set_param show_slice 0 \
+  -- voice "I will now show the tract and white matter surface." \
+  -- set_param show_tract 1 -- add_surface 0 25
+```
 
 ### Large text through stdin (`--stdin`)
 
-Send a long string parameter, such as a generated script, through standard input
-instead of the command line. Put the literal token `--stdin` where the parameter goes;
-the launcher replaces it with the complete stdin text (UTF-8) as one string:
+Put the literal `--stdin` where a long string parameter (such as a script) goes; the launcher
+replaces it with the whole stdin text (UTF-8) as one string:
 
 ```bash
 bash ./dsi.sh write_text_file build_report.py --stdin <<'PY'
@@ -68,69 +65,53 @@ print("quotes, $, %, !, &, |, <, >, backticks and indentation need no escaping")
 PY
 ```
 
-- Quote the heredoc delimiter (`<<'PY'`) so Bash does not expand `$` or backticks.
-- `--stdin` works for any command and any string parameter, also inside a `--` batch;
-  only one `--stdin` is allowed per request. The value is always a string, never
-  converted to a number.
-- Without `--stdin`, the launcher never reads stdin. Short parameters still go on the
-  command line, and the request sent to DSI Studio is the same either way.
+Quote the heredoc delimiter (`<<'PY'`) so Bash does not expand `$` or backticks. `--stdin` works for
+any command and string parameter, also inside a `--` batch, at most once per request, and is always a
+string, never a number. Without it the launcher never reads stdin; the request DSI Studio receives is
+the same either way.
 
-The Windows wrapper accepts the same command arguments:
+### Windows native forms
 
 ```powershell
-./dsi set_title "Fiber tracking"
-./dsi -Chat "Reading the DSI Studio instructions."
 ./dsi list_window
-./dsi list_recent_fib
-./dsi set_window tracking<hex-address>
-./dsi set_slice 7
 ./dsi set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
-```
-
-The PowerShell implementation may also be called directly from PowerShell:
-
-```powershell
-& ./dsi.ps1 set_title "Fiber tracking"
 & ./dsi.ps1 list_window
-& ./dsi.ps1 list_recent_fib
-& ./dsi.ps1 set_param show_slice 0 -- set_param show_tract 1 -- add_surface 0 25
-```
-
-When starting Windows PowerShell explicitly, use the call operator rather than
-`-File`:
-
-```powershell
 powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& './dsi.ps1' list_window"
 ```
 
+`./dsi` (`dsi.cmd`) and `& ./dsi.ps1` accept the same arguments as `dsi.sh`. When starting Windows
+PowerShell explicitly, use the call operator as above, never `-File`.
+
+### Command-inventory notation
+
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` writes commands as compact arrays such as `["set_slice",7]`,
+describing name and argument order, not executable requests. Select the window once with
+`set_window` (it persists until changed), then run `bash ./dsi.sh set_slice 7`.
+
 ## External agent sessions
 
-An agent started outside DSI Studio has no DSI Studio chat, so its commands return
-`session not found`. Set `DSI_STUDIO_AGENT` to the agent name (DSI Studio sets it only for
-agents it launches), then run once, only when the user explicitly asks to connect this
-session to DSI Studio:
+An agent started outside DSI Studio has no DSI Studio chat, so commands return `session not found`.
+Only when the user explicitly asks to connect this session, set `DSI_STUDIO_AGENT` to the agent name
+(DSI Studio sets it only for agents it launches) and run, alone without other commands, values, or
+`-Chat`:
 
 ```bash
 bash ./dsi.sh new_chat
 ```
 
-This registers the agent's own session UUID as a new chat. Run it alone, without other
-commands, values, or `-Chat`. It fails with `session already exists` if the chat exists.
-Never run it automatically after `session not found`: a chat removed by the user must stay
-removed. With several DSI Studio instances open, also set `DSI_STUDIO_SOCKET` to the
-intended instance's pipe; otherwise the launcher reaches the first instance started.
-`new_chat` with an agent name (`new_chat claude`) is a different command: it creates
-a separate DSI-managed chat (see `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
+It registers the agent's own session UUID as a new chat, or fails with `session already exists`.
+Never run it automatically after `session not found`: a chat the user removed must stay removed.
+With several DSI Studio instances open, also set `DSI_STUDIO_SOCKET` to the intended instance's pipe;
+otherwise the launcher reaches the first instance started. `new_chat` with an agent name
+(`new_chat claude`) instead creates a separate DSI-managed chat
+(`DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
 
 ## Parallel pipelines (`DSI_STUDIO_SESSION`)
 
-Each session has its own selected window (`set_window`) and working directory. Two
-pipelines that run at the same time (for example deterministic and probabilistic
-tracking) must therefore use different sessions, even on the same DSI Studio instance
-and pipe; never share one session between concurrent pipelines. Give each pipeline a
-stable UUID of its own in `DSI_STUDIO_SESSION`, for example derived from the agent
-session and the pipeline name, and register it once with `new_chat` before its first
-command:
+Each session has its own selected window and working directory, so pipelines running at the same
+time (for example deterministic and probabilistic tracking) need different sessions, even on the
+same instance and pipe; never share one. Give each a stable UUID of its own in `DSI_STUDIO_SESSION`
+and register it once with `new_chat` before its first command:
 
 ```bash
 export DSI_STUDIO_SESSION=$(python3 -c 'import os,sys,uuid;print(uuid.uuid5(uuid.NAMESPACE_URL,os.environ["CLAUDE_CODE_SESSION_ID"]+"/"+sys.argv[1]))' deterministic)
@@ -138,358 +119,124 @@ bash ./dsi.sh new_chat
 bash ./dsi.sh open_fib "C:/data/sub-01.fz"
 ```
 
-Use the agent's own session variable in place of `CLAUDE_CODE_SESSION_ID`; any stable,
-distinct UUID works (on Windows, `New-Guid` once and reuse it).
+Use the agent's own session variable in place of `CLAUDE_CODE_SESSION_ID`; any stable, distinct UUID
+works (on Windows, `New-Guid` once and reuse it).
 
 ## Launcher selection
 
-| Agent | OS | Bash available | Recommended launcher | Requirements | Notes |
-|---|---|---:|---|---|---|
-| Codex | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
-| Claude | Windows | Yes | `bash ./dsi.sh ...` | Git Bash, Windows PowerShell, and Bash permission | Shared recommended route; Python is not required |
-| Muse | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
-| Antigravity | Windows | Yes | `bash <AI-dir>/dsi.sh ...` | Git Bash and Windows PowerShell | Antigravity runs from the selected project directory |
-| Grok | Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell | Shared recommended route; Python is not required |
-| Codex | Windows | No | `./dsi ...` | `dsi.cmd`, `dsi.ps1`, and Windows PowerShell | Native wrapper uses the PowerShell call-operator route |
-| Claude | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1`, Windows PowerShell, and PowerShell permission | Native PowerShell route |
-| Muse | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Native PowerShell route |
-| Antigravity | Windows | No | `& <AI-dir>/dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Use the absolute AI directory from the startup prompt |
-| Grok | Windows | No | `& ./dsi.ps1 ...` | `dsi.ps1` and Windows PowerShell | Native PowerShell route |
-| Codex | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
-| Claude | macOS | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
-| Muse | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
-| Antigravity | macOS | Yes | `bash <AI-dir>/dsi.sh ...` | Bash and Python 3 | Antigravity runs from the selected project directory |
-| Grok | macOS | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
-| Codex | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
-| Claude | Linux | Yes | `bash ./dsi.sh ...` | Bash, Python 3, and Bash permission | Uses the local Unix-domain socket |
-| Muse | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
-| Antigravity | Linux | Yes | `bash <AI-dir>/dsi.sh ...` | Bash and Python 3 | Antigravity runs from the selected project directory |
-| Grok | Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 | Uses the local Unix-domain socket |
+| OS | Bash available | Launcher | Requirements |
+|---|---|---|---|
+| Windows | Yes | `bash ./dsi.sh ...` | Git Bash and Windows PowerShell (no Python); Claude also needs Bash permission |
+| Windows | No | Codex: `./dsi ...`; Claude, Muse, Grok: `& ./dsi.ps1 ...` | `dsi.cmd` (Codex), `dsi.ps1`, and Windows PowerShell; Claude also needs PowerShell permission |
+| macOS, Linux | Yes | `bash ./dsi.sh ...` | Bash and Python 3 (local Unix-domain socket); Claude also needs Bash permission |
+
+Antigravity runs from the selected project directory, so it uses the absolute AI directory from its
+startup prompt: `bash <AI-dir>/dsi.sh ...`, or on Windows without Bash `& <AI-dir>/dsi.ps1 ...`.
 
 ## File roles
 
 | File | Platform | Role |
 |---|---|---|
 | `dsi.sh` | Windows, macOS, Linux | Recommended shared launcher |
-| `dsi.cmd` | Windows | Native wrapper that forwards arguments through `DSI_ARG_*` environment variables and invokes `dsi.ps1` with PowerShell's call operator; stdin passes through for `--stdin` |
-| `dsi.ps1` | Windows | Native PowerShell implementation and fallback; accepts normal PowerShell arguments or the safe `DSI_ARG_*` forwarding used by the wrappers |
+| `dsi.cmd` | Windows | Native wrapper: forwards arguments through `DSI_ARG_*` environment variables and invokes `dsi.ps1` with PowerShell's call operator; stdin passes through for `--stdin` |
+| `dsi.ps1` | Windows | Native PowerShell implementation and fallback; takes normal PowerShell arguments or the safe `DSI_ARG_*` forwarding |
 
-On Windows, `dsi.sh` uses Git Bash only as the entry shell. It forwards the original
-arguments through `DSI_ARGC` and `DSI_ARG_<n>`, resolves the packaged `dsi.ps1`, then
-starts Windows PowerShell noninteractively with the call operator. The Windows Bash
-branch contains no PowerShell heredoc and performs no Bash filesystem writes, so it
-does not depend on a writable working directory or temporary directory. It
-communicates with DSI Studio's named pipe through `dsi.ps1` and does not require
-Python.
-
-`dsi.cmd` uses the same forwarding format and deliberately does not interpolate user
-arguments into PowerShell source. This preserves spaces, parentheses, quoted or
-composite values, `-Chat`, and batched `--` commands without relying on
-`powershell.exe -File` argument binding.
-
-`dsi.ps1` reads and writes the named-pipe protocol as UTF-8 and sets PowerShell's
-console output encoding to UTF-8 so non-ASCII DSI Studio responses survive the
-Windows wrapper path.
-
-On macOS and Linux, `dsi.sh` uses Python 3 to build the request and communicate with
-the local Unix-domain socket. The embedded Python code is passed on file descriptor 3,
-so stdin stays free for `--stdin` on every platform; on Windows, `dsi.ps1` reads the
-caller's stdin directly, and large text never travels through `DSI_ARG_*`.
-
-## Command batching
-
-A single launcher invocation normally sends one command object. When `--` is present,
-the launcher instead sends an ordered command array using the same request protocol
-already supported by DSI Studio:
-
-```text
-bash ./dsi.sh command1 args... -- command2 args... -- command3 args...
-```
-
-This is useful when later commands do not require the returned output of earlier
-commands. If a later action depends on discovering an ID, filename, tract name,
-window ID, status, or other value from an earlier reply, send a separate launcher
-request, inspect the result, and then continue.
-
-For voice tutorials, batching may alternate narration and actions when the next action
-is already known:
-
-```bash
-bash ./dsi.sh voice "I will hide the image slices." -- set_param show_slice 0 \
-  -- voice "I will now show the tract and white matter surface." \
-  -- set_param show_tract 1 -- add_surface 0 25
-```
-
-Each `voice` remains a separate DSI Studio command within the batch. `-Chat`, when
-present, remains one request-level message for the whole batch.
-
-## Command-inventory notation
-
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_*.md` uses compact arrays such as:
-
-```text
-["set_slice",7]
-```
-
-These arrays describe command names and argument order; they are not executable
-requests. Select the window once with `set_window`, then execute the same command
-through the launcher:
-
-```bash
-bash ./dsi.sh set_window tracking<hex-address>
-bash ./dsi.sh set_slice 7
-```
-
-The selection persists for the session until changed by another `set_window` call;
-it does not need to be repeated before every command. Commands that can be determined
-in advance may instead be grouped with `--` as described above.
+- **Windows `dsi.sh`:** Git Bash is only the entry shell. It forwards the arguments through `DSI_ARGC`
+  and `DSI_ARG_<n>`, resolves the packaged `dsi.ps1`, and starts Windows PowerShell noninteractively
+  with the call operator. It has no PowerShell heredoc and no Bash filesystem writes, so it needs no
+  writable working or temporary directory, and it reaches DSI Studio's named pipe through `dsi.ps1`
+  without Python.
+- **`dsi.cmd`** uses the same forwarding and never interpolates user arguments into PowerShell
+  source, preserving spaces, parentheses, quoted or composite values, `-Chat`, and `--` batches
+  without `powershell.exe -File` argument binding.
+- **`dsi.ps1`** reads and writes the named-pipe protocol as UTF-8 and sets the console output encoding
+  to UTF-8, so non-ASCII responses survive. It reads the caller's stdin directly; large text never
+  travels through `DSI_ARG_*`.
+- **macOS/Linux `dsi.sh`** uses Python 3 to build the request and talk to the Unix-domain socket; the
+  embedded Python code comes on file descriptor 3, keeping stdin free for `--stdin`.
 
 ## Agent configuration
 
-### Claude
+- **Claude:** allow both prefixes:
 
-Allow both supported command prefixes:
+  ```cpp
+  "--allowedTools","Bash(bash ./dsi.sh:*),PowerShell(./dsi.ps1:*),WebFetch,WebSearch,Read,Glob,Grep",
+  ```
 
-```cpp
-"--allowedTools","Bash(bash ./dsi.sh:*),PowerShell(./dsi.ps1:*),WebFetch,WebSearch,Read,Glob,Grep",
-```
-
-Use the Bash route when Bash is available:
-
-```bash
-bash ./dsi.sh ...
-```
-
-When Bash is unavailable, enable Claude's PowerShell tool and invoke the script with
-PowerShell's call operator:
-
-```powershell
-& ./dsi.ps1 ...
-```
-
-A bare `./dsi.sh ...` command does not match the Bash permission rule. The
-PowerShell rule intentionally targets `dsi.ps1` directly rather than the `dsi.cmd`
-wrapper.
-
-### Codex
-
-Codex does not use Claude's `--allowedTools` option. On Windows, make Git Bash
-available on `PATH` when using the recommended Bash route. A common location is:
-
-```text
-C:\Program Files\Git\bin
-```
-
-When Bash is unavailable or blocked, use the native wrapper:
-
-```powershell
-./dsi ...
-```
-
-### Muse
-
-DSI Studio starts Muse with `MUSE_SESSION_ID` set to the same UUID supplied as the
-MSP `session/start.sessionId`. Use the Bash route when Bash is available. On
-Windows without Bash, use the PowerShell implementation directly:
-
-```powershell
-& ./dsi.ps1 ...
-```
-
-### Antigravity
-
-Antigravity itself exports `ANTIGRAVITY_CONVERSATION_ID` with its real conversation
-UUID to tool subprocesses. DSI Studio does not synthesize or override this value.
-Because Antigravity runs from the selected project directory, use the absolute
-`dsi.sh` path supplied in DSI Studio's startup prompt instead of `./dsi.sh`.
-
-### Grok
-
-DSI Studio launches `grok agent --always-approve stdio` (Grok Build ACP) in this AI
-directory and passes the chat's UUID as `session/new._meta.sessionId`. Grok exports
-that native session ID to its tool subprocesses as `GROK_SESSION_ID` (Grok Build
-1.0.4 or later). Sign in with `grok login`; usage is billed to the xAI account used
-for that sign-in. Grok runs with always-approve, like Muse.
-
-Grok stores sessions by working directory. A chat started from one DSI Studio install
-folder may not reopen from a different install folder; DSI Studio then reports the
-load failure instead of starting a new conversation.
+  A bare `./dsi.sh ...` does not match the Bash rule; the PowerShell rule targets `dsi.ps1`, not the
+  `dsi.cmd` wrapper. Without Bash, enable the PowerShell tool with
+  `CLAUDE_CODE_USE_POWERSHELL_TOOL=1` before launching Claude Code (native Windows without Git Bash
+  may enable it automatically; setting it makes the fallback deterministic).
+- **Codex:** does not use `--allowedTools`. On Windows, put Git Bash on `PATH` (commonly
+  `C:\Program Files\Git\bin`); otherwise use `./dsi ...`.
+- **Muse:** started with `MUSE_SESSION_ID` equal to the MSP `session/start.sessionId`.
+- **Antigravity:** exports its real conversation UUID as `ANTIGRAVITY_CONVERSATION_ID` to tool
+  subprocesses; DSI Studio does not synthesize or override it.
+- **Grok:** DSI Studio launches `grok agent --always-approve stdio` (Grok Build ACP) in this AI
+  directory and passes the chat UUID as `session/new._meta.sessionId`; Grok exports it as
+  `GROK_SESSION_ID` (Grok Build 1.0.4 or later). Sign in with `grok login`; usage is billed to that
+  xAI account. Grok runs with always-approve, like Muse. Grok stores sessions by working directory, so
+  a chat started from one DSI Studio install folder may not reopen from another; DSI Studio then
+  reports the load failure instead of starting a new conversation.
 
 ### Local models through Ollama (Claude and Codex)
 
-Claude and Codex can run on a model served by Ollama, either on the same computer
-or on another machine on a trusted LAN. DSI Studio, the agent CLI, and `dsi.sh`
-stay on the client; only the model runs on the Ollama server. The client does not
-need an Ollama binary.
+Claude and Codex can use a model served by Ollama on the same computer or another machine on a
+trusted LAN. DSI Studio, the agent CLI, and `dsi.sh` stay on the client, which needs no Ollama binary.
 
-Server setup (on the Ollama machine):
+Server (Ollama machine):
 
-- Bind Ollama to the LAN, e.g. `OLLAMA_HOST=0.0.0.0:11434`, and restart it.
-- Allow TCP 11434 only from the DSI Studio workstation or subnet. Ollama has no
-  authentication; never expose it to the Internet.
-- Use a tool-capable coding model (e.g. `qwen3-coder` or `gpt-oss` class) with a
-  64K context, e.g. `OLLAMA_CONTEXT_LENGTH=65536`. A short context truncates the
-  agent's system prompt and breaks tool use.
-- Optional: `OLLAMA_KEEP_ALIVE=30m` avoids reloading the model at each chat.
-- Codex needs an Ollama release that serves `/v1/responses`. If Codex reports a
-  404 for that path, update Ollama.
+- Bind to the LAN, e.g. `OLLAMA_HOST=0.0.0.0:11434`, and restart. Allow TCP 11434 only from the DSI
+  Studio workstation or subnet: Ollama has no authentication, so never expose it to the Internet.
+- Use a tool-capable coding model (e.g. `qwen3-coder` or `gpt-oss` class) with a 64K context, e.g.
+  `OLLAMA_CONTEXT_LENGTH=65536`; a short context truncates the system prompt and breaks tool use.
+- Optional: `OLLAMA_KEEP_ALIVE=30m` avoids reloading the model per chat.
+- Codex needs an Ollama release serving `/v1/responses`; a 404 for that path means update Ollama.
 
-Client setup (DSI Studio): AI Settings → Ollama connection → set Host/IP and Port,
-then Check connection.
+Client: AI Settings → Ollama connection → Host/IP and Port → Check connection.
 
 | Check connection message | Meaning |
 |---|---|
 | `Connected · N models` | Ollama reached and models listed |
 | `Connected · no models installed` | Ollama reached; pull a model on the server |
-| `Reachable, but not an Ollama server` | another service answers on that port |
-| `No response within 10 s ...` | server asleep, wrong address, or port blocked |
-| `Unavailable: <error>` | connection refused, DNS failure, or other network error |
+| `Reachable, but not an Ollama server` | Another service answers on that port |
+| `No response within 10 s ...` | Server asleep, wrong address, or port blocked |
+| `Unavailable: <error>` | Connection refused, DNS failure, or another network error |
 
-Ollama models then appear for Claude and Codex as `<model> (Ollama@<host>)` in New
-Chat. One Host/IP and Port setting is shared by both agents:
-
-- Claude connects to `http://<host>:<port>` (Anthropic-compatible API).
-- Codex connects to `http://<host>:<port>/v1` (Responses API) through a
-  DSI Studio-supplied `-c` provider override; the user's `~/.codex/config.toml` is
-  not changed.
-- Each chat keeps the server it was created with. Changing Host/IP affects only the
-  model list for new chats.
-- DSI Studio adds the Ollama host to `NO_PROXY` for the agent process, so a
-  system proxy does not intercept LAN traffic.
-
-Check connection proves connectivity and model discovery only, not that a model can
-handle the agent's system and tool protocol. Some models fail at that level; for
-example, `qwen3.8:27b` under Claude returns HTTP 500 "System message must be at the
-beginning". Choose another model when an error like this appears in the chat.
+Models then appear for both agents as `<model> (Ollama@<host>)` in New Chat, sharing one Host/IP and
+Port. Claude connects to `http://<host>:<port>` (Anthropic-compatible API); Codex to
+`http://<host>:<port>/v1` (Responses API) through a DSI Studio-supplied `-c` provider override,
+leaving `~/.codex/config.toml` unchanged. Each chat keeps its creation server; changing Host/IP only
+affects the list for new chats. DSI Studio adds the host to `NO_PROXY` for the agent process, so a
+system proxy does not intercept LAN traffic. Check connection proves connectivity and model
+discovery, not that the model handles the agent's system and tool protocol; some fail there (e.g.
+`qwen3.8:27b` under Claude returns HTTP 500 "System message must be at the beginning"), so choose
+another model when such an error appears.
 
 ## Windows launcher smoke test
 
-`.github/scripts/test_launcher_windows.ps1` and the `Launcher smoke` workflow guard
-the Windows launcher contract. The test uses a local named-pipe server and checks:
-
-- launcher files located under a path containing spaces and parentheses;
-- a read-only launcher working directory and read-only `TEMP`/`TMP`/`TMPDIR`;
-- the Git Bash `dsi.sh` route without a Windows PowerShell heredoc;
-- the native `dsi.cmd` route without `powershell.exe -File`;
-- the tested PowerShell call-operator fallback;
-- quoted/composite parameters, numeric conversion, `-Chat`, and batched `--` commands;
-- UTF-8 request and response text, including non-ASCII characters.
-
-The test also contains a regression guard for the reported constrained-language
-launcher problem: `dsi.cmd` must continue using `-Command` plus the call operator and
-must not return to `-File`. It does not claim that an unsigned script can bypass an
-enterprise WDAC/AppLocker policy. Under a real system-enforced `ConstrainedLanguage`
-policy, PowerShell restricts arbitrary .NET type construction and method calls; if
-the policy blocks `NamedPipeClientStream`, DSI Studio cannot bypass that security
-policy from the launcher. The script must instead be allowed/trusted by the system
-policy or run through an approved environment.
+`.github/scripts/test_launcher_windows.ps1` and the `Launcher smoke` workflow guard the Windows
+launcher contract against a local named-pipe server. They check launcher files under a path with
+spaces and parentheses; a read-only working directory and read-only `TEMP`/`TMP`/`TMPDIR`; the Git
+Bash `dsi.sh` route without a PowerShell heredoc; the `dsi.cmd` route without `powershell.exe -File`;
+the PowerShell call-operator fallback; quoted/composite parameters, numeric conversion, `-Chat`, and
+`--` batches; and UTF-8 text with non-ASCII characters. A regression guard for the constrained-language
+problem requires `dsi.cmd` to keep `-Command` with the call operator and never return to `-File`. The
+test does not claim an unsigned script can bypass an enterprise WDAC/AppLocker policy: under a real
+system-enforced `ConstrainedLanguage` policy, PowerShell restricts arbitrary .NET type construction
+and method calls, and if it blocks `NamedPipeClientStream`, the launcher cannot bypass it; the script
+must be allowed/trusted by the policy or run in an approved environment.
 
 ## Troubleshooting
 
-### `bash` is not found
-
-On Windows, install Git for Windows or add its `bin` directory to the agent process
-`PATH`. Until then, Codex can use:
-
-```powershell
-./dsi ...
-```
-
-Claude and Muse can use:
-
-```powershell
-& ./dsi.ps1 ...
-```
-
-### The PowerShell tool is unavailable to Claude
-
-Enable it with `CLAUDE_CODE_USE_POWERSHELL_TOOL=1` before launching Claude Code. On
-native Windows without Git Bash, Claude Code may enable the PowerShell tool
-automatically, but explicitly enabling it makes the fallback deterministic.
-
-### `dsi.sh requires Python 3 on macOS/Linux`
-
-Install Python 3 or use a platform-specific native launcher. Python is not required
-by the Windows branch.
-
-### Bash reports permission errors for `/tmp` or the working directory
-
-Older packaged versions of `dsi.sh` embedded the Windows PowerShell implementation
-inside a Bash heredoc. Git Bash may materialize a heredoc through a temporary file,
-which can fail in a read-only sandbox.
-
-Use the current `dsi.sh`. Its Windows branch forwards arguments through environment
-variables and invokes the packaged `dsi.ps1`; it contains no PowerShell heredoc and
-performs no Bash filesystem writes.
-
-### `powershell.exe -File dsi.ps1` reports a language-mode or argument-binding error
-
-Do not use the `-File` route. The packaged `dsi.cmd` already uses the tested
-call-operator form with environment-variable argument forwarding:
-
-```powershell
-./dsi list_window
-```
-
-If invoking Windows PowerShell yourself, use:
-
-```powershell
-powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "& './dsi.ps1' list_window"
-```
-
-If a system-enforced WDAC/AppLocker policy still rejects operations inside
-`dsi.ps1`, that is a real PowerShell policy restriction rather than a launcher
-quoting problem; the launcher cannot override it.
-
-### PowerShell displays interactive `>>` prompts
-
-Use the current `dsi.sh` or `dsi.cmd`. Both invoke one noninteractive `-Command`
-call-operator request and do not use `-File -` or inline heredoc PowerShell.
-
-### The Bash route still fails on Windows
-
-Use the native fallback:
-
-```powershell
-./dsi list_window
-```
-
-This runs:
-
-```text
-dsi.cmd -> PowerShell -Command -> dsi.ps1 -> \\.\pipe\dsi-studio
-```
-
-For Claude's PowerShell tool, call the implementation directly:
-
-```powershell
-& ./dsi.ps1 list_window
-```
-
-### Unicode output is garbled on Windows
-
-Use the current `dsi.ps1`, `dsi.cmd`, or Windows branch of `dsi.sh`. The PowerShell
-implementation explicitly decodes the named-pipe response as UTF-8 and sets console
-output to UTF-8. If an outer terminal still displays mojibake, verify that the host
-captures UTF-8 rather than re-decoding the child process output with an OEM code page.
-
-### Missing session environment
-
-The process environment must contain `DSI_STUDIO_AGENT` and the matching native
-session variable:
-
-```text
-Codex       -> CODEX_THREAD_ID
-Claude      -> CLAUDE_CODE_SESSION_ID
-Muse        -> MUSE_SESSION_ID
-Antigravity -> ANTIGRAVITY_CONVERSATION_ID
-Grok        -> GROK_SESSION_ID
-```
-
-DSI Studio supplies `DSI_STUDIO_AGENT`. Claude Code normally supplies
-`CLAUDE_CODE_SESSION_ID` to its Bash and PowerShell tool subprocesses; Codex
-supplies `CODEX_THREAD_ID`; DSI Studio supplies `MUSE_SESSION_ID` to Muse using
-the same UUID as its MSP session; Antigravity supplies
-`ANTIGRAVITY_CONVERSATION_ID` to its own tool subprocesses; Grok supplies
-`GROK_SESSION_ID` to its own tool subprocesses. The launchers
-intentionally do not accept any session value as a command-line argument.
+| Symptom | Fix |
+|---|---|
+| `bash` is not found (Windows) | Install Git for Windows or add its `bin` to the agent's `PATH`. Meanwhile Codex uses `./dsi ...`; Claude and Muse use `& ./dsi.ps1 ...`. |
+| Claude has no PowerShell tool | Set `CLAUDE_CODE_USE_POWERSHELL_TOOL=1` before launching Claude Code. |
+| `dsi.sh requires Python 3 on macOS/Linux` | Install Python 3 or use a platform-specific native launcher; the Windows branch needs no Python. |
+| Bash permission errors for `/tmp` or the working directory | Older `dsi.sh` embedded PowerShell in a Bash heredoc, which Git Bash may write to a temporary file, failing in a read-only sandbox. Use the current `dsi.sh`. |
+| `powershell.exe -File dsi.ps1` language-mode or argument-binding error | Never use `-File`; use `./dsi list_window` or the `-Command "& './dsi.ps1' ..."` form. If a system WDAC/AppLocker policy still rejects operations inside `dsi.ps1`, that is a real policy restriction the launcher cannot override. |
+| PowerShell shows interactive `>>` prompts | Use the current `dsi.sh` or `dsi.cmd`: one noninteractive `-Command` call, no `-File -` or inline heredoc. |
+| The Bash route still fails on Windows | Use `./dsi list_window` (`dsi.cmd -> PowerShell -Command -> dsi.ps1 -> \\.\pipe\dsi-studio`), or for Claude's PowerShell tool `& ./dsi.ps1 list_window`. |
+| Garbled Unicode on Windows | Use the current `dsi.ps1`, `dsi.cmd`, or `dsi.sh` (UTF-8 decoding and console output). If the outer terminal still shows mojibake, check that the host captures UTF-8 instead of re-decoding with an OEM code page. |
+| Missing session environment | The process needs `DSI_STUDIO_AGENT` and the agent's native session variable (table at the top); session values are never accepted as arguments. |

@@ -1,58 +1,46 @@
 # DSI Studio AI Shared Window Commands
 
-`bring_to_front`, `minimize`, `maximize`, and `close` are shared AI dispatcher
-commands. They are handled centrally by `MainWindow::dispatch_cmd()` before the
-normal MainWindow-first and selected-window command routing. They are not separate
-implementations in reconstruction, tracking, image, or connectometry command handlers.
+`bring_to_front`, `minimize`, `maximize`, `move_window`, and `close` are shared AI dispatcher
+commands, handled centrally by `MainWindow::dispatch_cmd()` before MainWindow-first and
+selected-window routing, not by the reconstruction, tracking, image, or connectometry handlers.
 
 ## Select the target window
 
-Each AI session starts with `main` selected. `set_window` changes the persistent
-target used by shared and later window-specific commands. Successful `open_src`,
-`open_fib`, `open_image`, and `open_connectometry` also replace it with the newly
-created window.
-
-`set_window` requires an exact current ID (or `main`) — there is no bare-type-plus-filename
-form. Get the exact ID from `list_window`, or from a successful `open_src`/`open_fib`/
-`open_image`/`open_connectometry` (which also becomes the new target automatically,
-without needing a follow-up `set_window` call):
+Each AI session starts with `main` selected. `set_window` changes the persistent target used by
+shared and window-specific commands; a successful `open_src`, `open_fib`, `open_image`, or
+`open_connectometry` replaces it with the new window, with no follow-up `set_window` needed.
 
 ```bash
 bash ./dsi.sh set_window tracking7ff6ab123410
 ```
 
-The Web agent equivalent is:
-
-```json
-{"cmd":"set_window","param":"tracking7ff6ab123410"}
-```
-
-Supported targets are:
+Web: `{"cmd":"set_window","param":"tracking7ff6ab123410"}`. Targets:
 
 - `main`;
-- `recon<hex-address>`;
-- `tracking<hex-address>`;
-- `image<hex-address>`;
+- `recon<hex-address>`, `tracking<hex-address>`, `image<hex-address>`;
 - `connectometry<hex-address>` (the Correlational Tractography dialog; see
-  `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`).
+  `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`);
+- `window<hex-address>`: any other visible window, such as the Fiber Data Hub, a result table, or a
+  dialog. Only the shared controls and tutor commands act on it; other commands fail with
+  `unknown command`.
 
-`set_window main`, or `set_window` without a parameter, returns to `main`. Any other
-value must be an exact ID currently listed by `list_window`; an unrecognized value
-(including a bare type name like `tracking` with no hex address) fails with
-`set_window: window "<value>" not found, terminated by user?`.
+`set_window main`, or `set_window` with no parameter, returns to `main`. Any other value must be an
+exact ID currently listed by `list_window` or returned by an open command; there is no
+bare-type-plus-filename form, and an unrecognized value (including a bare type such as `tracking`)
+fails with `set_window: window "<value>" not found, terminated by user?`.
 
 ## Shared controls
 
-All four commands take no parameter. Do not add a dummy value.
+`move_window` takes positions; the others take no parameter (do not add a dummy value). All act on
+the selected window even while `list_window` reports it `busy`.
 
 | Command | Exact behavior |
 |---|---|
-| `bring_to_front` | Calls `showNormal()`, then raises and activates the selected window. This restores a minimized or maximized window to its normal state before bringing it forward. |
-| `minimize` | Calls `showMinimized()` on the selected window. |
-| `maximize` | Calls `showMaximized()` on the selected window. |
-| `close` | Calls `close()` on the selected non-main window. AI is not allowed to close `main`; that request fails with `the main window cannot be closed by AI`. |
-
-Launcher examples:
+| `bring_to_front` | `showNormal()`, then raise and activate: restores a minimized or maximized window before bringing it forward. |
+| `minimize` | `showMinimized()`. |
+| `maximize` | `showMaximized()`. |
+| `move_window <x> <y> [width] [height]` | Restores normal state, moves the top-left corner to screen position `x`,`y`, and optionally resizes, in the pixels `list_window` reports as `geometry`. |
+| `close` | `close()` on the selected non-main window; for `main` it fails with `the main window cannot be closed by AI`. Closing a dialog cancels it, so do not close one the user is still answering. |
 
 ```bash
 bash ./dsi.sh bring_to_front
@@ -61,63 +49,27 @@ bash ./dsi.sh maximize
 bash ./dsi.sh close
 ```
 
-Web agent examples:
+Web: `{"command":{"cmd":"bring_to_front"}}`, likewise `minimize`, `maximize`, `close`; each request
+still needs its normal higher `id` and session UUID.
 
-```json
-{"command":{"cmd":"bring_to_front"}}
-{"command":{"cmd":"minimize"}}
-{"command":{"cmd":"maximize"}}
-{"command":{"cmd":"close"}}
-```
+### Closing a window safely
 
-Each Web request still needs its normal higher `id` and session UUID.
+`close` is destructive and should normally be the last command in an array. Inspect `list_window`
+first; a busy status does not block it. A tracking-window close by AI is non-spontaneous and
+bypasses the local `Tractography not saved` prompt, so confirm whenever unsaved tracts may exist;
+reconstruction, image, and connectometry windows also close directly. Success is reported once the
+close is issued; confirm with `list_window` when the disappearance matters.
 
-## Closing a window safely
-
-`close` is destructive to the selected window and should normally be the final
-command in a command array.
-
-For a tracking window, an AI-issued close is non-spontaneous and bypasses the local
-`Tractography not saved` prompt. Confirm before closing whenever unsaved tracts may
-exist. Reconstruction, standalone image, and connectometry windows are also closed
-directly.
-
-The dispatcher reports command success after issuing the close operation. Confirm
-the result with `list_window` when the disappearance matters.
-
-Closing a window does **not** reset the session's selected-window value. The session
-still remembers the now-invalid ID. After closing, explicitly select another target:
-
-```bash
-bash ./dsi.sh set_window main
-```
-
-or:
-
-```bash
-bash ./dsi.sh set_window <another-current-window-ID>
-```
-
-Until that is done, a later window-specific command can fail with:
-
-```text
-target window not found, terminated by user? Use set_window to select a window first.
-```
-
-`list_window`, `set_window`, and other dispatcher-level discovery commands remain
-available for recovery.
-
-## Busy-window behavior
-
-Shared `bring_to_front`, `minimize`, `maximize`, and `close` act on the selected
-window even while `list_window` reports it as `busy` with background work.
-
-Use `list_window` to inspect state before a destructive `close`; a busy status does
-not imply that the shared control will be rejected.
+Closing does **not** reset the session's selected window, which still holds the now-invalid ID.
+Afterwards run `set_window main` or `set_window <another-current-window-ID>`; until then
+window-specific commands fail with
+`target window not found, terminated by user? Use set_window to select a window first.`
+`list_window`, `set_window`, and other dispatcher-level discovery commands remain available for
+recovery.
 
 ## `list_window` response shape
 
-`list_window` takes no parameter and returns its result in `output` as a JSON object:
+`list_window` takes no parameter; `output` holds a JSON object:
 
 ```json
 {
@@ -128,212 +80,178 @@ not imply that the shared control will be rejected.
     {"status":"processing DICOM at C:/data/subj03","now":0,"total":0,"at":""}
   ],
   "windows":{
-    "main":{"status":"idle","title":""},
-    "tracking7ff6ab123410":{"status":"busy","title":"subject.fz"}
+    "main":{"status":"idle","title":"","geometry":[0,0,1280,860]},
+    "tracking7ff6ab123410":{"status":"busy","title":"subject.fz","geometry":[1280,0,1280,1000]},
+    "window7ff6ab567800":{"status":"idle","title":"Fiber Data Hub","geometry":[200,120,900,700]}
   }
 }
 ```
 
-- `application.status` is `"idle"`, `"busy"`, or `"waiting"` (a modal dialog, such as
-  `run_shell`'s confirmation prompt, is open somewhere in the application).
-- `current_window` is the session's own persistent target (the same value `set_window`
-  reports), independent of any other window's status.
-- `windows` lists every AI-addressable window (`main`, `tracking...`, `recon...`,
-  `image...`, `connectometry...`) plus any in-flight asynchronous `curlN` task,
-  each with its own `status` (`idle`/`busy`/`waiting`) and `title`. A
-  `connectometry...` window stays `busy` for the full duration of an
-  asynchronous `run` (permutation test), not just for the instant the command
-  was dispatched. For percent-complete during a long run, use that window's
-  own `progress` session command (`not_started`, or
-  `<running|finished|stopped>\t<percent>` -- `stopped` covers both this
-  session's own `stop` command and a local user's own Stop click) rather
-  than `list_window`, which only ever reports coarse `idle`/`busy`/
-  `waiting`. See
-  `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md` for details, including
-  that an AI-initiated run suppresses the local completion popup.
-- `progress` reflects every currently active internal operation, outermost first,
-  regardless of which window (if any) it belongs to. Each entry's `status` is the
-  operation's name, `now`/`total` are its step counters, and `at` is a pre-formatted
-  `"(now/total) N min"` string with a remaining-time estimate once one is available.
-  An operation that never reports intermediate steps stays at `now:0, total:0` until
-  it finishes — `progress` reflects whatever granularity the running operation itself
-  reports, not a guarantee of step-level detail for every command. `progress` is an
-  empty array when nothing is running.
-- Poll `list_window` to watch a long-running command (`run_cli`, DICOM conversion,
-  NIfTI-to-SRC batches, etc.) without waiting for its final reply, the same way an
-  active `curlN` task is already tracked in `windows`.
+- `application.status`: `"idle"`, `"busy"`, or `"waiting"` (a modal dialog, such as `run_shell`'s
+  confirmation prompt, is open somewhere).
+- `current_window`: this session's persistent target (the value `set_window` reports), independent
+  of other windows' status.
+- `windows`: every AI-addressable window (`main`, `tracking...`, `recon...`, `image...`,
+  `connectometry...`), every other visible window as `window...`, and any in-flight asynchronous
+  `curlN` task, each with `status` (`idle`/`busy`/`waiting`) and `title`; windows also report
+  `geometry` as `[x, y, width, height]` in screen pixels.
+- A `connectometry...` window stays `busy` for the whole asynchronous `run` (permutation test). For
+  percent complete, use that window's `progress` session command (`not_started`, or
+  `<running|finished|stopped>\t<percent>`; `stopped` covers this session's `stop` and a local Stop
+  click) rather than the coarse `list_window` status. An AI-initiated run suppresses the local
+  completion popup; see `DSI_STUDIO_AI_SKILL_CORRELATIONAL_TRACTOGRAPHY.md`.
+- `progress`: every active internal operation, outermost first, whatever window it belongs to:
+  `status` (name), `now`/`total` (step counters), and `at` (`"(now/total) N min"` with a
+  remaining-time estimate once available). An operation without intermediate steps stays at
+  `now:0, total:0` until it finishes; granularity is whatever the operation reports. Empty when
+  nothing runs.
+- Poll `list_window` to watch a long command (`run_cli`, DICOM conversion, NIfTI-to-SRC batches,
+  etc.) without waiting for its reply, as with `curlN` tasks.
 
 ## Tutor commands: show the user where to click
 
-`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, and `ask_user_modal` teach a local user. They act
-on the selected window but never click, trigger, or change anything except the visible
-accent or the question shown, and they are not recorded in the command history. Use them when the user
-asks how to do something in the GUI; use ordinary commands when the user asks you to
-do it.
+`list_ui`, `highlight_ui`, `clear_highlight`, `ask_user`, and `ask_user_modal` teach a local user.
+They act on the selected window, never click, trigger, or change anything except the accent or the
+question shown, and are not recorded in the command history. Use them when the user asks how to do
+something in the GUI; use ordinary commands when the user asks you to do it.
 
 | Command | Exact behavior |
 |---|---|
-| `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is present when the control sends a command (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
-| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, and stops when the user presses the mouse: `drag`, `shift` (Shift + drag), `freehand`, or `rect`; any other gesture or a fifth value fails with the usage text. A successful request replaces the earlier highlight; a failed one leaves it. |
-| `clear_highlight` | Removes the highlight. Returns `cleared` or `nothing to clear`. |
-| `ask_user <question> [option]...` | Shows a modeless dialog at the top-right corner of the screen, on top of all windows, and waits for the local user, who can keep working in DSI Studio while it is shown. Use it for questions and for step instructions with buttons such as `Done` and `Cancel`. `ask_user_modal` takes the same values but blocks DSI Studio until the user answers; use it when the user must decide before doing anything else. With up to four options, each option is a button; with more, the user picks one from a drop-down list (the first is preselected); without options, the user types an answer. The question can be any text, and options are returned exactly as given; ask several questions when more than one choice is needed. The answer is the `output`; closing the dialog fails with `the user closed the question without answering`. The request does not return until the user answers. |
+| `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is the command the control sends (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
+| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` (`drag`, `shift` = Shift + drag, `freehand`, `rect`) animates a demonstration once, about 2 s, stopping when the user presses the mouse; another gesture or a fifth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
+| `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. |
+| `ask_user <question> [option]...` | A modeless dialog at the top-right corner of the screen, on top of all windows and without taking focus, so the user keeps working in DSI Studio. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
+| `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
 
-`kind` in `list_ui` is:
+`kind` in `list_ui`:
 
-- `button` or `disabled button`: a visible button, by objectName; an unnamed toolbar
-  button is listed as `run:<command>`;
-- `setting` or `disabled setting`: a drop-down list or slider that sends a command (its
-  current value is never reported);
-- `pages`: the page list `nav_rail` of the main window (Tractography, Correlational,
-  Image, Settings) or the reconstruction window (Mask, Preprocessing, Methods);
-- `view`: the 3D view `GLWidget` or the 2D slice view `graphicsView`, the targets for
-  gestures;
-- `option`: an entry of the tracking window's Options tree, as `option:<option id>`,
-  with its tree path as `label` (for example `option:tube_diameter`,
-  `Tract Rendering > Tube Diameter (voxel)`). The prefix keeps an option distinct from a
-  same-named toolbar button, such as the `roi_*` buttons;
-- `menu` or `disabled menu`: a visible menu action, by objectName, with its menu path as
-  `label`. A generated item without a name, such as each U-Net model under
-  Slices > Segment, is listed as `run:<command>=<param>`, for example
-  `run:segment_brain=<model>`, with `<param>` being what the item sends.
+- `button` or `disabled button`: by objectName; an unnamed toolbar button is listed as
+  `run:<command>`.
+- `setting` or `disabled setting`: a drop-down list or slider that sends a command (its value is
+  never reported).
+- `pages`: the page list `nav_rail` of the main window (Tractography, Correlational, Image,
+  Settings) or the reconstruction window (Mask, Preprocessing, Methods).
+- `view`: the 3D view `GLWidget` or 2D slice view `graphicsView`, the targets for gestures.
+- `option`: a tracking-window Options tree entry as `option:<option id>`, with its tree path as
+  `label` (e.g. `option:tube_diameter`, `Tract Rendering > Tube Diameter (voxel)`); the prefix keeps
+  it distinct from a same-named toolbar button such as the `roi_*` buttons. Listed in alphabetical
+  order of ids.
+- `menu` or `disabled menu`: a visible menu action by objectName, with its menu path as `label`. A
+  generated item without a name, such as each U-Net model under Slices > Segment, is listed as
+  `run:<command>=<param>` (e.g. `run:segment_brain=<model>`), `<param>` being what it sends.
 
-Options are listed in alphabetical order of their ids. A label that looks like a file
-name or path (a button showing a loaded file, for example) is returned empty.
+A label that looks like a file name or path (a button showing a loaded file, for example) is
+returned empty.
 
-`highlight_ui` results:
+`highlight_ui` outputs:
 
 - a button, setting, or view: `highlighted: <id>`;
-- `run:<command>`: the one visible control, or else menu action, that sends that
-  command. When several send it with different parameters (`ambiguous control`), use
-  `run:<command>=<param>` from `list_ui`;
-- `option:<id>`: the tree expands to it, its editor is ringed, and the output is
-  `option: <tree path>`;
-- a menu action (enabled and visible): the earlier highlight is removed, the menus
-  open down to the item and highlight it (as hovering does; nothing is triggered), and
-  the output is `menu: <menu path>`, for example `menu: Tracts > Save Tracts As...`.
-  Tell the user that path too: the open menus close when the user clicks elsewhere, and
-  a native macOS menu bar may not open.
+- `run:<command>`: the one visible control, or else menu action, sending that command; when several
+  send it with different parameters (`ambiguous control`), use `run:<command>=<param>` from `list_ui`;
+- `option:<id>`: the tree expands to it and its editor is ringed: `option: <tree path>`;
+- an enabled, visible menu action: the earlier highlight is removed and the menus open down to the
+  item and highlight it (as hovering does; nothing is triggered): `menu: <menu path>`, e.g.
+  `menu: Tracts > Save Tracts As...`. Also tell the user the path: open menus close when the user
+  clicks elsewhere, and a native macOS menu bar may not open.
 
-Failures: `control not found or not visible`, `ambiguous control`,
-`control is disabled`, and `a dialog is open; ask the user to close it first` (all
-tutor commands except `clear_highlight` refuse while a modal dialog is open).
+Failures: `control not found or not visible`, `ambiguous control`, `control is disabled`, and
+`a dialog is open; ask the user to close it first` (every tutor command except `clear_highlight`
+refuses while a modal dialog is open).
 
 ### Tutor protocol
 
-Follow these rules; the tutor commands rely on them instead of extra checks.
+The tutor commands rely on these rules instead of extra checks:
 
-- **Fresh ids only.** After a window opens or closes, call `list_window` and
-  `set_window` again, then `list_ui` before highlighting. Never reuse an id or window
-  ID learned before that change; a reopened window can contain a same-named control.
-- **One tutor per DSI Studio instance.** The highlight is shared: any session's
-  `highlight_ui` or `clear_highlight` replaces or removes it. Only the session that is
-  tutoring the user sends these commands or asks the user; other sessions do not.
-- **Read results as text.** The request reply is JSON, and its `output` string holds the
-  result: `list_ui` returns a JSON object serialized in `output`; `highlight_ui` and
-  `clear_highlight` return the plain-text outputs listed above; `ask_user` and
-  `ask_user_modal` return the user's answer as given. A failure comes back in `error`.
-- **Options without changing the tree.** `highlight_ui option:<id>` expands the Options
-  tree and selects that row. When the user only needs to know where an option is, run
-  `list_ui <filter>` and tell the user its `label` path instead.
-- **Narrow long lists.** `list_ui` returns at most 50 controls. When `total` is larger,
-  retry with a more specific `filter` rather than guessing ids.
+- **Fresh ids only.** After a window opens or closes, call `list_window`, `set_window`, then
+  `list_ui` before highlighting. Never reuse an id or window ID learned before the change; a
+  reopened window can contain a same-named control.
+- **One tutor per DSI Studio instance.** The highlight is shared: any session's `highlight_ui` or
+  `clear_highlight` replaces or removes it. Only the tutoring session sends these commands or asks
+  the user.
+- **Read results as text.** `list_ui` serializes a JSON object in `output`; `highlight_ui` and
+  `clear_highlight` return the plain text above; `ask_user` and `ask_user_modal` return the answer as
+  given. Failures come back in `error`.
+- **Options without changing the tree.** `highlight_ui option:<id>` expands the tree and selects the
+  row; when the user only needs the location, report the `label` path from `list_ui <filter>`.
+- **Narrow long lists.** When `total` exceeds 50, retry with a more specific `filter` rather than
+  guessing ids.
 
-Teach one step at a time: highlight, say what to do, and wait for the user before
-the next step. For example, to teach tract selection in a tracking window:
+### Teaching from a skill
+
+DSI Studio has no built-in tutorial; the agent is the tutor and the skills are the lessons. When the
+user asks "teach me how to ..." (for example, brain tumor analysis):
+
+1. For a new user, start from the matching lesson in `DSI_STUDIO_AI_SKILL_LESSONS.md` (import,
+   reconstruction, tracking, regions, AutoTrack, connectome, differential, correlational, brain
+   tumor). For depth, read the matching `DSI_STUDIO_AI_SKILL_*.md`, or the DSI Studio documentation
+   at https://dsi-studio.labsolver.org/ when no skill covers it; its steps are commands with reasons.
+2. Unless the user explicitly asked for a voice tutorial, offer one with `ask_user` (e.g.
+   "Yes, with voice" or "No, text only") before using `voice` (`AGENTS.md` 9.2). Start with the plan
+   (by `voice` if accepted, otherwise in the chat), and use `ask_user` for choices the skill leaves to
+   the user (which data to open, whether to include a step).
+3. For each command in the skill, select its window and call
+   `highlight_ui run:<command> "<short caption>"`, and explain by `voice` (if accepted) or chat what
+   to click, what to set, and why.
+   - `menu: <path>`: tell the user the menu path.
+   - A step that opens a file or folder dialog: first `set_work_dir <data folder>`, so main-window
+     dialogs open there, and name the file to pick.
+   - `control not found or not visible`: open the page or window holding it (`highlight_ui nav_rail`
+     for pages), or check `list_ui <command>`. If no control sends the command, explain the step and
+     offer to run it.
+4. Show the instruction with `ask_user "<what to do now>" Done Cancel` (add `Help` or other options
+   when useful); it stays on top while the user works, and a menu opened by `highlight_ui` stays
+   open. After `Done`, read `log`: a `user operation` line (written by the main, reconstruction, and
+   tracking windows) with the same `cmd` shows the user started the step, and the lines after it the
+   result. Then verify the outcome with state queries (`list_window`, the window's list commands) or
+   a screenshot, as the skill does: the log does not prove success, repeated changes of one
+   tracking-window setting (a slider drag) merge into one line that may appear only after the user's
+   next operation, and some results (such as T2R tables) appear in dialogs the user must close. On
+   `Cancel`, stop the lesson or ask what to do next.
+5. Call `clear_highlight` when the lesson ends.
+
+The `run` link between a control and its command comes from DSI Studio itself, so a moved or renamed
+button is still found; do not copy control ids into notes or manuals. Some controls cannot be
+highlighted, such as reconstruction fields and tract and region table cells; describe them by label
+and position.
+
+Example: teaching tract selection (send the second request only after the user chose Select Tracts,
+Ctrl+S):
 
 ```json
 {"command":{"cmd":"highlight_ui","param":"actionSelect_Tracts"}}
 {"command":{"cmd":"highlight_ui","param":["GLWidget","Drag across the tracts","drag"]}}
 ```
 
-Send the second request only after the user has chosen Select Tracts (Ctrl+S). The
-launcher form is `bash ./dsi.sh highlight_ui GLWidget "Drag across the tracts" drag`. Each
-gesture follows the GUI's own behavior:
-
-- tract editing (`GLWidget`): choose Select, Delete, Cut, or Paint Tracts first, then
-  `drag` a line across the tracts; `shift` adds bend points while dragging. Paint Tracts
-  asks for a color after each drag. Undo
-  (Ctrl+Z) reverts the last edit of every checked bundle.
-- region drawing (`graphicsView`): `tool0` rectangle (`rect`), `tool1` freehand
-  (`freehand`), `tool2` sphere and `tool3` cube (`drag` out from the center), `tool4`
-  polygon (click each corner, double-click to close). Right-click or Shift erases.
-  Undo Edit (Ctrl+Shift+Z) reverts the last region edit.
-
-### Teaching from a skill
-
-DSI Studio has no built-in tutorial; the agent is the tutor, and the skills are the
-lessons. When the user asks "teach me how to ..." (for example, brain tumor analysis):
-
-1. For a new user, start from the matching lesson in
-   `DSI_STUDIO_AI_SKILL_LESSONS.md` (import, reconstruction, tracking, regions,
-   AutoTrack, connectome, differential, correlational, brain tumor). For more depth,
-   read the matching `DSI_STUDIO_AI_SKILL_*.md` (or the DSI Studio documentation at
-   https://dsi-studio.labsolver.org/ when no skill covers it). Its steps are commands
-   with the reasons for them.
-2. Unless the user explicitly asked for a voice tutorial, offer one with `ask_user`
-   (for example, "Yes, with voice" or "No, text only") before using `voice`; see
-   `AGENTS.md` 9.2. Start with the plan (through `voice` if accepted, otherwise in the
-   chat), and use `ask_user` for choices the skill leaves to the user (for example,
-   which data to open, or whether to include a step).
-3. For each command in the skill, select its window and call
-   `highlight_ui run:<command> "<short caption>"`. Explain the step through `voice` (if
-   accepted) or the chat: what to click, what to set, and why.
-   - `menu: <path>`: tell the user the menu path.
-   - `control not found or not visible`: open the page or window that holds it first
-     (`highlight_ui nav_rail` for main-window pages), or check `list_ui <command>`. If no
-     control sends the command, explain the step and offer to run it for the user.
-4. Show the instruction with `ask_user "<what to do now>" Done Cancel` (add `Help` or
-   other options when useful). The dialog stays on top while the user works, so the
-   user does not need to return to the chat. `ask_user` does not take focus, so a menu
-   opened by `highlight_ui` stays open. When the user clicks `Done`, read `log`: a
-   `user operation` line (written by the main, reconstruction, and tracking windows)
-   with the same `cmd` shows the user started the step, and the lines after it show the
-   result. Then verify the outcome with state queries (`list_window`, the window's list
-   commands) or a screenshot, as the skill does: the log does not prove success,
-   repeated changes of one tracking-window setting (a slider drag) are merged into one
-   line that may appear only after the user's next operation, and some results (such as T2R tables)
-   appear in dialogs the user must close. On `Cancel`, stop the lesson or ask what to do
-   next.
-5. Call `clear_highlight` when the lesson ends.
-
-The `run` link between a control and its command comes from DSI Studio itself, so a
-moved or renamed button is still found. Do not copy control ids into notes or manuals.
-Some controls cannot be highlighted, such as reconstruction fields and cells of the
-tract and region tables; describe them by their label and position instead.
-
-Mouse steps in the views have no command; show them with a gesture:
+Launcher form: `bash ./dsi.sh highlight_ui GLWidget "Drag across the tracts" drag`. Mouse steps have
+no command; show them with a gesture that follows the GUI's behavior:
 
 | View | Mode | Gesture | Tell the user |
 |---|---|---|---|
 | `GLWidget` | Select, Delete, Cut, or Paint Tracts | `drag` | Press the left button, drag a line across the tracts, and release. Paint Tracts then asks for a color. |
-| `GLWidget` | same | `shift` | Hold Shift while dragging to draw a curved line. |
-| `graphicsView` | freehand region tool | `freehand` | Hold the left button and draw around the area. Right-click, or hold Shift, to erase. |
-| `graphicsView` | rectangle tool | `rect` | Drag from one corner to the opposite corner. |
-| `graphicsView` | sphere or cube tool | `drag` | Press at the center and drag outward to set the size. |
-| `graphicsView` | polygon tool | none | Click each corner, then double-click to close the shape. |
+| `GLWidget` | same | `shift` | Hold Shift while dragging to add bend points (a curved line). |
+| `graphicsView` | freehand region tool (`tool1`) | `freehand` | Hold the left button and draw around the area. Right-click, or hold Shift, to erase. |
+| `graphicsView` | rectangle tool (`tool0`) | `rect` | Drag from one corner to the opposite corner. |
+| `graphicsView` | sphere (`tool2`) or cube (`tool3`) tool | `drag` | Press at the center and drag outward to set the size. |
+| `graphicsView` | polygon tool (`tool4`) | none | Click each corner, then double-click to close the shape. |
 
-Undo is Ctrl+Z for tract edits (every checked bundle) and Ctrl+Shift+Z for region
-edits.
+Undo is Ctrl+Z for tract edits (the last edit of every checked bundle) and Undo Edit (Ctrl+Shift+Z)
+for the last region edit.
 
 ## Routing order
 
-For each command in a request, the current dispatcher applies this order:
+For each command, the dispatcher applies this order:
 
-1. Shared window controls: `bring_to_front`, `minimize`, `maximize`, `close`.
+1. Shared window controls: `bring_to_front`, `minimize`, `maximize`, `move_window`, `close` (always
+   on the selected target).
 2. Session commands: `set_title`, `log`, and `set_window`.
-3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`,
-   `clear_highlight`, `ask_user`, and `ask_user_modal`.
+3. Window discovery and tutoring: `list_window`, `list_ui`, `highlight_ui`, `clear_highlight`,
+   `ask_user`, and `ask_user_modal`.
 4. Read-only system commands: `get_agent_settings` and `get_chat` (also in headless mode).
 5. All remaining commands are offered to `MainWindow` first.
-6. Only a command unknown to `MainWindow` falls through to the persistently selected
-   reconstruction, tracking, image, or connectometry window.
+6. Only a command unknown to `MainWindow` falls through to the selected reconstruction, tracking,
+   image, or connectometry window.
 
-Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fib`
-remain available even while a non-main window is selected. `run_cli` and `run_shell`
-do not act on the selected window: `run_cli` invokes its own internal CLI action
-logic, while `run_shell` runs any shell command after local-user confirmation
-. Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` for
-their exact behavior.
-
-The four shared window controls are different: they always act on the selected
-target before ordinary MainWindow-first routing begins.
+Global MainWindow commands such as `voice`, `run_cli`, `run_shell`, and `open_fib` work while a
+non-main window is selected. `run_cli` and `run_shell` never act on the selected window: `run_cli`
+runs its own internal CLI action logic, and `run_shell` runs any shell command after local-user
+confirmation (see `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`).

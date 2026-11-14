@@ -1,96 +1,51 @@
 # DSI Studio Correlational Tractography Guide for AI Agents
 
-Correlational tractography (Yeh, et al. NeuroImage 245 (2021): 118651) finds
-white-matter pathways whose local connectome fingerprint is correlated with a
-study variable across a group of subjects, using a nonparametric partial
-correlation and a permutation test for statistical control (Yeh et al.
-NeuroImage 125 (2016): 162-171):
+Correlational tractography (Yeh, et al. NeuroImage 245 (2021): 118651) finds white-matter pathways whose
+local connectome fingerprint correlates with a study variable across subjects, using nonparametric
+partial correlation and a permutation test (Yeh et al. NeuroImage 125 (2016): 162-171):
 
 ```text
 group scalar-map database + demographics → permutation regression → increase/decrease pathways
 ```
 
-This is fundamentally a cross-sectional, cohort-level correlation method: it
-answers "which pathways relate to this variable across subjects," not "did
-this pathway change over time in this subject." For a single subject's own
-before/after comparison, use differential tractography instead (`DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md`)
--- comparing two separately-recruited, age/sex-matched cross-sectional
-cohorts is not a reliable substitute for that either, since it compares
-different people rather than one subject's own change. For a genuine
-*group-level* longitudinal comparison ("did group A change more than group
-B"), connectometry does support this: build a database of matched per-subject
-scan-pair changes and test that (1.2/1.3 below) -- still a group-level
-analysis of how much subjects changed on average, not a single subject's own
+It is a cross-sectional, cohort-level method: "which pathways relate to this variable across
+subjects," not "did this pathway change in this subject." For one subject's before/after comparison use
+differential tractography (`DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md`); comparing two separately
+recruited, age/sex-matched cohorts is no substitute, since it compares different people. A genuine
+*group-level* longitudinal question ("did group A change more than group B") is supported by testing a
+database of matched per-subject scan-pair changes (1.2/1.3), still a group average, not one subject's
 result.
 
-## Optional SCA2 teaching dataset
+**Teaching dataset.** [SCA2 `ds001378`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md) on Fiber Data Hub provides
+`sub-all.dz`, `participants.tsv`, `qc.tsv`, and individual SZ/FZ/NIfTI. **Inspect `get_demo` and
+`list_voi`** before choosing a model (the prebuilt database may not embed the external demographics);
+file availability is not a valid design. Get approval before downloading and analyzing.
 
-For a public hands-on cohort demonstration, offer
-[SCA2 `ds001378`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
-from Fiber Data Hub. The release provides `sub-all.dz`,
-`participants.tsv` and `qc.tsv`, as well as individual SZ/FZ/NIfTI.
-**Inspect `get_demo` and `list_voi`** before choosing a model; the
-prebuilt database may not embed the external demographic columns.
-Do not infer a valid statistical design from file availability alone.
-Obtain user approval before downloading and starting analysis.
+## The `connectometry<hex>` window
 
-## Availability: reachable as a `connectometry<hex>` window
+`group_connectometry` (the Correlational Tractography dialog) has its own `command()` dispatcher
+(`open_mr_files`, `run`, `stop`, `progress`, `get_result`, `show_result`, `load_roi_from_atlas`,
+`clear_all_roi`, `load_roi_from_file`, `show_cohort`, `apply_selection`, `list_voi`, `set_voi`,
+`get_demo`, `list_param`, `set_param`, `set_params`) wired into `bash ./dsi.sh` like
+`tracking<hex>`/`recon<hex>`. `open_connectometry` (main window) registers it as `connectometry<hex>`,
+found with `list_window` and addressed with `set_window` or by forwarding to that ID.
 
-`group_connectometry` (the Correlational Tractography dialog) implements its
-own internal `command()` dispatcher (`open_mr_files`, `run`, `stop`,
-`progress`, `get_result`, `show_result`, `load_roi_from_atlas`,
-`clear_all_roi`, `load_roi_from_file`, `show_cohort`, `apply_selection`,
-`list_voi`, `set_voi`, `get_demo`, `list_param`, `set_param`, `set_params`),
-and is wired into the `bash ./dsi.sh` named-pipe dispatcher the same way
-`tracking<hex>`/`recon<hex>` windows are. Opening it from the main window
-(`open_connectometry`) registers it and assigns it an ID of the form
-`connectometry<hex>`, discoverable via `list_window` and addressable with
-`set_window` or by forwarding commands directly to that window ID.
+- `run` starts the permutation workers and returns at once; `list_window` shows `busy` for the whole run
+  (only coarse `idle`/`busy`/`waiting`). Poll the window's own `progress` (no parameter):
+  `not_started`; `running\t<percent>`; `finished\t<percent>` (reached 100% naturally: `get_result` and
+  `show_result` usable); `stopped\t<percent>` (cancelled by `stop` or a local Stop click: results fail
+  until a later run finishes). `percent` 100 alone does not mean `finished` (it is also the last
+  `running` reading). `stop` fails with "no run in progress" when idle; the GUI Run/Stop toggle forwards
+  to it.
+- The window is a shared local GUI: a local user can stop the AI's run or start their own at any time,
+  so `finished` does not prove the AI's own run produced the result; check `get_demo`/`list_voi`/
+  `list_param` against the request when that matters.
+- An AI `run` (`command_source::AI`, every pipe request) suppresses the "tractography saved"/"no
+  significant finding" popup (shown only for the GUI Run button) and prints nothing to the console.
+  After `finished`, `get_result` (no parameter) returns the full HTML report (acquisition summary,
+  narrative, increase/decrease findings with FDR) in `output`: the main way to learn the findings.
 
-`run` starts the permutation test's worker threads and returns immediately
-(it does not block waiting for them). While they run, `list_window` reports
-the window as `busy` -- not just for the instant `run` was dispatched, but
-for the whole run. For percent-complete, poll that window's own `progress`
-command (no parameter) instead of `list_window`, which only reports coarse
-`idle`/`busy`/`waiting`. `progress`'s `output` is one of:
-
-- `not_started` -- no run has ever started on this window;
-- `running\t<percent>`;
-- `finished\t<percent>` -- the run reached 100% naturally; `get_result` and
-  `show_result` are now usable;
-- `stopped\t<percent>` -- cancelled (via `stop`, or a local user's own Stop
-  click) before finishing; `get_result`/`show_result` fail on this window
-  until a later run finishes.
-
-`percent` reaching 100 does not by itself mean `finished` -- 100 is also the
-very last `running` reading just before the state flips. `stop` cancels an
-in-progress run (fails with "no run in progress" if none is running); the
-GUI's own Run/Stop toggle button forwards to the same `stop` command
-internally.
-
-This is a shared, local-GUI window, not an AI-exclusive session: whoever is
-sitting at the DSI Studio machine can click Run or Stop themselves at any
-time, independent of anything the AI does. A run the AI started can be
-stopped by a local user before it finishes (`progress` then reports
-`stopped`, not `finished`), and a local user can start their own run on the
-same window the AI is currently watching -- `progress` reporting `finished`
-does not by itself prove the AI's own run (rather than a local user's) is
-what produced the result available from `get_result`; check
-`get_demo`/`list_voi`/`list_param` against what was actually requested if
-that distinction matters.
-
-An AI-initiated `run` (i.e. `command_source::AI`, which covers every request
-sent over the pipe) also suppresses the local "tractography saved"/"no
-significant finding" popup that would otherwise appear when the run
-completes -- only a `run` triggered by a local user clicking the GUI's own
-Run button shows it. Once `progress` reports `finished`, call `get_result`
-(no parameter) to get the full HTML report (MRI acquisition summary, the
-analysis narrative, and increase/decrease findings with their FDR) directly
-in `output` -- this is the primary way an AI caller learns the actual
-findings, since nothing is printed to the console automatically.
-
-The CLI batch action remains available as a scriptable, headless
-alternative that does not require an open GUI session:
+Headless CLI alternative, no GUI session needed:
 
 ```bash
 dsi_studio --action=cnt --source=<database> --demo=<covariates> \
@@ -98,491 +53,253 @@ dsi_studio --action=cnt --source=<database> --demo=<covariates> \
   --t_threshold=<t> --fdr_threshold=<q> --output=<prefix>
 ```
 
-## Required Workflow
+## Required workflow
 
 ### 1. Find or build the group database
 
-Correlational tractography runs on a connectometry database (`.dz`/`.db.fz`),
-not directly on subject FIB files. Do not rebuild a database that already exists.
-
-```text
-correlational tractography requested
-    ↓
-dataset from Fiber Data Hub?
-    ↓ yes
-search the same tag for *.dz / *.db.fz
-    ↓
-suitable database exists → download it and open it directly
-no suitable database     → download the QSDR cohort → build the database
-```
-
-When the data come from Fiber Data Hub, search the dataset's tag for a database
-before downloading any subject QSDR files:
+Analysis runs on a connectometry database (`.dz`/`.db.fz`), not subject FIBs; never rebuild one that
+exists. For Fiber Data Hub data, search the dataset's tag for a database before downloading subject
+QSDR files; if suitable, download and open it, otherwise download the QSDR cohort and build one:
 
 ```bash
 bash ./dsi.sh hub_files "<exact repository>" "<exact tag>" "\.(dz|db\.fz)$"
-```
-
-If one exists, download it and open it as a correlational tractography window:
-
-```bash
 bash ./dsi.sh hub_download "<exact repository>" "<exact tag>" "<database file>" "C:/data"
 bash ./dsi.sh open_connectometry "C:/data/<database file>"
 ```
 
-Use `hub_download` plus `open_connectometry` rather than `hub_open`: `hub_open`
-opens a database in the plain database viewer, not in a `connectometry<hex>`
-window. A database is suitable when `list_voi`/`get_demo` show the needed
-subjects and demographics and it holds the needed metric. Build a new one only
-when no database exists or it lacks those subjects, metrics, or demographics:
+Use `hub_download` + `open_connectometry`, not `hub_open` (which opens the plain database viewer, not a
+`connectometry<hex>` window). A database is suitable when `list_voi`/`get_demo` show the needed subjects
+and demographics and it holds the needed metric. Otherwise build:
 
 ```bash
 dsi_studio --action=db --source=<glob of *.qsdr.fz files> --demo=<participants.tsv> --output=<group>.dz
 ```
 
-All subjects must already be reconstructed into the **same template space**
-(QSDR) so their per-voxel scalar maps are spatially comparable. If `--demo` is
-omitted, the CLI checks for `participants.tsv` in the current working directory and
-then its parent (preferring the current directory when both exist). The GUI equivalent
-is `create_db` from the main window, followed by loading subject FIBs and demographics
-into `CreateDBDialog`.
+All subjects must be reconstructed in the **same template space** (QSDR). Without `--demo`, the CLI
+looks for `participants.tsv` in the current directory, then its parent (current wins). GUI: `create_db`
+in the main window, then load subject FIBs and demographics into `CreateDBDialog`.
 
-### 1.1 Quick group comparison: region or tract statistics from the database
+### 1.1 Quick group comparison from the database
 
-A completed `.dz` database can also be opened directly with `open_fib` for a
-simple, fast group comparison -- a per-subject, per-metric mean at one region
-or along one tract -- without running the full permutation-based workflow
-below. There is no cohort filtering, no permutation test, and no FDR control
-here; use it to eyeball a suspected group difference or sanity-check the
-database before committing to the full analysis, not as a substitute for it.
-
-**Region-based**, using the usual atlas/ROI tools on the opened database:
+`open_fib` on a `.dz` gives a fast per-subject, per-metric mean at a region or along a tract, with no
+cohort filtering, permutation, or FDR: for eyeballing a suspected difference or sanity-checking the
+database, not a substitute for the full analysis.
 
 ```bash
 bash ./dsi.sh open_fib "<group>.dz"
 bash ./dsi.sh list_atlas
 bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index> <label-index>"
 bash ./dsi.sh show_region_statistics
-```
-
-**Tract-based**, on a bundle that is loaded or tracked in the opened database
-(see `DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md` for `open_tract`/`run_tracking`/
-`run_auto_track`):
-
-```bash
-bash ./dsi.sh open_fib "<group>.dz"
+# or along a loaded/tracked bundle (open_tract/run_tracking/run_auto_track: DSI_STUDIO_AI_SKILL_FIBER_TRACKING.md)
 bash ./dsi.sh open_tract "<bundle.tt.gz>"
 bash ./dsi.sh show_tract_statistics
 ```
 
-When the opened FIB contains a connectometry database, both `show_region_statistics`
-and `show_tract_statistics` iterate through every scalar metric stored in the
-database and add one row per subject per metric, in the form:
+With a connectometry database, both commands add one row per subject per stored metric,
+`<subject-name> mean_<database-metric>    <mean at that region/tract>` (e.g. a database with `qa`,
+`vol`, `dti_fa`, `rd`, `iso`, `rdi` gives `<subject> mean_qa`, `<subject> mean_dti_fa`, ... in one
+call); switching the "current metric" is unnecessary and has no effect. Unattended:
+`save_region_statistics`/`save_tract_statistics "<output.txt>"`. Validated live on an 18-scan SCA2 QSDR
+database with BrainSeg Cerebellum (`open_fib "SCA2_subjects.dz"`, `add_region_from_atlas "0 1 2"`,
+`show_region_statistics`): subjects were enumerated automatically, returning the Cerebellum geometry and
+one `mean_<metric>` per scan per metric; tracts use the same mechanism.
 
-```text
-<subject-name> mean_<database-metric>    <mean at that region/tract>
-```
+### 1.2 Longitudinal-change database
 
-For example, a database containing `qa`, `vol`, `dti_fa`, `rd`, `iso`, and
-`rdi` reports the subject values for each of those metrics in one call (e.g.
-`<subject> mean_qa`, `<subject> mean_dti_fa`, etc.) -- there is no need to
-switch the database's "current metric" first, and doing so has no effect on
-this output. For unattended output, use `save_region_statistics`/
-`save_tract_statistics "<output.txt>"` instead of the `show_*` form.
-
-The region-based path was validated live on an 18-scan SCA2 QSDR database and
-BrainSeg Cerebellum:
-
-```bash
-bash ./dsi.sh open_fib "SCA2_subjects.dz"
-bash ./dsi.sh add_region_from_atlas "0 1 2"
-bash ./dsi.sh show_region_statistics
-```
-
-That test confirmed database subjects are enumerated automatically inside an
-atlas ROI, returning the Cerebellum geometry and one `mean_<metric>` value for
-each of the 18 scans for every metric stored in the database. `show_tract_statistics`
-uses the identical per-subject, per-metric mechanism along a tract instead of
-a region.
-
-### 1.2 Build a longitudinal-change database from an existing database
-
-A longitudinal/intercept study (`--voi=longitudinal` in step 2 below) does not
-run on the group database built in step 1 directly -- it runs on a derived
-database of per-subject **changes** between two scans, matched pairwise.
-Build that derived database from an already-built `.dz`/`.db.fz` database
-with the same `--action=db`, adding `--match`:
+A longitudinal/intercept study (`--voi=longitudinal`, step 2) runs on a derived database of pairwise
+per-subject **changes**, built from an existing `.dz`/`.db.fz` with `--match`:
 
 ```bash
 dsi_studio --action=db --source=<group>.dz --match=consecutive \
   --dif_type=0 --filter_type=0 --normalize_iso=1 --output=<group>.dif.dz
 ```
 
-- `--match=consecutive` pairs subjects by their stored order: (row 0, row 1),
-  (row 2, row 3), and so on -- each pair is one subject's scan1/scan2. Confirm
-  the database's subject order actually alternates scan1/scan2 by inspecting the
-  subject list in the `open_db` GUI or the source file list used to build the database;
-  `list_window` does not report database subject order.
-- `--match=<pairs.txt>` uses explicit pairing instead: a text file of
-  whitespace-separated integer subject-row indices, two per pair
-  (`scan1_row scan2_row scan1_row scan2_row ...`), 0-based in the same
-  subject order as the database.
-- `--dif_type=0` computes `scan2 - scan1` (default); `--dif_type=1` computes
-  `(scan2 - scan1) / scan1`.
-- `--filter_type=0` (default) keeps the raw signed change at every voxel --
-  increases positive, decreases negative, nothing zeroed. Use this for
-  testing whether a change exists at all (see 1.3 phase 1 below).
-- `--filter_type=1` keeps only increases, as a positive magnitude: any
-  voxel that decreased is zeroed, increases are left as-is.
-- `--filter_type=2` keeps only decreases, **also as a positive magnitude,
-  not a negative one**: every value is first negated (so an original
-  decrease, negative, becomes positive), then anything below zero (i.e.
-  every original increase, now negative) is zeroed. Confirmed directly
-  against the implementation (`libs/mapping/connectometry_db.cpp`,
-  `connectometry_db::calculate_change`: `if(filter_type==2) tipl::neg(...)`
-  runs *before* the zero-clamp) -- do not assume `2` produces negative
-  "amount of decrease" values; it does not.
-- `--normalize_iso` (default `1`) divides `qa`/`rdi`/`nrdi*`-type metrics by
-  the subject's isotropic diffusion map before differencing, matching the
-  GUI's "Normalize QA/RDI/NRDI by ISO" checkbox default.
-- `--output` defaults to `longitudinal` plus a suffix that encodes
-  `--filter_type` (`.dif.dz`, `.pos_dif.dz`, or `.neg_dif.dz`), mirroring the
-  GUI's "Save DB as" default naming.
+- `--match=consecutive` pairs stored rows (0,1), (2,3), ... as scan1/scan2. Confirm the order alternates
+  by the subject list in the `open_db` GUI or the source file list (`list_window` does not report it).
+  `--match=<pairs.txt>` gives explicit 0-based row pairs, whitespace-separated
+  (`scan1_row scan2_row scan1_row scan2_row ...`).
+- `--dif_type=0` `scan2 - scan1` (default); `1` `(scan2 - scan1) / scan1`.
+- `--filter_type=0` (default) keeps the signed change (increases positive, decreases negative; use it to
+  test whether change exists). `1` keeps only increases as positive magnitudes (decreases zeroed). `2`
+  keeps only decreases, **also as positive magnitudes**: `connectometry_db::calculate_change` in
+  `libs/mapping/connectometry_db.cpp` runs `if(filter_type==2) tipl::neg(...)` *before* the zero-clamp,
+  so values are never negative.
+- `--normalize_iso` (default `1`) divides `qa`/`rdi`/`nrdi*`-type metrics by the subject's isotropic map
+  before differencing (the GUI's "Normalize QA/RDI/NRDI by ISO" default).
+- `--output` defaults to `longitudinal` plus `.dif.dz`, `.pos_dif.dz`, or `.neg_dif.dz` by filter type
+  (the GUI "Save DB as" naming).
 
-The resulting database is marked with one of three longitudinal kinds
-(matching `--filter_type` 0/1/2: unfiltered, increase-only, or decrease-only)
-and cannot be re-differenced (`--match` again on it fails). Feed it to
-`--action=cnt` as `--source`; `get_demo` (section 2 below) reports which kind
-is currently loaded. `--voi=longitudinal` (equivalently `Intercept`) tests whether a change
-exists at all, pooling every subject in the (possibly cohort-filtered)
-database; `--voi=<a demographics column, e.g. group>` instead tests whether
-the *amount* of change differs between groups -- see 1.3.
+The result is marked unfiltered, increase-only, or decrease-only (filter 0/1/2), cannot be
+re-differenced (`--match` on it fails), and is passed to `--action=cnt` as `--source`; `get_demo` reports
+its kind. `--voi=longitudinal` (equivalently `Intercept`) tests whether change exists, pooling every
+(cohort-filtered) subject; `--voi=<a demographics column, e.g. group>` tests whether the *amount* of
+change differs between groups.
 
-### 1.3 Two-phase strategy for a longitudinal group comparison
+### 1.3 Two-phase longitudinal group comparison
 
-To answer "did the patient group decline more than the control group"
-(or any longitudinal group-difference question), build and test in two
-separate steps rather than jumping straight to a group comparison:
+For "did the patients decline more than controls":
 
-1. **Confirm a real change exists first, within just the affected group.**
-   Build the longitudinal database once with the default `--filter_type=0`
-   (signed change, both directions kept). Cohort-filter to the group
-   expected to change (`--select`/`select_text`, e.g. `group=0`) and test
-   `--voi=longitudinal` there -- this asks "does this group show a
-   significant nonzero change at all," ignoring the comparison group
-   entirely. If nothing is found, a downstream group-difference test on the
-   same data is unlikely to be meaningful; stop here rather than proceeding
-   to step 2.
-2. **Isolate the direction the hypothesis predicts, then compare groups.**
-   Rebuild the longitudinal database with the filter matching that
-   direction -- `--filter_type=2` for a metric expected to *decrease*
-   (e.g. a neuronal-injury hypothesis), `--filter_type=1` for one expected
-   to *increase*. Each subject's per-voxel value is now a positive
-   magnitude of change in that one direction (0 if they went the other
-   way or didn't change). Test `--voi=group` (not `longitudinal`) on this
-   filtered database, with the full (unfiltered-by-cohort) subject set --
-   a significant `hypothesis_inc`/`hypothesis_dec` finding now means one
-   group's magnitude of change in that direction exceeds the other's, not
-   merely that change occurred.
+1. **Confirm change exists in the affected group.** Build with `--filter_type=0`, cohort-filter to that
+   group (`--select`/`select_text`, e.g. `group=0`), and test `--voi=longitudinal`. If nothing is found,
+   stop: a group-difference test is unlikely to be meaningful.
+2. **Isolate the predicted direction, then compare groups.** Rebuild with `--filter_type=2` (metric
+   expected to *decrease*, e.g. neuronal injury) or `1` (*increase*), so each voxel is a positive
+   magnitude of change in that direction (0 otherwise), and test `--voi=group` (not `longitudinal`) on
+   the full, cohort-unfiltered set. A significant `hypothesis_inc`/`hypothesis_dec` then means one
+   group's change in that direction exceeds the other's, not merely that change occurred.
 
 ### 2. Define the analysis
 
-- `--index_name` selects the scalar metric to study (e.g. `qa`, `rdi`);
-  defaults to the first index stored in the database. `qa` and `dti_fa` are
-  the two most commonly tested metrics -- consider running both rather than
-  just one, since they can be differentially sensitive (e.g. `dti_fa` is
-  often more sensitive to neuronal injury than `qa`). When studying `qa` (or
-  another anisotropy-type metric: `rdi`, `nrdi*`), leave `--normalize_iso`
-  at its default (on) -- it corrects a between-scan/between-scanner
-  intensity-consistency issue `qa` is otherwise sensitive to. `dti_fa` does
-  not need it.
-- `--voi` is the variable of interest — the feature index (or the literal
-  string `Intercept`/`longitudinal` for a longitudinal database) whose
-  correlation with the metric is being tested.
-- `--variable_list` is the comma-separated set of feature indices to include
-  as covariates in the partial correlation (confounders to control for, plus
-  the variable of interest itself). Choice of covariates needs deliberate
-  consideration, not a default checklist -- age and sex are the usual
-  baseline when either varies meaningfully across the cohort. For a
-  multi-site dataset, also consider a `site` covariate (encoded as a 0/1, or
-  more, categorical demographics column) to control for scanner/site
-  effects. For a **longitudinal** database specifically, also consider the
-  inter-scan interval (e.g. a `days_interval_between_ses1_and_ses2`-style
-  column, if present) as a covariate -- a longer gap between scans plausibly
-  produces more change on its own, independent of group membership.
+- `--index_name`: the metric (e.g. `qa`, `rdi`; default the database's first index). `qa` and `dti_fa`
+  are the most tested: consider both, as they differ in sensitivity (`dti_fa` is often more sensitive to
+  neuronal injury). Keep `--normalize_iso` on (default) for `qa` and other anisotropy-type metrics
+  (`rdi`, `nrdi*`), which correct a between-scan/scanner intensity issue; `dti_fa` does not need it.
+- `--voi`: the variable of interest (feature index, or literal `Intercept`/`longitudinal` for a
+  longitudinal database).
+- `--variable_list`: comma-separated feature indices for the partial correlation (covariates plus the
+  variable of interest). Choose deliberately: age and sex when they vary meaningfully; a `site` covariate
+  (0/1 or more categories) for multi-site data; for a **longitudinal** database the inter-scan interval
+  (e.g. a `days_interval_between_ses1_and_ses2`-style column), since longer gaps plausibly mean more
+  change.
 
-Do not guess feature indices for the CLI's `--voi`/`--variable_list`; they
-come from the demographics file's column order as loaded into the database.
-Confirm them before running rather than assuming a fixed layout across
-studies. Before running, explicitly re-list every available demographics
-column (`get_demo`, or the CLI's own printed `selectable variables include`
-list) and deliberately decide for each one whether it belongs in the
-covariate set -- do not stop at the first plausible-looking subset (e.g.
-age+sex) without checking what else the demographics table actually offers.
+Indices follow the demographics column order loaded into the database: never guess them. Before running,
+re-list every column (`get_demo`, or the CLI's printed `selectable variables include` list) and decide
+for each whether it is a covariate; don't stop at a plausible subset such as age+sex.
 
-In a `connectometry<hex>` session, the equivalent of `--voi`/`--variable_list`
-is one command, `set_voi <voi> <variable_list>`, and it takes feature **names**
-instead of indices (an index still works, matched the same way `hub_open`/
-`hub_show` accept either a row index or an exact name):
+In a session, `set_voi <voi> <variable_list>` replaces both flags and accepts feature **names** or
+indices (matched like `hub_open`/`hub_show` rows/names). `list_voi` prints `index\tname\tselected`: read
+it first. The second argument is the full set (the variable of interest is added if omitted), and
+`set_voi` clears earlier selections (not additive). A categorical column's name embeds its encoding,
+e.g. `group(0=SCA2 1=CONTROL)`, so a bare `"group"` fails with `invalid variable of interest: group`:
+prefer `list_voi` indices for categorical variables (continuous names are usually safe verbatim):
 
 ```bash
 bash ./dsi.sh list_voi
-bash ./dsi.sh set_voi "group" "group,age_exam_ses01,gender"
+bash ./dsi.sh set_voi 0 "0,1,2"                           # categorical study variable by index
+bash ./dsi.sh set_voi "age_exam_ses01" "age_exam_ses01,2"  # a continuous variable by name
 ```
 
-`list_voi` prints every available feature with its current selected state
-(`index\tname\tselected`) -- read this first rather than guessing names, the
-same caution as the CLI's indices. `set_voi`'s second argument is the full set
-of variables to include (covariates plus the variable of interest itself, same
-convention as `--variable_list`); the variable of interest is added
-automatically if omitted from it. `set_voi` clears any previously selected
-variables before applying the new set -- it is not additive. `get_demo` first
-prints a `database type:` line -- `cross-sectional (not longitudinal)`,
-`longitudinal, unfiltered (signed scan2-scan1 change)`, `longitudinal,
-increase-only (positive magnitude, scan2>scan1 kept)`, or `longitudinal,
-decrease-only (positive magnitude, scan2<scan1 kept)` -- then the raw
-per-subject demographics table (`subject<TAB><column>...`) actually loaded
-into the database. Use it to confirm exact column names and values (including
-any subject-name rematching) before calling `set_voi`, and to confirm which
-of the four database kinds is currently loaded without re-deriving it from
-whichever `--match`/`--filter_type` built it.
+`get_demo` first prints `database type:` (`cross-sectional (not longitudinal)`,
+`longitudinal, unfiltered (signed scan2-scan1 change)`, `longitudinal, increase-only (positive magnitude,
+scan2>scan1 kept)`, or `longitudinal, decrease-only (positive magnitude, scan2<scan1 kept)`), then the
+loaded per-subject table (`subject<TAB><column>...`). Use it to confirm column names and values
+(including subject-name rematching) before `set_voi`, and the database kind without re-deriving it.
 
 ### 3. Select the cohort
 
-An optional filter narrows which subjects are included. Use `--select` in the CLI.
-In a `connectometry<hex>` session, set the `select_text` parameter directly or use
-`apply_selection` to append a clause, then call `show_cohort` to apply and inspect the
-selection. (`select_cohort` is an internal model operation, not a session command.)
-The clause syntax is comma-separated `name<op>value` terms, where
-`<op>` is one of `=` (equal), `>` (greater), `<` (less), or `/` (not equal —
-shown as "≠" in the GUI but sent as the literal `/` character):
+CLI `--select`; in a session set `select_text` or append a clause with `apply_selection`, then
+`show_cohort` to apply and inspect (`select_cohort` is internal, not a command). Clauses are
+comma-separated `name<op>value` with `=`, `>`, `<`, or `/` (not equal; shown "≠" but sent as `/`), e.g.
+`age>40,sex=1`. A categorical column needs its full `list_voi`/`get_demo` name, e.g.
+`group(0=SCA2 1=CONTROL)=0` (bare `group=0` fails with "cannot parse selection text"). `subject` filters
+by name substring (`>`/`<` mean contains/does-not-contain); `value` applies to every selected feature;
+numeric comparisons use 3-decimal precision. Always confirm the resulting `n=`: too few subjects
+invalidate the permutation test.
 
-```text
-age>40,sex=1
-```
+### 4. Propagation threshold and FDR (independent controls)
 
-A clause named `subject` filters by subject-name substring instead of a
-numeric comparison (`>`/`<` become contains/does-not-contain for that one
-case). A clause named `value` applies the comparison to every currently
-selected feature at once rather than one named feature. Numeric comparisons
-are evaluated at 3-decimal precision.
+- **Propagation threshold** (`--t_threshold` or `--effect_size`, related by `rho = t / sqrt(t² + n - 2)`;
+  setting one overwrites the other): per-voxel correlation needed to extend a streamline. Default effect
+  size `0.3` in the CLI (`cmd/cnt.cpp`, when `--t_threshold` is absent) and GUI (`group_connectometry`
+  constructor). Prefer `effect_size` to a fixed t, whose meaning shifts with sample size, and confirm the
+  current value (`list_param effect_size`) since earlier commands (yours or a local user's) may have
+  changed it. A low threshold never "recovers" a null result: it changes valid steps, not significance.
+  Running a small range (e.g. `0.2`, `0.3`, `0.4`) and reporting how extent changes separates threshold
+  artifacts from robust findings.
+- **`--fdr_threshold`** selects the reported track length after the run. At default `0.0` (disabled) a
+  fixed `--length_threshold` (voxels) truncates results and the report states whatever FDR resulted.
 
-Always confirm the resulting subject count (`n=`) before running — too few
-subjects after filtering invalidates the permutation test.
+### 5. Region constraints (optional, discouraged)
 
-### 4. Set the propagation threshold and the FDR criterion
-
-These are two independent controls, not one:
-
-- **Propagation threshold** (`--t_threshold` or `--effect_size`, mutually
-  derived from each other via `rho = t / sqrt(t² + n - 2)`): the per-voxel
-  correlation strength required to keep extending a streamline during
-  tracking. Default effect size `0.3` in both the CLI (`cmd/cnt.cpp`, used
-  whenever `--t_threshold` is not explicitly passed) and the GUI (set in
-  `group_connectometry`'s constructor) -- prefer setting `effect_size`
-  directly rather than a fixed `t_threshold`/`threshold`, since a t-value's
-  meaning shifts with sample size (see below). This is only the *default*,
-  though -- a prior command in the same session (yours or a local user's) may
-  have already changed it, so confirm the current value (`list_param
-  effect_size` in a `connectometry<hex>` session) rather than assuming it is
-  still `0.3` before running.
-- **`--fdr_threshold`**: the false-discovery-rate criterion used to select
-  the reported track length **after** the permutation run finishes. If left
-  at the default `0.0` (disabled), a fixed `--length_threshold` (voxels) is
-  used to truncate results instead, and the report states whatever FDR value
-  happened to result at that length rather than enforcing one.
-
-Do not treat a low `t_threshold` as a way to "recover" a null result — it
-changes what counts as a valid streamline step, not the significance of the
-overall finding.
-
-Rather than committing to one `effect_size`/`t_threshold` value, running the
-same analysis across a small range (e.g. `0.2`, `0.3`, `0.4`) and reporting
-how the finding's extent changes across it usually gives a more complete and
-more defensible picture than a single threshold — particularly useful for
-telling a threshold artifact apart from a robust finding.
-
-### 5. Configure region constraints (optional, generally discouraged)
-
-If no ROI/seed is specified, the whole brain is seeded automatically — this
-is the recommended default, not just the fallback. Constraining seeding to
-an ROI at run time usually yields far fewer significant findings than a
-whole-brain search, partly because it also shrinks the null-distribution
-sample the permutation test itself builds from. Prefer running whole-brain
-and filtering the resulting inc/dec tract files to a region of interest
-**after** the run (post-hoc, e.g. loading them into a tracking window and
-applying region filters there) over constraining seeding directly. Reserve
-the seeding-time ROI flags (same as fiber tracking: `--roi`, `--roi2`..
-`--roi5`, `--roa`..`--roa5`, `--seed`, `--end`, `--end2`, `--ter`..`--ter5`,
-`--nend`, `--lim`, or atlas-based `--track_id`/`--use_roi`/`--tolerance`)
-for a specific, strong anatomical hypothesis that justifies narrowing the
-search itself. `--exclude_cb` removes the cerebellum from consideration
-before seeding and is a narrower, usually-safer exclusion than a positive
-ROI constraint.
+Whole-brain seeding (no ROI/seed) is the recommended default. Seeding-time ROIs usually yield far fewer
+findings, partly by shrinking the permutation null sample; prefer running whole-brain and filtering the
+inc/dec tracts to a region afterwards (e.g. in a tracking window). Reserve the seeding flags (as in
+fiber tracking: `--roi`, `--roi2`..`--roi5`, `--roa`..`--roa5`, `--seed`, `--end`, `--end2`,
+`--ter`..`--ter5`, `--nend`, `--lim`, or atlas-based `--track_id`/`--use_roi`/`--tolerance`) for a strong
+anatomical hypothesis. `--exclude_cb` (remove the cerebellum before seeding) is a narrower, usually safer
+exclusion.
 
 ### Pre-run checklist
 
-Before calling `run`/`--action=cnt`, explicitly re-confirm every item below
-rather than assuming a value is still what you last set or what the default
-should be -- a stale parameter left over from an earlier command (yours or a
-local user's) is easy to miss and will not raise an error:
+Re-confirm each item before `run`/`--action=cnt`; stale values from earlier commands raise no error:
 
-- **Database kind** (`get_demo`'s `database type:` line) matches what this
-  step of the analysis needs -- e.g. not accidentally running a
-  cross-sectional test on a longitudinal database or vice versa.
-- **`index_name`** is the intended metric (`list_param index_name`), not
-  whatever the database's first index happened to default to.
-- **`voi`** (`list_voi`) is the intended variable of interest, not left over
-  from a previous analysis on the same window.
-- **`variable_list`/covariates** were chosen deliberately by reviewing *every*
-  available demographics column (`get_demo`), not just the first
-  plausible-looking subset -- age/sex is a starting point, not the ceiling;
-  also check for site, scan-interval, or other columns relevant to this
-  specific dataset.
-- **Cohort filter** (`select_text`/`show_cohort`) and the resulting `n=` are
-  what this step intends -- cleared for a full-cohort comparison, or set for
-  a cohort-restricted step, per whichever phase of the analysis this is.
-- **`effect_size`/`threshold`** (`list_param effect_size`) is deliberately
-  set, not a stale value from a prior command -- prefer `effect_size=0.3` as
-  the default starting point rather than a fixed `t_threshold`.
-- **FDR criterion** (`fdr_control`/`fdr_threshold`) is configured as intended
-  for this run, not left at whatever a previous run used.
-- **ROI/seed constraints** are whole-brain unless there's a specific,
-  deliberate reason to narrow them (see above).
+- **Database kind** (`get_demo` `database type:`) fits this step (not cross-sectional vs longitudinal by
+  accident).
+- **`index_name`** (`list_param index_name`) is intended, not the first-index default.
+- **`voi`** (`list_voi`) is not left over from a previous analysis.
+- **Covariates** reviewed against *every* `get_demo` column (age/sex is a start, not the ceiling; check
+  site, scan interval, and dataset-specific columns).
+- **Cohort filter** (`select_text`/`show_cohort`) and `n=` match this phase (cleared for full-cohort,
+  set for a restricted step).
+- **`effect_size`/`threshold`** (`list_param effect_size`) deliberately set; start at `effect_size=0.3`.
+- **FDR** (`fdr_control`/`fdr_threshold`) set for this run.
+- **ROI/seed** whole-brain unless deliberately narrowed.
 
-### 6. Run and interpret increase/decrease
+### 6. Run and interpret
 
-The permutation run produces two independent results, `hypothesis_inc` and
-`hypothesis_dec`, from the sign of each voxel's regression T-statistic:
-"increase" means the metric is positively associated with the variable of
-interest (or increases over time, for a longitudinal/intercept study);
-"decrease" means the opposite. These are separate pathway sets with
-separate tract counts — report both, not just whichever is larger.
+The run yields independent `hypothesis_inc` and `hypothesis_dec` from the sign of each voxel's
+regression T-statistic: "increase" = positive association with the variable (or increase over time for
+longitudinal/intercept), "decrease" the opposite. Report both, with their separate tract counts. Report
+wording (`get_result`, HTML report, `show_result`):
 
-The report's actual wording (`get_result`, or the HTML report/`show_result`)
-depends on what is being tested:
+- `longitudinal`/`Intercept` (1.3 phase 1): "increased `<METRIC>`" / "decreased `<METRIC>`", the signed
+  change pooled over subjects.
+- Categorical variable (e.g. `group`) on a **cross-sectional** or **unfiltered-longitudinal** database:
+  each hypothesis names one level with the **same** word, e.g. "higher `<METRIC>` in CONTROL" / "higher
+  `<METRIC>` in SCA2"; "increased"/"decreased" would misdescribe a between-group comparison.
+- Categorical variable on a **filtered-longitudinal** database (`--filter_type=1`/`2`, already a positive
+  magnitude): "more `<METRIC>` increase over time in `<group>`" / "more `<METRIC>` decline over time in
+  `<group>`", again the same word ("more") naming different groups. "less `<METRIC>` decline in X" would
+  restate the other hypothesis as if separate: a regression of a known-fixed bug, not a finding.
 
-- Testing `longitudinal`/`Intercept` (phase 1 of 1.3): "increased `<METRIC>`"
-  / "decreased `<METRIC>`", describing the raw signed change directly across
-  all subjects pooled together.
-- Testing a named categorical variable (e.g. `group`) against a
-  **cross-sectional** or **unfiltered-longitudinal** metric: each hypothesis
-  names one specific level of the variable, but both use the **same**
-  comparative word — e.g. "higher `<METRIC>` in CONTROL" / "higher `<METRIC>`
-  in SCA2" — because only the named group differs, not the direction of the
-  underlying comparison. Do not expect "increased"/"decreased" here; that
-  wording would misdescribe a between-group comparison.
-- Testing a named categorical variable on a **filtered-longitudinal**
-  database (`--filter_type=1`/`2`): the metric is already a positive
-  magnitude of change (see 1.2), so the report instead says "more `<METRIC>`
-  increase over time in `<group>`" / "more `<METRIC>` decline over time
-  in `<group>`" — again the **same** word ("more") for both hypotheses, each
-  naming a different group. A finding worded as "less `<METRIC>` decline in
-  X" would be a bug (it restates the other hypothesis's finding, "more
-  decline in the other group", as if it were its own separate result) —
-  confirmed against a real regression during development; if this wording
-  reappears, it indicates the fix regressed.
+A paragraph says "significantly" only when that side's FDR is strictly below `0.05`, regardless of
+`--fdr_threshold`; a finding under a more lenient search threshold is still shown with its FDR, without
+that word. `--tip_iteration` (default 16) prunes both result sets and their null distributions before
+FDR; `--region_pruning` (default on) adds topology-based cleanup afterwards.
 
-Each finding's paragraph states "significantly" only when that side's FDR is
-strictly below `0.05`, independent of whatever `--fdr_threshold` was
-configured for the search itself — a finding can still be reported (tracts
-shown, FDR value stated) without the word "significantly" if its FDR sits
-above `0.05` but below whatever more lenient threshold was in effect for the
-search.
+### 7. Validate before reporting
 
-`--tip_iteration` (default 16) applies topology-informed pruning to both
-result sets and their null distributions before FDR is computed;
-`--region_pruning` (default on) applies additional topology-based cleanup
-after that.
+- Check inc and dec tract counts at the reported FDR/length; near zero on one side is a valid "no
+  finding."
+- Check anatomical location: a plausible shape in an implausible place is suspect.
+- Re-examine covariates: an unadjusted confound can create a spurious pathway.
+- Confirm `--normalize_iso` (default on when applicable, for `qa`, `rdi`, `nrdi*`) matches the intended
+  analysis.
+- For a longitudinal group finding (1.3 phase 2), check the **cross-sectional** baseline at that
+  location. A site already lesioned in the affected group may sit near its floor, capping further
+  decline, while the unaffected group still declines normally (e.g. aging), producing "more decline in
+  the unaffected group at the lesion site." Seen live: SCA2-vs-control DTI_FA showed significantly more
+  decline in CONTROL at SCA2's known lesion sites, plus an independent finding of more decline in SCA2
+  elsewhere; both are real permutation results, but the first must be read against SCA2's already-low
+  baseline, not as controls declining unusually fast.
 
-### 7. Validate before reporting a finding
+### 8. Post-hoc anatomy and tract volume
 
-- Check the resulting tract count for both increase and decrease at the
-  reported FDR/length — a near-zero count on one side is a valid "no
-  finding" result, not an error.
-- Inspect where the significant pathways are anatomically; a plausible-shaped
-  bundle in an implausible location is still suspect.
-- Re-examine the covariate list: an unadjusted confound can produce a
-  spuriously "significant" pathway.
-- `--normalize_iso` (default on when applicable) divides an anisotropy-type
-  metric (`qa`, `rdi`, `nrdi*`) by the subject's isotropic diffusion map
-  before regression; confirm this matches the intended analysis rather than
-  leaving it at whatever the default happens to be for the chosen metric.
-- For a longitudinal group-comparison finding (1.3 phase 2), check the
-  **cross-sectional** baseline at that same location before concluding one
-  group is declining more. A location already lesioned in the affected group
-  can have a baseline metric near its floor there; further decline gets
-  capped by that floor (there is little left to lose), while the unaffected
-  group, starting higher, still has room for ordinary decline (e.g. aging).
-  The result reads as "more decline in the unaffected group at the lesion
-  site" — not because that group is deteriorating faster in any meaningful
-  sense, but because the affected group's baseline had already bottomed out
-  before this study began. Confirmed as a live example: an SCA2-vs-control
-  DTI_FA comparison found significantly more decline in CONTROL specifically
-  at locations that are SCA2's known lesion sites, alongside a separate,
-  independent significant finding of more decline in SCA2 elsewhere -- both
-  are real permutation-test results, but the first should be read against
-  SCA2's already-low cross-sectional baseline there, not taken at face value
-  as controls declining unusually fast.
-
-### 8. Post-hoc anatomical characterization and tract volume
-
-After a statistically supported connectometry result is produced, characterize
-the significant tract set **post hoc** in the result tracking window rather
-than trying to infer pathway names from appearance alone. `show_result` opens
-or exposes the result tractogram in a `tracking<hex>` window; use `list_window`
-to identify that window and confirm which tract index corresponds to the
-reported increase/decrease finding before computing statistics.
-
-First quantify the result tractogram itself:
+Characterize a supported result **post hoc** in its result tracking window instead of naming pathways by
+appearance. `show_result` opens or exposes the tractogram in a `tracking<hex>` window; find it with
+`list_window` and confirm which tract index is the reported inc/dec finding.
 
 ```bash
 bash ./dsi.sh show_tract_statistics
+bash ./dsi.sh show_tract_overlap_statistics 0 HCP842_tractography
+bash ./dsi.sh show_tract_overlap_statistics 0 BrainSeg
 ```
 
-`show_tract_statistics` reports the streamline count and spatial tract volume
-(in mm^3), along with length/surface statistics and, when a connectometry
-database is attached, the per-subject mean values for each stored metric.
-Treat this volume as the **spatial volume occupied by the significant group-level
-tractogram**. It is not a lesion volume, not a sum of subject-specific lesion
-volumes, and not a subject-average volume.
+`show_tract_statistics` gives streamline count, spatial volume (mm^3), length/surface statistics, and,
+with a database attached, per-subject means per metric. That volume is the **space occupied by the
+significant group-level tractogram**, not a lesion volume, a sum of subject lesions, or a subject
+average. `show_tract_overlap_statistics <tract-index> <atlas-name>` lists intersected labels with voxel
+counts, overlap volume (mm^3), centers/bounding boxes, and per-subject metric summaries: use a tract
+atlas (`HCP842_tractography`) for named pathways and `BrainSeg` for structures such as cerebellum,
+thalamus, red nucleus, and white matter. Prefer this when automatic recognition fails or the result is
+distributed; never force one label because a pathway looks dominant.
 
-Then identify the involved pathways by atlas overlap. For example:
-
-```text
-show_tract_overlap_statistics 0 HCP842_tractography
-show_tract_overlap_statistics 0 BrainSeg
-```
-
-`show_tract_overlap_statistics <tract-index> <atlas-name>` returns the atlas
-labels intersected by the selected tract set, including voxel counts, overlap
-volume (mm^3), centers/bounding boxes, and per-subject metric summaries.
-Use a tract atlas such as `HCP842_tractography` for named white-matter pathways
-and a broader anatomical atlas such as `BrainSeg` to summarize structures such
-as cerebellum, thalamus, red nucleus, and white matter.
-
-This overlap-based approach is preferred when automatic tract recognition
-fails or when a connectometry result is spatially distributed across several
-systems. Do not force a single tract label onto a distributed significant
-tractogram just because one named pathway appears visually dominant.
-
-Important interpretation rules:
-
-- Atlas-overlap volumes are **not mutually exclusive**. Atlas pathways overlap
-  each other spatially, so their reported volumes can sum to more than the
-  tractogram's own `show_tract_statistics` volume. Do not add them as if they
-  were disjoint components.
-- Report the tractogram's own volume separately from the atlas-overlap volumes.
-- Atlas overlap is descriptive post-hoc anatomy; it is not a second inferential
-  test and does not change the permutation/FDR significance of the original
-  connectometry result.
-- Perform this characterization only for the statistically supported result
-  side(s), and keep the original direction explicit (e.g. "higher DTI_FA in
-  CONTROL", hence lower DTI_FA in SCA2).
-- If the tract atlas gives many small labels, summarize the dominant systems
-  first and retain the detailed overlap table for reproducibility.
-
-A useful reporting pattern is:
+- Atlas-overlap volumes are **not mutually exclusive** and can sum past the tractogram volume; never add
+  them, and report the tractogram volume separately.
+- Overlap is descriptive anatomy, not a second test; it does not change permutation/FDR significance.
+- Characterize only supported side(s) and keep the direction explicit (e.g. "higher DTI_FA in CONTROL",
+  hence lower DTI_FA in SCA2).
+- With many small labels, summarize dominant systems and keep the full table for reproducibility.
 
 ```text
 The significant tractogram occupied <V> mm^3. Post-hoc HCP842 overlap showed
@@ -591,70 +308,53 @@ the finding mainly to <major structures>. Atlas-overlap volumes are
 non-additive because atlas labels overlap spatially.
 ```
 
-### 9. Save and, if needed, visualize
+### 9. Save and visualize
 
-`--output` sets the result file-name prefix; if omitted, an
-automatically generated suffix is used. With `--no_tractogram=0` (GUI
-default; forced to `1`, i.e. disabled, in a headless CLI run unless the
-process keeps its GUI event loop), DSI Studio additionally opens a hidden
-tracking window on the result and saves inc/dec bundle screenshots and an
-HTML report alongside the tract files.
+`--output` sets the file prefix (omitted: an automatic suffix). With `--no_tractogram=0` (GUI default;
+forced to `1`, disabled, in a headless CLI run unless the process keeps its GUI event loop), DSI Studio
+also opens a hidden tracking window and saves inc/dec screenshots and an HTML report beside the tracts.
 
-## Common Failures
+## Common failures
 
 | Observation | Check first |
 |---|---|
-| Zero subjects after cohort selection | Clause syntax, operator character, and feature/column name spelling |
-| Result looks identical regardless of threshold | Confirm `t_threshold`/`effect_size` are not both being set (they overwrite each other) |
-| "Significant" pathway with no plausible anatomy | Unadjusted covariates, database space/registration, or too few subjects |
-| Increase and decrease both empty | Cohort too small, effect too weak, or covariate list absorbing the true effect |
-| FDR looks arbitrary/unstable | `fdr_threshold=0` uses a fixed length instead of an FDR criterion — set an explicit `fdr_threshold` if a controlled FDR is required |
-| Database load fails | Subjects not all reconstructed in the same template space, or `.dz` built from mismatched index sets |
-| Region/tract statistics show only one database metric | Both `show_region_statistics` and `show_tract_statistics` should iterate every stored database metric; a single-metric result indicates a build that predates this fix |
-| Follow-up command to the connectometry window seems ignored or errors | Confirm the window ID via `list_window` (`connectometry<hex>`) and that its status is `idle`, not `busy`, before sending the next command |
-| `set_voi` fails with "invalid variable" | Run `list_voi` first and use one of the exact `name` values (or its `index`), not a guessed demographics-file column name |
-| Result seems to ignore a covariate | `set_voi`'s variable list is a full replacement, not additive to whatever was selected before -- include every variable (covariates plus the variable of interest) in the same call |
-| `select_text`/cohort clause fails with "cannot parse selection text" for a categorical column | Same annotation gotcha as `set_voi` -- a categorical column's clause must use its full `list_voi`/`get_demo` name including the value encoding (e.g. `group(0=SCA2 1=CONTROL)=0`, not bare `group=0`) |
-| Automatic tract recognition fails on a distributed connectometry result | Use `show_tract_overlap_statistics` with a tract atlas (e.g. `HCP842_tractography`) and a structural atlas (e.g. `BrainSeg`) instead of forcing one tract label |
-| Atlas-overlap volumes sum to more than the tractogram volume | Expected: atlas labels overlap spatially. Use `show_tract_statistics` for total tractogram volume and treat overlap volumes as non-additive |
-| Report finding worded "less `<METRIC>` decline/increase in `<group>`" | This restates the other hypothesis's own finding ("more ... in the other group") rather than an independent result -- both hypotheses on a filtered-longitudinal categorical comparison must use the same comparative word ("more"), just naming different groups; if "less" appears, treat it as a regression of a known-fixed bug, not a real finding |
+| Zero subjects after selection | Clause syntax, operator character, column spelling (categorical: full encoded name) |
+| Result identical across thresholds | `t_threshold` and `effect_size` both set (they overwrite each other) |
+| "Significant" pathway with implausible anatomy | Unadjusted covariates, database space/registration, too few subjects |
+| Increase and decrease both empty | Cohort too small, weak effect, or covariates absorbing it |
+| FDR arbitrary/unstable | `fdr_threshold=0` uses fixed length; set an explicit `fdr_threshold` |
+| Database load fails | Mixed template spaces, or `.dz` built from mismatched index sets |
+| Region/tract statistics show one database metric | Both should iterate every stored metric; a build predating this fix |
+| Connectometry command ignored or errors | `list_window`: right `connectometry<hex>` ID and `idle`, not `busy` |
+| `set_voi` "invalid variable" | Use an exact `list_voi` `name` or its `index` |
+| Covariate seemingly ignored | `set_voi` replaces the whole set; pass every variable in one call |
+| "cannot parse selection text" on a categorical column | Full encoded name, e.g. `group(0=SCA2 1=CONTROL)=0` |
+| Recognition fails on a distributed result | `show_tract_overlap_statistics` with `HCP842_tractography` and `BrainSeg` |
+| Overlap volumes exceed tractogram volume | Expected (overlapping labels); total volume from `show_tract_statistics` |
+| Finding worded "less `<METRIC>` decline/increase in `<group>`" | Regression of a fixed bug; both hypotheses must say "more", naming different groups |
 
-## Example Commands
-
-Build the database:
+## Example commands
 
 ```bash
+# build the database
 dsi_studio --action=db --source=*.qsdr.fz --demo=participants.tsv --index_name=qa --output=group.dz
-```
-
-Inspect regional metrics across all subjects in the database:
-
-```bash
+# per-subject metrics at a region / along a tract
 bash ./dsi.sh open_fib "group.dz"
 bash ./dsi.sh add_region_from_atlas "0 1 2"
 bash ./dsi.sh show_region_statistics
-```
-
-Inspect along-tract metrics across all subjects in the database instead:
-
-```bash
-bash ./dsi.sh open_fib "group.dz"
 bash ./dsi.sh open_tract "cst.tt.gz"
 bash ./dsi.sh show_tract_statistics
-```
-
-Run a cross-sectional correlation with one variable of interest and two
-covariates, cohort-filtered, with an explicit FDR criterion:
-
-```bash
+# cross-sectional correlation, one variable of interest and two covariates, filtered, explicit FDR
 dsi_studio --action=cnt --source=group.dz --demo=participants.tsv \
   --index_name=qa --variable_list=0,1,2 --voi=1 \
   --select="age>18" --effect_size=0.3 --fdr_threshold=0.05 \
   --tip_iteration=16 --output=age_correlation
+# longitudinal/intercept study
+dsi_studio --action=cnt --source=longitudinal.dz --voi=longitudinal \
+  --variable_list=0 --effect_size=0.3 --output=longitudinal_change
 ```
 
-The same cross-sectional correlation as an interactive `connectometry<hex>`
-session, adjusting for age and sex:
+Interactive equivalent adjusting for age and sex (`0` = study variable `group`, covariates `0,1,2`):
 
 ```bash
 bash ./dsi.sh open_connectometry "group.dz"
@@ -667,55 +367,18 @@ bash ./dsi.sh set_params "effect_size=0.3&fdr_control=1&fdr_threshold=0.05&tip=1
 bash ./dsi.sh run
 ```
 
-`set_voi` used indices here (`0`=study variable `group`, covariates
-`0,1,2`) rather than names: a categorical column's `list_voi` name has its
-value encoding baked in (e.g. `group` shows as `group(0=SCA2 1=CONTROL)`),
-which is easy to mistype or mis-quote as a name -- confirmed live, a bare
-`"group"` fails with `invalid variable of interest: group`. Prefer the
-`index` column from `list_voi` for any categorical variable; a continuous
-variable's name is usually safe to use verbatim. `effect_size` is set here
-rather than a fixed `threshold` (the GUI param id for `t_threshold` --
-`set_param`/`set_params` follow the ids `list_param` reports, not the CLI's
-flag names, and a few differ subtly), consistent with the preference for
-sample-size-independent effect size explained in step 4.
+`set_param`/`set_params` use the ids `list_param` reports, not CLI flag names, and some differ (`tip`
+for `--tip_iteration`, `threshold` for `t_threshold`). Poll `progress` to `finished`, then `get_result`
+(and/or `show_result`); for a significant result continue with step 8. Parameters vary by version;
+prefer commands from the current GUI command history when reproducing an interactive workflow.
 
-`run` starts the permutation asynchronously; poll `progress` until it
-reports `finished`, then `get_result` (and/or `show_result` to visualize).
-For a significant result, continue with the post-hoc workflow in step 8:
-identify the result `tracking<hex>` window, run `show_tract_statistics`, then
-use `show_tract_overlap_statistics` against a tract atlas and a structural
-atlas to characterize anatomy without changing the inferential result.
+## Record for reproducibility
 
-Longitudinal/intercept-style database study:
-
-```bash
-dsi_studio --action=cnt --source=longitudinal.dz --voi=longitudinal \
-  --variable_list=0 --effect_size=0.3 --output=longitudinal_change
-```
-
-Available parameters may vary by version. Prefer commands captured from the
-current GUI command history when reproducing an interactive workflow.
-
-## Record for Reproducibility
-
-Record:
-
-- database file, its subject list, template space, and stored scalar indices;
-- database kind (`get_demo`'s `database type:` line: cross-sectional, or
-  longitudinal unfiltered/increase-only/decrease-only), and for a
-  longitudinal database, the `--match`/`--dif_type`/`--filter_type` used to
-  build it;
-- demographics source and every feature column used;
-- variable of interest and full covariate (`variable_list`) set;
-- cohort-selection clause and resulting subject count;
-- `t_threshold`/`effect_size` (they are the same setting, expressed two ways);
-- `fdr_threshold` or the fallback `length_threshold`, and the FDR/length
-  actually reported;
-- `tip_iteration`, `region_pruning`, `normalize_iso`, `exclude_cb`;
-- ROI/seed constraints, if any;
-- permutation count;
-- increase and decrease tract counts and output file paths;
-- for post-hoc characterization: result direction and tract index/window,
-  tractogram streamline count and total volume from `show_tract_statistics`,
-  atlas name(s), and the dominant non-additive overlap volumes/labels from
-  `show_tract_overlap_statistics`.
+Database file, subject list, template space, stored indices; database kind (`get_demo` `database type:`)
+and, if longitudinal, the `--match`/`--dif_type`/`--filter_type`; demographics source and every column
+used; variable of interest and full `variable_list`; cohort clause and subject count;
+`t_threshold`/`effect_size` (one setting, two forms); `fdr_threshold` or fallback `length_threshold` and
+the FDR/length reported; `tip_iteration`, `region_pruning`, `normalize_iso`, `exclude_cb`; ROI/seed
+constraints; permutation count; inc and dec tract counts and output paths; for post-hoc work, direction,
+tract index/window, streamline count and volume from `show_tract_statistics`, atlas name(s), and the
+dominant non-additive overlap volumes/labels from `show_tract_overlap_statistics`.

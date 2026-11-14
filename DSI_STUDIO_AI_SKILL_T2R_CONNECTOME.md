@@ -1,29 +1,16 @@
 # DSI Studio AI T2R Connectome Workflow
 
-Use this guide for tract-to-region (T2R) analysis, including lesion involvement,
-longitudinal connectivity work, atlas connectivity output, and 3D T2R rendering.
-Read the general tract, region, rendering, slice, and CLI manuals for exact command
-semantics.
+Tract-to-region (T2R) analysis: lesion involvement, longitudinal connectivity, atlas connectivity
+output, and 3D T2R rendering. Exact command semantics are in the tract, region, rendering, slice, and
+CLI manuals; when a manual and the running build disagree, current source behavior and live output win.
 
 ## 1. What interactive T2R measures
 
-`show_t2r` / `save_t2r` operate on the currently checked tract bundles and checked
-regions. For each checked tract bundle, DSI Studio maps the checked regions into the
-FIB diffusion grid, identifies the streamlines that **pass through** each region, and
-runs ordinary tract quantitative statistics on that passing subset.
-
-Consequently, the T2R table's:
-
-```text
-number of tracts
-```
-
-row is the number of streamlines from that tract bundle that intersect each region.
-This is the preferred quantity when the scientific question is, for example, how much
-of a reconstructed pathway passes through a tumor, edema, cavity, or other lesion
-mask.
-
-A typical interactive call is:
+`show_t2r` / `save_t2r` act on the checked tract bundles and checked regions. For each bundle, DSI
+Studio maps the regions into the FIB diffusion grid, finds the streamlines that **pass through** each
+region, and runs ordinary tract statistics on that subset. The table's `number of tracts` row is
+therefore the count of that bundle's streamlines intersecting each region: the preferred quantity for
+how much of a pathway passes through a tumor, edema, cavity, or other lesion mask.
 
 ```bash
 bash ./dsi.sh show_only_tracts "<tract-index-1>&<tract-index-2>&..."
@@ -31,217 +18,105 @@ bash ./dsi.sh show_only_regions "<region-index-1>&<region-index-2>&..."
 bash ./dsi.sh show_t2r
 ```
 
-One `show_t2r` invocation can analyze several checked tract bundles against several
-checked regions. When multiple tracts are checked, the output contains a separate T2R
-table for each tract bundle.
+One call handles several bundles against several regions, giving a separate table per bundle.
 
-### Streamline involvement fraction
+**Streamline involvement fraction.** T2R does not report it; compute
+`T2R "number of tracts" for the region / total bundle streamline count`, taking the denominator from the
+same completed bundle (`list_tract` tract count or `show_tract_statistics` `number of tracts`). A
+streamline crossing several regions counts in each, so fractions over overlapping or adjacent regions
+need not sum to one. The fraction answers: **what fraction of the reconstructed pathway's streamlines
+intersect this region?** Do **not** use the generic T2R `intersect ratio` coverage metric as this
+fraction, and never call the count/fraction an `overlap volume`. Brain-tumor work follows
+`DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md`, which applies this to Enhancing Tumor, Necrosis, Peritumoral
+Edema, and optionally Tumor Core.
 
-T2R does not directly report the fraction of the entire tract bundle that intersects a
-region. Calculate it explicitly:
+## 2. Prefer T2R to `tract_to_region` for statistics
 
-```text
-intersecting streamline count =
-    T2R "number of tracts" for the target region
+T2R works on the original streamlines, maps targets into diffusion space internally, handles many
+bundles and regions in one call, and avoids current-slice voxelization, temporary lesion copies,
+Region-table changes, and mask-to-mask resampling just to count involvement. Use `tract_to_region` only
+when a real tract-derived ROI is needed for visualization, editing, mask operations, or later steps.
 
-total bundle streamline count =
-    list_tract tract count or show_tract_statistics "number of tracts"
+## 3. Text output vs 3D T2R rendering
 
-streamline involvement fraction =
-    intersecting streamline count / total bundle streamline count
-```
-
-Use the total count from the same completed tract bundle as the denominator.
-
-A streamline can pass through more than one checked region and will then contribute to
-each relevant region's count. Fractions across overlapping or adjacent regions are
-therefore not expected to sum to one.
-
-### Do not confuse T2R metrics
-
-`show_t2r` returns all quantitative metrics calculated for each passing-streamline
-subset and also includes generic coverage metrics. For a streamline-involvement
-question:
-
-- use `number of tracts` as the intersecting-streamline count;
-- divide by the total bundle streamline count yourself;
-- do **not** use the generic T2R `intersect ratio` as the streamline fraction;
-- do not describe the resulting count/fraction as an `overlap volume`.
-
-The streamline fraction answers: **what fraction of the reconstructed pathway's
-streamlines intersect this region?**
-
-For brain-tumor workflows, follow
-`DSI_STUDIO_AI_SKILL_BRAIN_TUMOR.md`, which uses this T2R interpretation for
-Enhancing Tumor, Necrosis, Peritumoral Edema, and optionally Tumor Core.
-
-## 2. Why T2R is preferable to tract-to-region conversion for statistics
-
-When only tract-versus-region connectivity is needed, prefer T2R over converting the
-tract into a binary ROI and intersecting masks. T2R:
-
-- operates directly on the original tract streamlines;
-- maps the target regions into diffusion space internally;
-- avoids `tract_to_region` current-slice voxelization;
-- avoids temporary lesion copies and region-table mutations;
-- avoids resampling one binary mask into another merely to count involvement;
-- can analyze several tract bundles and several target regions in one call.
-
-Use `tract_to_region` only when an actual tract-derived ROI object is needed for
-visualization, editing, mask operations, or another downstream purpose.
-
-## 3. Text T2R output and 3D T2R rendering are different operations
-
-`show_t2r` / `save_t2r` calculate the T2R table. They do not by themselves make atlas
-or lesion parcels appear in the 3D OpenGL view.
-
-For a spatial T2R plot, load/show the desired regions and tract, then configure Region
-Rendering so parcel color is driven by the current tract's T2R value. For atlas work,
-a representative sequence is:
+`show_t2r` / `save_t2r` compute the table; they do not show parcels in the 3D view. For a spatial plot,
+load/show the regions and tract and drive parcel color from the tract's T2R values, e.g. for an atlas:
 
 ```bash
 bash ./dsi.sh open_fib "C:/data/subject.qsdr.fz"
 bash ./dsi.sh list_atlas
-bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index>"
+bash ./dsi.sh add_region_from_atlas "<template-index> <atlas-index>"   # every parcel; no guessed label IDs
 bash ./dsi.sh open_tract "C:/data/arcuate.tt.gz"
 bash ./dsi.sh list_param region_rendering
 ```
 
-The two-element `add_region_from_atlas` form adds every parcel from the selected atlas
-and avoids guessing individual label IDs.
-
-## 4. How Region Color selects T2R
-
-The Region Color metric list is constructed from the FIB's native metric list plus one
-final special entry named `current tract`.
-
-Selecting `current tract` causes the region renderer to build a `ConnectivityMatrix`
-for the loaded regions and current tract and use its T2R values as parcel colors.
-
-Therefore:
-
-1. Load/select the tract that should drive the map.
-2. Inspect the live Region Rendering parameter list.
-3. Set Region Color style to **Metrics**.
-4. Set `region_color_metrics` to the final `current tract` entry.
-
-Do not hard-code its numeric index across datasets. The index depends on the native
-FIB metric list and can differ between reconstructions.
-
-When several tracts are loaded, explicitly select/verify the tract whose T2R values
-should color the parcels before saving a figure.
-
-## 5. Region visibility and reproducible rendering
-
-Loading regions into the Region table does not prove they are visible in the 3D
-renderer. Before saving a T2R figure, verify Region Rendering and tract visibility.
-
-A source-verified pattern is:
+The Region Color metric list is the FIB's native metrics plus a final special entry `current tract`;
+selecting it makes the renderer build a `ConnectivityMatrix` for the loaded regions and current tract
+and color parcels by T2R. So: load/select the driving tract (verify it explicitly when several are
+loaded), inspect the live list, set Region Color style to **Metrics**, and set `region_color_metrics`
+to the final `current tract` index. Never hard-code that index: it depends on the FIB's metric list.
 
 ```bash
-bash ./dsi.sh set_params "show_region=2&region_alpha=1&region_color_style=1&region_color_metrics=<current-tract-index>"
+bash ./dsi.sh set_params "show_region=1&region_alpha=1&region_color_style=1&region_color_metrics=<current-tract-index>"
 ```
 
-Use live parameter discovery to verify enum/index meanings. For longitudinal figures,
-use a common color scale rather than silently auto-ranging each session independently.
+Regions in the table are not proof of 3D visibility: verify Region Rendering and tract visibility
+before saving. For longitudinal figures use a common color scale instead of per-session auto-ranging,
+start from an explicit camera (`set_view 0 0`; never omit the third argument, which toggles the flip)
+with identical rotations, save with `save_lr_screen` when requested, and use `preview_screen 3d` only
+for coarse agent-side inspection.
 
-For reproducible pre/post 3D captures, explicitly reset the camera first:
+## 4. AutoTrack/CLI connectivity output
 
-```bash
-bash ./dsi.sh set_view 0 0
-```
-
-Then apply identical rotations in both sessions. Do not omit the third `set_view`
-argument when reproducibility matters because omission toggles the flip state.
-
-Use `save_lr_screen` when a saved 3D tract/region rendering is requested. Use
-`preview_screen 3d` for coarse agent-side inspection, not as a substitute for
-full-resolution visual review.
-
-## 6. AutoTrack/CLI connectivity output
-
-For a reconstructed FIB/FZ file, `run_cli` can run AutoTrack and request atlas
-connectivity at the same time. A representative command is:
+`run_cli` can run AutoTrack on a FIB/FZ and request atlas connectivity together:
 
 ```bash
 bash ./dsi.sh run_cli "--action=atk --source=C:/data/subject.qsdr.fz --track_id=Arcuate --connectivity=HCP-MMP --connectivity_output=matrix --overwrite=1"
 ```
 
-Important behavior:
-
-- A tract identifier such as `Arcuate` may expand into laterality-specific outputs;
-  inspect generated paths rather than assuming one output file.
-- The connectivity matrix is written next to each generated tract in a name such as
-  `<tract>.tt.gz.<atlas>.connectivity.mat`.
-- The saved MAT contains both region-to-region (R2R) and T2R connectivity data.
-
-When tracking already exists and connectivity alone must be regenerated or verified,
-prefer `--action=ana` rather than retracking:
+An identifier such as `Arcuate` may expand into laterality-specific outputs, so inspect the generated
+paths. Each tract gets `<tract>.tt.gz.<atlas>.connectivity.mat`, containing both region-to-region (R2R)
+and T2R data. To regenerate or verify connectivity for existing tracts, use `--action=ana` instead of
+retracking:
 
 ```bash
 bash ./dsi.sh run_cli "--action=ana --source=C:/data/subject.qsdr.fz --tract=C:/data/arcuate.tt.gz --connectivity=HCP-MMP --connectivity_output=matrix"
 ```
 
-## 7. Longitudinal interpretation
+## 5. Longitudinal interpretation
 
-For a longitudinal task, keep the exact subject identifier fixed and verify the exact
-session/age metadata rather than inferring biological age from generic session names.
-Record the exact FIB and tract source for every time point.
+Keep the subject identifier fixed, verify exact session/age metadata (never infer age from generic
+session names), and record the FIB and tract source per time point. For lesion T2R report per session:
+total bundle streamline count, region-intersecting count, and region-intersecting fraction. The
+within-session fraction beats comparing tract-derived voxel volumes but still varies with acquisition,
+reconstruction, registration, anatomical deformation, diffusion signal, tractability, AutoTrack
+tolerance, TIP, and other tracking behavior; never read a change alone as axonal loss or gain. Keep the
+tract definition, rendering scale, and camera recipe identical across sessions for atlas figures.
 
-For lesion T2R, report for each session:
+## 6. Response and state recovery
 
-```text
-total bundle streamline count
-region-intersecting streamline count
-region-intersecting streamline fraction
-```
+AutoTrack and large atlas operations are verbose. A missing or partial Web response is a transport
+problem, not proof of failure: check compact state (`list_window`, `list_tract`, a narrow parameter
+query) before repeating expensive work. If DSI Studio restarted or the tracking window vanished, a
+tracking command may route to `main` and return `unknown command`: `list_window`, reopen/select the
+FIB tracking window, then retry.
 
-The within-session fraction is preferable to comparing tract-derived binary voxel
-volumes, but it is not immune to longitudinal tractography variability. Changes in
-streamline count or fraction can reflect acquisition, reconstruction, registration,
-anatomical deformation, diffusion signal, tractability, AutoTrack tolerance, TIP, or
-other tracking behavior. Do not interpret a longitudinal change as direct axonal loss
-or gain by itself.
+## 7. Recommended workflows
 
-For atlas T2R figures, use the same tract definition, rendering scale, and camera
-recipe across sessions whenever possible.
+**Lesion involvement**
 
-## 8. Response and state-recovery cautions
+1. Finish tractography; every requested bundle is `done`.
+2. `list_tract`: record each bundle's total streamline count.
+3. `list_region`: resolve the exact lesion regions.
+4. `show_only_tracts` (all bundles) and `show_only_regions` (all lesion targets), then one `show_t2r`.
+5. Per tract/region pair record `number of tracts` and compute `intersecting/total`.
+6. Spatial QC with the original tract and lesion regions; no tract-derived ROI is needed.
 
-AutoTrack and large atlas operations can generate verbose output. If a Web response
-is missing or incomplete, treat that as a transport problem rather than proof that
-DSI Studio failed. Verify compact state with commands such as `list_window`,
-`list_tract`, or a narrow parameter query before repeating expensive work.
+**Longitudinal atlas T2R rendering**
 
-If DSI Studio restarts or the tracking window disappears, a later tracking command may
-route to `main` and return `unknown command`. Call `list_window`, reopen/select the
-needed FIB tracking window, and then retry.
-
-## 9. Recommended workflows
-
-### Lesion involvement
-
-1. Complete tractography and verify all requested bundles are `done`.
-2. `list_tract` and record each bundle's total streamline count.
-3. `list_region` and resolve the exact lesion regions.
-4. `show_only_tracts` for all bundles to analyze.
-5. `show_only_regions` for all lesion targets.
-6. Call `show_t2r` once.
-7. For each tract/region pair, record T2R `number of tracts` and calculate
-   `intersecting/total`.
-8. Perform spatial QC with the original tract and lesion regions; no temporary
-   tract-derived ROI is required.
-
-### Longitudinal atlas T2R rendering
-
-1. Verify exact subject/session metadata and FIB paths.
+1. Verify subject/session metadata and FIB paths.
 2. Generate or load the same named tract at each time point.
-3. Generate/verify connectivity with `--action=atk` or `--action=ana` as appropriate.
-4. Load the target atlas and tract for rendering.
-5. Set Region Color -> Metrics -> `current tract` using live parameter discovery.
-6. Verify visibility and use a common color scale.
-7. Reset to the same explicit camera and apply identical rotations.
-8. Save with `save_lr_screen` when requested.
-
-Use current DSI Studio source behavior and live command output as the authority when a
-manual and running build disagree.
+3. Generate/verify connectivity with `--action=atk` or `--action=ana`.
+4. Load the atlas and tract; set Region Color -> Metrics -> `current tract` via live discovery.
+5. Verify visibility and use a common color scale.
+6. Same explicit camera and rotations; `save_lr_screen` when requested.

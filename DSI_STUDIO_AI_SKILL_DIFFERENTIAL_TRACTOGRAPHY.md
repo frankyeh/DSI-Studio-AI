@@ -1,271 +1,130 @@
 # DSI Studio Differential Tractography Guide for AI Agents
 
-Use this guide for differential tractography (dT). It is separate from the general
-fiber-tracking skill because dT adds study-design, spatial-alignment, metric-pairing,
-and differential-threshold requirements that are easy to confuse with ordinary
-tractography.
+Differential tractography (dT) adds study-design, spatial-alignment, metric-pairing, and
+differential-threshold requirements that are easy to confuse with ordinary tractography, so it has its
+own guide. Terminology: https://practicum.labsolver.org/dT.html. Use `bash ./dsi.sh <command>
+[parameters...]` throughout, and always inspect returned names, indices, registration state, and
+tracking output: never infer metric names or `dt_index` values from filenames.
 
-Reference terminology:
+## 1. Types (study design) vs formula
 
-https://practicum.labsolver.org/dT.html
+The practicum Type is the **study design and analysis space**, independent of the formula chosen by
+`dt_threshold_type` ("Type 1" is not formula 1).
 
-Use launcher commands throughout:
-
-```bash
-bash ./dsi.sh <command> [parameters...]
-```
-
-Always inspect DSI Studio's returned names, indices, registration state, and tracking
-output. Do not infer metric names or `dt_index` values from filenames alone.
-
-## 1. Differential tractography types
-
-The practicum Type number describes the **study design and analysis space**. It does
-not describe the mathematical formula selected by `dt_threshold_type`.
-
-| Practicum type | Comparison | Analysis space | Typical reconstruction/tracking framework |
+| Type | Comparison | Space | Typical framework |
 |---|---|---|---|
-| Type 1 | Longitudinal: baseline vs follow-up | Native subject space | GQI baseline FIB |
-| Type 2 | Longitudinal: baseline vs follow-up | Template space | QSDR/template FIB |
-| Type 3 | Cross-sectional: individual vs control reference | Native subject space | GQI subject FIB plus MNI control reference |
-| Type 4 | Cross-sectional: individual/group vs control reference | Template space | QSDR/template space |
+| Type 1 | Longitudinal: baseline vs follow-up | Native subject | GQI baseline FIB |
+| Type 2 | Longitudinal: baseline vs follow-up | Template | QSDR/template FIB |
+| Type 3 | Cross-sectional: individual vs control reference | Native subject | GQI subject FIB plus MNI control reference |
+| Type 4 | Cross-sectional: individual/group vs control reference | Template | QSDR/template space |
 
-Do not interpret "Type 1" as "formula 1" or `dt_threshold_type=1`. The practicum
-type and the formula index are independent concepts.
+Formulas (`dt_threshold_type`): `0` (m1-m2)/m1, `1` (m1-m2)/m2, `2` m1-m2, `3` (m2-m1)/m1,
+`4` (m2-m1)/m2, `5` m2-m1, `6` m1/max(m1), `7` m2/max(m2). For a baseline-normalized decrease, `m1` =
+baseline/control, `m2` = comparison, formula `0` (positive values = decrease); `dt_threshold=0.2` means a
+>20% decrease. Formula `0` is chosen because it is the desired calculation, not because a workflow is
+Type 1.
 
-## 2. Differential formula and metric selection
+## 2. Setting the metrics
 
-The current differential formula ordering is:
+Setting `m1`/`m2` alone tracks nothing: only `run_dif_tracking` applies them (section 6).
 
-```text
-0  (m1-m2)/m1
-1  (m1-m2)/m2
-2  m1-m2
-3  (m2-m1)/m1
-4  (m2-m1)/m2
-5  m2-m1
-6  m1/max(m1)
-7  m2/max(m2)
-```
-
-For a baseline-normalized decrease, use baseline/control as `m1`, the comparison
-scan/subject as `m2`, formula index `0`, and the desired fractional threshold. For
-example, `dt_threshold=0.2` selects a >20% decrease criterion for `(m1-m2)/m1`.
-
-Setting `m1`/`m2` alone does not run differential tracking. Only `run_dif_tracking`
-(not `run_tracking`) actually resolves the current selection into the engine's
-differential-tracking state and tracks with it; see section 7.
-
-There are two supported ways to set the differential metrics.
-
-### 2.1 Preferred agent route: `list_param` + `set_param`
-
-Query the runtime dropdown contents first:
+**Preferred: `list_param` + `set_param`.** dT indices are **not** `list_slice` rows: the dropdown has
+synthetic entries (`zero`, `one`), built-in metrics, and eligible custom slices, e.g. a baseline GQI
+window may report `options: 0=zero, 1=one, 2=qa, 3=qir, 4=dti_fa, ..., 8=followup_dti_fa` (then
+`dt_index1 4`, `dt_index2 8`). Query them each time; never reuse indices from another subject or window.
 
 ```bash
 bash ./dsi.sh list_param dt_index1
 bash ./dsi.sh list_param dt_index2
-```
-
-The returned differential indices are **not the same as `list_slice` row indices**.
-The dT dropdown can contain synthetic entries such as `zero` and `one`, built-in
-metrics, and eligible custom slices.
-
-After identifying the exact current indices:
-
-```bash
 bash ./dsi.sh set_param dt_index1 <m1-index>
 bash ./dsi.sh set_param dt_index2 <m2-index>
 bash ./dsi.sh set_param dt_threshold_type <formula-index>
 bash ./dsi.sh set_param dt_threshold <threshold>
 ```
 
-Never reuse example indices from another subject or tracking window.
+**Exact names: `set_dt_index`.** `bash ./dsi.sh set_dt_index "<m1-name>&<m2-name>" <formula-index>`,
+e.g. `"dti_fa&<exact-followup-slice-name>"`, with names exactly as `list_slice`/`list_param` return them (no guessed abbreviations). It prints the
+differential expression (inspect it) and syncs `dt_index1`/`dt_index2`, so either route can be followed
+by `run_dif_tracking`.
 
-### 2.2 Exact-name route: `set_dt_index`
+## 3. Type 1: longitudinal, native space (GQI)
 
-When the exact metric names are known, use:
-
-```bash
-bash ./dsi.sh set_dt_index "<m1-name>&<m2-name>" <formula-index>
-```
-
-Names must match exactly. Discover them with `list_slice` and/or `list_param`; do not
-guess abbreviations. A successful setup prints the resulting differential expression,
-which should be inspected before tracking. `set_dt_index` also syncs `dt_index1`/
-`dt_index2` to the resolved metrics, so either route can be followed by
-`run_dif_tracking` in section 7.
-
-## 3. Type 1: longitudinal comparison in native space
-
-Type 1 compares baseline and follow-up scans in the baseline subject's native
-diffusion space. Prefer **GQI** reconstruction for both scans.
-
-### 3.1 Preferred workflow
-
-1. Reconstruct baseline and follow-up diffusion data with GQI.
-2. Export the desired scalar metric, commonly `dti_fa`, from the **follow-up** GQI
-   FIB only.
-3. Open the **baseline** `.gqi.fz` as the tracking FIB.
-4. Add the exported follow-up metric as a custom slice.
-5. Wait for rigid-body registration to finish.
-6. Configure `m1`, `m2`, formula, and threshold.
-7. Run differential tractography and verify the result.
-
-The opened baseline GQI FIB already contains its own scalar metrics such as
-`dti_fa`. Do **not** export the baseline metric and add it back as another slice.
-
-If the follow-up metric has not already been exported:
+1. GQI-reconstruct baseline and follow-up.
+2. Export the metric (commonly `dti_fa`) from the **follow-up** FIB only; the baseline FIB already
+   contains its own metrics, so never export and re-add them.
+3. Open the **baseline** `.gqi.fz`, add the follow-up map as a slice, and wait for registration.
+4. Set `m1`=baseline, `m2`=follow-up, formula `0`, threshold; run and verify.
 
 ```bash
 bash ./dsi.sh open_fib "<followup.gqi.fz>"
 bash ./dsi.sh list_slice
 bash ./dsi.sh save_slice_image "<followup_dti_fa.nii.gz>" "dti_fa"
-```
-
-Then open or return to the baseline GQI FIB:
-
-```bash
 bash ./dsi.sh open_fib "<baseline.gqi.fz>"
 bash ./dsi.sh add_slice "<followup_dti_fa.nii.gz>"
-bash ./dsi.sh list_slice
+bash ./dsi.sh list_slice   # poll until the follow-up row is ready, not registering
 ```
 
-`add_slice` applies rigid-body registration to align the follow-up map to the opened
-GQI diffusion space. DSI Studio may perform registration even when matrix size and
-voxel size are identical. Poll `list_slice` until the follow-up row reports `ready`.
-Do not start a dependent dT operation while it reports `registering`.
+`add_slice` rigidly registers the map to the GQI space, even when matrix and voxel sizes match. The
+expected expression is equivalent to `dt metrics:(baseline-followup)/baseline` (with built-in FA:
+`dt metrics:(dti_fa-<followup>)/dti_fa`). Streamline directions
+come from the baseline FIB; the differential metric is an extra termination criterion. Strength: native
+space with only rigid alignment, no nonlinear template-warp differences. Caution: residual inter-scan
+misalignment; inspect the registered map around tissue boundaries, ventricles, lesions, and regions of
+anatomical change.
 
-For a baseline-normalized decrease, set `m1=baseline`, `m2=follow-up`, and formula
-index `0`. A successful setup should report an expression equivalent to:
+## 4. Type 2: longitudinal, template space (QSDR)
 
-```text
-dt metrics:(baseline-followup)/baseline
-```
+QSDR-reconstruct both scans, export the metric from **both** QSDR FIBs, open the template FIB as the
+framework, add both maps as ordinary slices, wait until ready, inspect template alignment, then set
+metrics/formula/threshold and run. (Opening a template FIB with both QSDR maps is Type 2, not Type 1.)
+The result is directly template-referenced and normalization partly absorbs deformation, but
+QSDR/nonlinear misregistration can mimic biological change: inspect both maps against the template near
+boundaries, ventricles, lesions, and atrophy. A plausible tract pattern does not rule out registration
+artifact.
 
-The streamline directions come from the opened baseline FIB; the differential metric
-acts as an additional tracking termination criterion.
+## 5. Type 3: cross-sectional, native space
 
-### 3.2 Type 1 strengths and cautions
+The older connectometry-database approach with age/sex matching is no longer the default (age and sex
+fit scalar metrics poorly and add model assumptions). Use a direct control average, validated in a live
+DSI Studio session:
 
-The main advantage is that the analysis stays in subject/native diffusion space and
-requires only rigid-body alignment of the follow-up scalar map to the baseline. This
-avoids introducing nonlinear template-warp differences into the longitudinal
-comparison.
-
-The main caution is residual inter-scan alignment. Inspect the registered follow-up
-map, particularly around tissue boundaries, ventricles, lesions, and regions with
-substantial anatomical change.
-
-## 4. Type 2: longitudinal comparison in template space
-
-Type 2 compares baseline and follow-up scans in a common template space using
-**QSDR**.
-
-### 4.1 Preferred workflow
-
-1. Run QSDR reconstruction on both baseline and follow-up scans.
-2. Export the desired scalar metric, commonly `dti_fa`, from **both** QSDR FIB files.
-3. Open the template FIB as the tracking framework.
-4. Add the exported baseline and follow-up maps as ordinary slices.
-5. Wait until both maps are ready and inspect their template-space alignment.
-6. Configure the differential metrics, formula, and threshold.
-7. Run and verify differential tractography.
-
-The benefit is that both scans and the tractography framework are in a common
-template space. This makes the result directly template-referenced and normalization
-can partly accommodate longitudinal deformation.
-
-The main weakness is sensitivity to QSDR/nonlinear-normalization misalignment.
-Registration error can produce local scalar differences that look like biological
-change. Carefully inspect both maps against the template, especially near tissue
-boundaries, ventricles, lesions, atrophy, or other deformed anatomy. A plausible
-tract pattern alone does not prove that the differential signal is free of
-registration artifact.
-
-The earlier workflow that opens a template FIB and inserts both baseline and
-follow-up QSDR scalar maps is therefore a valid **Type 2** analysis, not Type 1.
-
-## 5. Type 3: cross-sectional comparison in native space
-
-Type 3 compares an individual subject against a control reference while keeping the
-subject's tractography in native space.
-
-The older approach used a connectometry database with age- and sex-matching. This is
-no longer the preferred default because age and sex alone fit MRI scalar metrics
-poorly and can create unnecessary model assumptions.
-
-The current preferred direction is a direct control-average reference:
-
-1. Export the same scalar metric from control subjects in **QSDR space**.
-2. Average those already-aligned QSDR-space NIfTI maps using DSI Studio's `tmp`
-   command-line action through `run_cli` (one string; the wildcard is expanded by
-   DSI Studio):
+1. Export the metric from controls in **QSDR space** (voxelwise averaging is valid only for
+   QSDR/MNI-aligned maps) and average them with the `tmp` action (one string; DSI Studio expands the
+   wildcard). The output is an MNI-space reference:
 
    ```bash
    bash ./dsi.sh run_cli "--action=tmp --source=<dir>/fa_*.nii.gz --output=<dir>/control_avg_fa.nii.gz"
    ```
 
    Over Web: `{"cmd":"run_cli","param":"--action=tmp --source=<dir>/fa_*.nii.gz --output=<dir>/control_avg_fa.nii.gz"}`.
+2. Confirm the output exists, then `open_fib` the patient `.gqi.fz`.
+3. `list_window`: the tracking title must show the **patient** file (a leftover window, e.g. a
+   control's QSDR FIB, is a common mistake). `hub_open` may download a Fiber Data Hub file without
+   opening it; then `open_fib` the cached path (Hub notes in `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
+4. GQI/native FIB: `add_mni_slice` the average so it is mapped from MNI into native space. (With a
+   QSDR/template FIB it can be a regular slice.)
+5. Poll `list_slice` until that row is `ready`; confirm its name.
+6. `list_param dt_index1` / `dt_index2`; set `m1` (control average), `m2` (patient metric, e.g.
+   `dti_fa`), formula, threshold.
+7. `run_dif_tracking` and check the verification lines (section 6) before polling.
 
-3. The source NIfTI files must already be in QSDR/MNI space; otherwise voxelwise
-   averaging is invalid because the images are not aligned.
-4. The averaged output is therefore an MNI-space control reference.
-5. When the subject tracking FIB is **GQI/native space**, insert this control average
-   as an **MNI slice** using `add_mni_slice`, so DSI Studio maps it from MNI space
-   into the subject's native diffusion space.
-6. When the tracking FIB is **QSDR/template space**, the same MNI-space average can
-   be loaded as a regular slice because the tracking framework is already in the
-   corresponding template space.
+**Type 4** (cross-sectional, template space): QSDR/MNI-aligned metrics with a template-space framework;
+keep the reference and subject/group metrics in one template space and inspect alignment. Expand only
+after a validated worked example exists.
 
-This Type 3 control-average workflow has been validated in a live DSI Studio session.
-
-### 5.1 Type 3 checklist
-
-Run these steps in order and verify each one before the next:
-
-1. Build the control average with `run_cli` (step 2 above) and confirm the output file exists.
-2. Open the patient `.gqi.fz` with `open_fib`.
-3. Run `list_window` and confirm the tracking window title shows the **patient** file.
-   A window left over from another subject (for example a control's QSDR FIB) is a
-   common mistake. If the patient file came from the Fiber Data Hub, `hub_open` may
-   download it without opening it; in that case `open_fib` the cached path explicitly
-   (see the Hub notes in `DSI_STUDIO_AI_COMMAND_EXAMPLES_GENERAL.md`).
-4. `add_mni_slice` the control average.
-5. Poll `list_slice` until the control-average row reports `ready`, and confirm its name.
-6. Run `list_param dt_index1` and `list_param dt_index2`, then set `m1` (control
-   average), `m2` (patient metric, for example `dti_fa`), the formula, and the threshold.
-7. Run `run_dif_tracking` and check the verification lines below before polling.
-
-## 6. Type 4: cross-sectional comparison in template space
-
-Type 4 performs a cross-sectional comparison in template space. Use QSDR/MNI-aligned
-metrics and a template-space tracking framework. Keep the control reference and the
-subject/group metrics in the same template space and inspect spatial alignment before
-interpreting differential results.
-
-Expand this section only after a validated worked example is available.
-
-## 7. Running and verifying differential tractography
-
-Before tracking:
+## 6. Running and verifying
 
 ```bash
 bash ./dsi.sh list_param tracking
 bash ./dsi.sh list_param dt_index1
 bash ./dsi.sh list_param dt_index2
-```
-
-Then run and poll:
-
-```bash
 bash ./dsi.sh run_dif_tracking "<descriptive differential bundle name>"
 bash ./dsi.sh list_tract status
 bash ./dsi.sh list_tract
 ```
 
-Before polling, read the lines `run_dif_tracking` prints and confirm they match your
-intent:
+Before polling, confirm the printed lines match intent; a wrong name or reversed expression means the
+metrics are wrong:
 
 ```text
  set m1:<m1 name>
@@ -273,88 +132,44 @@ intent:
 dt metrics:<expression>
 ```
 
-A wrong name or a reversed expression means the metrics were set incorrectly; fix
-them before reading any result.
+- `run_dif_tracking` resolves `dt_index1`/`dt_index2` into `set_dt_index` and fails if both are `0`.
+  `run_tracking` fails if they are nonzero but never applied, and otherwise clears leftover
+  differential state, so never use it for dT.
+- Tracking stops at `max_tract_count`: a bundle at exactly that count (e.g. 10,000) means the true
+  extent, and dT tract volume, are larger. Raise it and rerun, or report as capped.
+- Large `tip_iteration` can remove too many differential trajectories. Track with `tip_iteration=0`,
+  then `trim_tract` one round at a time, checking `list_tract` (tract/deleted counts) after each; one or
+  two rounds usually suffice. About 5,000-10,000 remaining tracts is a convenient review range, not a
+  biological or statistical cutoff. If trimming becomes excessive, stop or `undo_tract`.
+- When practical, show a threshold series (e.g. 10%, 20%, 30%, 40% decrease) to see how pathways
+  persist as the effect size rises: a robustness/presentation check, not a substitute for statistics.
+- **Cohort FDR** needs **all controls and all patients** processed first (never one subject or a
+  subset). Per threshold: `FDR = mean dT tract volume from controls / mean dT tract volume from patients`.
+- Verify the output shows the intended `dt_threshold`, direction, and formula, and save with names
+  encoding space, metric, direction, and threshold:
+  `bash ./dsi.sh save_tract "<subject>_GQI_dtiFA_decrease20.tt.gz" <bundle-index>`.
 
-`run_dif_tracking` (not `run_tracking`) is required here: it resolves the current
-`dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
-`run_tracking` call fails outright if `dt_index1`/`dt_index2` are nonzero but were
-never applied, and otherwise clears any leftover differential-tracking state instead
-of using it.
+Record at minimum: practicum Type; baseline/subject and comparison/control sources; reconstruction
+method and space; registration or MNI-mapping status; exact `m1`/`m2` names; formula and threshold;
+tracking parameters; tract and seed counts; output path; alignment QC findings.
 
-Tracking stops at `max_tract_count`. If `list_tract` shows the bundle at exactly that
-count (for example 10,000), the true differential extent is larger. Raise
-`max_tract_count` and run again, or report the result as capped. A capped count also
-underestimates dT tract volume.
-
-Pay special attention to TIP pruning in differential tractography. A large
-`tip_iteration` can remove too many differential trajectories. A practical approach
-is to set `tip_iteration=0` during tracking and then apply `trim_tract` afterward one
-round at a time, checking `list_tract` after each round. One or two trim rounds are
-often sufficient for review. Roughly 5,000-10,000 remaining tracts is usually a
-convenient range for evaluation and visualization, not a biological or statistical
-cutoff. If trimming becomes excessive, stop or use `undo_tract` rather than
-continuing a fixed number of rounds.
-
-When practical, consider showing a series of differential thresholds rather than only
-one selected threshold, for example 10%, 20%, 30%, and 40% decrease. This gives a
-more comprehensive view of how the mapped pathways persist or shrink as the required
-effect size increases and reduces dependence on a single visually favorable
-threshold. Treat this as a presentation and robustness check, not as a substitute for
-study-specific statistical analysis.
-
-For a cohort study, FDR cannot be estimated from one subject or from an incomplete
-subset of the cohort. Run the differential tractography analysis for **all controls
-and all patients** first. At each differential threshold, quantify the dT tract volume
-for each subject, calculate the mean dT tract volume in the control group and the mean
-dT tract volume in the patient group, and estimate:
-
-```text
-FDR = mean dT tract volume from controls / mean dT tract volume from patients
-```
-
-Calculate this separately for each threshold when reporting a threshold series. The
-FDR estimate is therefore a cohort-level summary that is available only after all
-subjects have been processed.
-
-Verify the operation output shows the intended `dt_threshold`, metric direction, and
-formula. Save results with filenames that encode analysis space, metric, direction,
-and threshold, for example:
-
-```bash
-bash ./dsi.sh save_tract "<subject>_GQI_dtiFA_decrease20.tt.gz" <bundle-index>
-```
-
-Record at minimum:
-
-- practicum Type;
-- baseline/subject and comparison/control sources;
-- reconstruction method and analysis space;
-- registration or MNI-mapping status;
-- exact `m1` and `m2` names;
-- differential formula and threshold;
-- tracking parameters;
-- tract and seed counts;
-- output tract path;
-- alignment QC findings.
-
-## 8. Common errors
+## 7. Common errors
 
 | Error | Correct response |
 |---|---|
-| Treating practicum Type as `dt_threshold_type` | Type 1-4 describe study design/space; `dt_threshold_type` selects the formula |
-| Exporting both baseline and follow-up metrics for Type 1 | Open baseline GQI FIB and add only the follow-up metric |
-| Calling a QSDR/template longitudinal workflow Type 1 | Longitudinal QSDR/template comparison is Type 2 |
-| Assuming equal dimensions mean no Type 1 registration | `add_slice` can still run rigid-body registration; wait for `ready` |
-| Using `list_slice` row numbers as `dt_index` values | Query `list_param dt_index1` and `dt_index2`; the index spaces differ |
-| Guessing names with `set_dt_index` | Use exact names returned by DSI Studio |
-| Calling `run_tracking` to launch a differential run | Use `run_dif_tracking`; `run_tracking` does not apply `m1`/`m2` and clears leftover differential state |
-| Reversing metric direction | Explicitly define which image is `m1` and which is `m2` for the chosen formula |
-| Trusting Type 2 differences without checking normalization | Inspect both maps in template space; misregistration can mimic change |
-| Averaging native-space control NIfTI files voxelwise | Average only QSDR/MNI-aligned maps |
-| Loading an MNI control average as an ordinary native slice in GQI | Use `add_mni_slice` |
-| Using many TIP iterations by default for dT | Start with `tip_iteration=0` or very light pruning; use `trim_tract` incrementally and inspect tract/deleted counts |
-| Trusting `hub_open` to have opened the file | Confirm the window title with `list_window`; `open_fib` the cached path if needed |
+| Practicum Type taken as `dt_threshold_type` | Types are design/space; the parameter is the formula |
+| Type 1 exporting both metrics | Open baseline GQI; add only the follow-up metric |
+| QSDR/template longitudinal called Type 1 | It is Type 2 |
+| Equal dimensions assumed to skip registration | `add_slice` may still register; wait for `ready` |
+| `list_slice` rows used as `dt_index` | Query `list_param dt_index1`/`dt_index2` |
+| Guessed `set_dt_index` names | Use exact returned names |
+| `run_tracking` for dT | `run_dif_tracking` |
+| Reversed direction | Define `m1`/`m2` explicitly for the formula |
+| Type 2 differences trusted unchecked | Inspect both maps in template space |
+| Averaging native-space control NIfTI | Average only QSDR/MNI-aligned maps |
+| MNI average added as a native slice in GQI | `add_mni_slice` |
+| Many TIP iterations by default | `tip_iteration=0` or light pruning; incremental `trim_tract` |
+| Trusting `hub_open` opened the file | Check `list_window`; `open_fib` the cached path |
 | Polling before checking `set m1:`/`set m2:`/`dt metrics:` | Verify those lines first |
-| Treating a bundle at `max_tract_count` as complete | Raise `max_tract_count` or report the result as capped |
-| Estimating FDR before completing the cohort | Process all controls and patients first; FDR uses group-averaged dT tract volumes |
+| Bundle at `max_tract_count` treated as complete | Raise it or report capped |
+| FDR before the cohort is complete | Process all controls and patients first |

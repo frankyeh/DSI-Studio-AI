@@ -1,125 +1,97 @@
 # DSI Studio AI Image Command Examples and Inventory
 
-A successful `open_image` returns the new `image<hex-address>` ID in
-`image window created, id: image...` and automatically selects that window, so
-commands below can act on it directly. Use `set_window` only when switching to
-another already-open image window. `list_window` can confirm the ID or discover
-another already-open image window. Command names and text, path, or composite
-parameters are strings. Send a standalone numeric parameter as a JSON number.
+A successful `open_image` returns `image window created, id: image...` and selects that
+`image<hex-address>` window, so the commands below act on it directly; use `set_window` only to switch
+to another open image window (`list_window` confirms or discovers IDs). Names and text, path, or
+composite parameters are strings; send a standalone number as a JSON number.
 
-`bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
-window controls, not image-window operations. Read
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for their authoritative behavior. After closing
-an image window, select `main` or another valid current ID because the session keeps
-the closed `image...` target until `set_window` changes it.
+The image-window handler accepts only a command name and **at most one parameter** (checked against
+`view_image::command()`, `variant_image::command()`, and TIPL `command()`). Parameterless commands
+below are real commands: add no dummy value. `bring_to_front`, `minimize`, `maximize`, and `close` are
+shared dispatcher-level controls intercepted earlier (not subject to that limit; see
+`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md`). After `close`, confirm with `list_window`, then
+`set_window main` or another valid ID: the session keeps the closed `image...` target until changed.
 
-The image-window dispatcher itself accepts only a command name and at most one
-parameter. The inventory below was checked against `view_image::command()`,
-`variant_image::command()`, and TIPL `command()` source.
+## Type, AI models, and registration
 
-| Command | Common example | Important behavior |
+| Command | Example | Behavior |
 |---|---|---|
-| `change_type` | `["change_type",3]` | Change voxel type: `0`=uint8, `1`=uint16, `2`=uint32, `3`=float32. |
+| `change_type` | `["change_type",3]` | Voxel type: `0`=uint8, `1`=uint16, `2`=uint32, `3`=float32. |
 | `bias_field_correction` | `["bias_field_correction"]` | Iteratively estimate and remove the bias field using the positive-value mask. |
-| `brain_extraction` | `["brain_extraction","<model-ID>"]` | Run the model whose `.nz` filename stem exactly matches `<model-ID>`, then multiply the image by its foreground probability. See footnote 1. |
-| `segmentation` | `["segmentation","<model-ID>"]` | Run the exact model ID and replace the current image with its label output; the image becomes uint8 label data. See footnote 1. |
-| `deface` | `["deface","<model-ID>"]` | Run the exact model ID and suppress voxels in the generated facial mask while preserving nearby brain tissue. See footnote 1. |
-| `rotate_to_image` | `["rotate_to_image","C:/data/template.nii.gz"]` | Rigidly register the current image to the supplied NIfTI using mutual information, then resample it into target space. |
-| `warp_to_image` | `["warp_to_image","C:/data/template.nii.gz"]` | Affine-register using correlation, continue with nonlinear registration, then resample it into target space. |
-| `apply_to_image` | `["apply_to_image","C:/data/other.nii.gz"]` | Load another image and apply the mapping created by the preceding `rotate_to_image` or `warp_to_image`; fails when no mapping exists. |
-| `morphology_defragment` | `["morphology_defragment"]` | Keep the principal connected component. Floating images are first converted to a positive-value mask and then preserved by that mask. |
-| `morphology_fill_holes` | `["morphology_fill_holes"]` | Fill enclosed holes in 3D. |
-| `morphology_fill_holes_by_slice` | `["morphology_fill_holes_by_slice"]` | Fill holes independently by slice. |
-| `morphology_defragment_by_size` | `["morphology_defragment_by_size",0.05]` | Remove components below the supplied size ratio; an omitted parameter defaults to `0.05`, but an explicit value is preferred. |
-| `morphology_dilation` | `["morphology_dilation"]` | Dilate each nonzero label independently. |
-| `morphology_erosion` | `["morphology_erosion"]` | Erode each nonzero label independently. |
-| `morphology_opening` | `["morphology_opening"]` | Apply opening to each nonzero label independently. |
-| `morphology_closing` | `["morphology_closing"]` | Apply closing to each nonzero label independently. |
-| `morphology_edge` | `["morphology_edge"]` | Extract 3D edges for each label. |
-| `morphology_edge_xy` | `["morphology_edge_xy"]` | Extract label edges within XY planes. |
-| `morphology_edge_xz` | `["morphology_edge_xz"]` | Extract label edges within XZ planes. |
-| `morphology_smoothing` | `["morphology_smoothing"]` | Smooth a binary mask or use multi-region smoothing when values exceed `0/1`. |
-| `sobel_filter` | `["sobel_filter"]` | Apply TIPL Sobel filtering. |
-| `gaussian_filter` | `["gaussian_filter"]` | Apply TIPL Gaussian smoothing. |
-| `mean_filter` | `["mean_filter"]` | Apply TIPL mean filtering. |
-| `smoothing_filter` | `["smoothing_filter"]` | Apply TIPL anisotropic-diffusion smoothing. |
-| `normalize` | `["normalize"]` | Convert to float32 first when needed, then normalize intensity. |
-| `normalize_otsu_median` | `["normalize_otsu_median"]` | Convert to float32 first when needed, then normalize using Otsu/median statistics. |
-| `flip_x` | `["flip_x"]` | Flip voxel data along X. This does not itself modify the header transformation. |
-| `flip_y` | `["flip_y"]` | Flip voxel data along Y. This does not itself modify the header transformation. |
-| `flip_z` | `["flip_z"]` | Flip voxel data along Z. This does not itself modify the header transformation. |
-| `select_value` | `["select_value",1]` | Replace the image with a binary mask where voxels equal the supplied value. |
-| `add_value` | `["add_value",10]` | Add a scalar constant to every voxel. |
-| `multiply_value` | `["multiply_value",0.5]` | Multiply every voxel by a scalar constant. |
-| `lower_threshold` | `["lower_threshold",0]` | Clamp values below the supplied threshold. |
-| `upper_threshold` | `["upper_threshold",1000]` | Clamp values above the supplied threshold. |
-| `threshold` | `["threshold",0.5]` | Replace values greater than the threshold with `1` and all others with `0`. |
+| `brain_extraction` | `["brain_extraction","<model-ID>"]` | Run the model (¹) and multiply the image by its foreground probability. |
+| `segmentation` | `["segmentation","<model-ID>"]` | Run the model (¹) and replace the image with its uint8 label output. |
+| `deface` | `["deface","<model-ID>"]` | Run the model (¹) and suppress voxels in the facial mask, preserving nearby brain tissue. |
+| `rotate_to_image` | `["rotate_to_image","C:/data/template.nii.gz"]` | Rigid mutual-information registration to the NIfTI, then resample into target space. |
+| `warp_to_image` | `["warp_to_image","C:/data/template.nii.gz"]` | Affine (correlation) then nonlinear registration, then resample into target space. |
+| `apply_to_image` | `["apply_to_image","C:/data/other.nii.gz"]` | Load another image and apply the mapping kept from the preceding `rotate_to_image`/`warp_to_image` (both replace the current image with the resampled result); fails with no mapping. |
+
+¹ `<model-ID>` must exactly match the downloaded `.nz` filename stem: `download_unet_model()` requires
+it, and each GUI model action stores `std::filesystem::path(model_url).stem()`. The catalog is loaded
+at startup from the packaged `unet/README.md`, not this repository. The image window has no
+model-list command; read the ID from a tracking window's `["list_unet"]` `model` column, or from the
+packaged catalog.
+
+## Morphology and filters (parameterless unless shown)
+
+| Command | Behavior |
+|---|---|
+| `morphology_defragment` | Keep the principal connected component (floating images: first a positive-value mask, then preserved by it). |
+| `morphology_defragment_by_size` | `["morphology_defragment_by_size",0.05]`: remove components below the size ratio (default `0.05`; pass it explicitly). |
+| `morphology_fill_holes`, `morphology_fill_holes_by_slice` | Fill enclosed holes in 3D, or independently per slice. |
+| `morphology_dilation`, `morphology_erosion`, `morphology_opening`, `morphology_closing` | Apply to each nonzero label independently. |
+| `morphology_edge`, `morphology_edge_xy`, `morphology_edge_xz` | Label edges in 3D, within XY planes, or within XZ planes. |
+| `morphology_smoothing` | Smooth a binary mask, or multi-region smoothing when values exceed `0/1`. |
+| `sobel_filter`, `gaussian_filter`, `mean_filter`, `smoothing_filter` | TIPL Sobel, Gaussian, mean, or anisotropic-diffusion filtering. |
+| `normalize`, `normalize_otsu_median` | Convert to float32 if needed, then normalize intensity (plain, or by Otsu/median statistics). |
+
+## Values and thresholds
+
+| Command | Example | Behavior |
+|---|---|---|
+| `select_value` | `["select_value",1]` | Binary mask of voxels equal to the value. |
+| `add_value`, `multiply_value` | `["add_value",10]`, `["multiply_value",0.5]` | Add or multiply a scalar for every voxel. |
+| `lower_threshold`, `upper_threshold` | `["lower_threshold",0]`, `["upper_threshold",1000]` | Clamp values below/above the threshold. |
+| `threshold` | `["threshold",0.5]` | `1` where greater than the threshold, else `0`. |
 | `otsu_threshold` | `["otsu_threshold",1.0]` | Binarize at `Otsu threshold × supplied ratio`. |
-| `equation` | `["equation","x*2"]` | Multiply the current image by two using TIPL's expression parser. Operators include `+`, `-`, `*`, `/`, `>`, `<`, and `=`; multiplication and division are evaluated first. |
-| `set_transformation` | `["set_transformation","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the 4×4 image transformation using 16 floats and recalculate voxel size. |
-| `set_translocation` | `["set_translocation","0 0 0"]` | Set transformation translation entries `T[3]`, `T[7]`, and `T[11]`. |
-| `set_mni` | `["set_mni",1]` | Set the MNI-space flag from the first character: `1`=true; other nonempty values=false. |
-| `upsampling` | `["upsampling"]` | Upsample image data or labels by 2× and halve voxel size. |
-| `downsampling` | `["downsampling"]` | Downsample image data or labels by 2× and double voxel size. |
-| `header_flip_x` | `["header_flip_x"]` | Flip only the header transformation along X. |
-| `header_flip_y` | `["header_flip_y"]` | Flip only the header transformation along Y. |
-| `header_flip_z` | `["header_flip_z"]` | Flip only the header transformation along Z. |
-| `header_swap_xy` | `["header_swap_xy"]` | Swap X/Y axes in header metadata and voxel sizes without swapping voxel data. |
-| `header_swap_xz` | `["header_swap_xz"]` | Swap X/Z axes in header metadata and voxel sizes without swapping voxel data. |
-| `header_swap_yz` | `["header_swap_yz"]` | Swap Y/Z axes in header metadata and voxel sizes without swapping voxel data. |
-| `swap_xy` | `["swap_xy"]` | Swap voxel X/Y axes and voxel sizes. |
-| `swap_xz` | `["swap_xz"]` | Swap voxel X/Z axes and voxel sizes. |
-| `swap_yz` | `["swap_yz"]` | Swap voxel Y/Z axes and voxel sizes. |
-| `crop_to_fit` | `["crop_to_fit",2]` | Crop around the principal positive-value component with a 2-voxel margin in all axes; three margins remain one composite string. |
-| `transform` | `["transform","1 0 0 0 0 1 0 0 0 0 1 0"]` | Resample/reorient to a target transformation supplied as its first 12 matrix values. The handler resolves axis flips, voxel-size changes, and translation as needed. |
-| `translocate` | `["translocate","1 0 0"]` | Shift image data by voxel offsets and update transformation translation; fractional shifts use interpolation. |
-| `resize` | `["resize","256 256 160"]` | Resize the canvas from the origin and copy overlapping data without changing the transformation. |
-| `resize_at_center` | `["resize_at_center","256 256 160"]` | Resize the canvas around the image center. |
-| `reshape` | `["reshape","256 256 160"]` | Reshape the voxel buffer to the supplied 3D dimensions. The image-window wrapper also has special 4D handling. |
-| `regrid` | `["regrid","1 1 1"]` | Resample to one isotropic voxel size or three supplied voxel sizes and update dimensions and transformation. |
-| `concatenate_image` | `["concatenate_image","C:/data/second.nii.gz"]` | Append another image along Z; width and height must match. In a 4D image window, it appends another volume instead. |
-| `refine_label` | `["refine_label","C:/data/reference.nii.gz"]` | Map the reference image into current space and refine the current labels. |
-| `load_image` | `["load_image","C:/data/replacement.nii.gz"]` | Map another image into current space and replace current voxel data. |
-| `multiply_image` | `["multiply_image","C:/data/mask.nii.gz"]` | Map another image into current space and multiply voxelwise. |
-| `add_image` | `["add_image","C:/data/other.nii.gz"]` | Map another image into current space and add voxelwise. |
-| `minus_image` | `["minus_image","C:/data/other.nii.gz"]` | Map another image into current space and subtract voxelwise. |
-| `max_image` | `["max_image","C:/data/other.nii.gz"]` | Map another image into current space and retain the voxelwise maximum. |
-| `min_image` | `["min_image","C:/data/other.nii.gz"]` | Map another image into current space and retain the voxelwise minimum. |
-| `save` | `["save","C:/output/processed.nii.gz"]` | Save image data with transformation, voxel size, and MNI flag. A multi-file image workflow may trigger a modal batch-processing prompt. |
-| `open` | `["open","C:/data/replacement.nii.gz"]` | Load image data and metadata through TIPL into the current image object. |
+| `equation` | `["equation","x*2"]` | TIPL expression on the image (this example doubles it); operators `+`, `-`, `*`, `/`, `>`, `<`, `=`, with `*` and `/` first. |
 
-## Source-confirmed cautions
+## Geometry and header
 
-- The image-window handler accepts no more than a command name and one parameter.
-  The four shared window controls are intercepted earlier by the central dispatcher
-  and are not subject to this image-handler limit.
-- After shared `close`, verify the window disappeared with `list_window`, then call
-  `set_window main` or select another valid ID before issuing another window command.
-- Parameterless morphology, filter, flip, up/downsampling, and header/swap commands
-  are real commands; do not add a dummy value.
-- `flip_*` changes voxel data, while `header_flip_*` changes metadata only. Pair them
-  only when that combined spatial change is intended.
-- `rotate_to_image` and `warp_to_image` replace the current image with its
-  registered/resampled result and retain the mapping for a later `apply_to_image`
-  command.
-- Commands ending in `_image` or `_label` require an existing file and map it into
-  the current image space using linear interpolation for images or majority
-  interpolation for labels.
-- For a FIB (`.fz`, opened in the image window or with `--action=img`), resampling
-  commands such as `regrid`, `upsampling`, `downsampling`, `transform`, and
-  `translocate` use nearest-neighbor sampling for every matrix, so the fiber
-  metrics and directions of a voxel come from the same source voxel. SRC (`.sz`)
-  images keep linear interpolation, with majority for the mask.
-- `save` can show a modal prompt when the image window was opened with additional
-  batch files. Avoid unattended batch saves unless this workflow is expected.
+`flip_*` changes voxel data only and `header_flip_*` metadata only; pair them only when that combined
+change is intended.
 
-## Footnotes
+| Command | Example | Behavior |
+|---|---|---|
+| `flip_x`, `flip_y`, `flip_z` | `["flip_x"]` | Flip voxel data along an axis; the header transformation is not changed. |
+| `header_flip_x`, `header_flip_y`, `header_flip_z` | `["header_flip_x"]` | Flip only the header transformation. |
+| `swap_xy`, `swap_xz`, `swap_yz` | `["swap_xy"]` | Swap voxel axes and voxel sizes. |
+| `header_swap_xy`, `header_swap_xz`, `header_swap_yz` | `["header_swap_xy"]` | Swap axes in header metadata and voxel sizes, not voxel data. |
+| `set_transformation` | `["set_transformation","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the 4×4 transformation (16 floats) and recalculate voxel size. |
+| `set_translocation` | `["set_translocation","0 0 0"]` | Set translation entries `T[3]`, `T[7]`, `T[11]`. |
+| `set_mni` | `["set_mni",1]` | MNI flag from the first character: `1`=true, other nonempty values false. |
+| `upsampling`, `downsampling` | `["upsampling"]` | 2× up/down sampling of data or labels; halves/doubles voxel size. |
+| `crop_to_fit` | `["crop_to_fit",2]` | Crop around the principal positive component with a 2-voxel margin on all axes (three margins go in one composite string). |
+| `transform` | `["transform","1 0 0 0 0 1 0 0 0 0 1 0"]` | Resample/reorient to a target transformation (first 12 matrix values), resolving flips, voxel size, and translation. |
+| `translocate` | `["translocate","1 0 0"]` | Shift data by voxel offsets (fractional: interpolated) and update translation. |
+| `resize`, `resize_at_center` | `["resize","256 256 160"]` | Resize the canvas from the origin (overlap copied, transformation unchanged) or around the center. |
+| `reshape` | `["reshape","256 256 160"]` | Reshape the voxel buffer to 3D dimensions (the wrapper has special 4D handling). |
+| `regrid` | `["regrid","1 1 1"]` | Resample to one isotropic or three voxel sizes, updating dimensions and transformation. |
 
-1. The model catalog is loaded at startup from the packaged `unet/README.md`, not
-   from this repository. Each image-window model action stores
-   `std::filesystem::path(model_url).stem()` as its command argument, and
-   `download_unet_model()` requires an exact match to the downloaded `.nz` filename
-   stem. A tracking window's `["list_unet"]` reports this value in its `model`
-   column. The image window currently has no equivalent model-list command, so
-   discover the ID from `list_unet` when a tracking window is available or from the
-   packaged model catalog.
+For a FIB (`.fz`, opened in the image window or with `--action=img`), `regrid`, `upsampling`,
+`downsampling`, `transform`, and `translocate` use nearest-neighbor for every matrix, so a voxel's
+fiber metrics and directions come from one source voxel; SRC (`.sz`) images keep linear interpolation,
+with majority for the mask.
+
+## Other images, open, and save
+
+Commands ending in `_image` or `_label` need an existing file and map it into current space (linear
+interpolation for images, majority for labels).
+
+| Command | Example | Behavior |
+|---|---|---|
+| `concatenate_image` | `["concatenate_image","C:/data/second.nii.gz"]` | Append along Z (width and height must match); in a 4D window, append a volume. |
+| `refine_label` | `["refine_label","C:/data/reference.nii.gz"]` | Map the reference in and refine the current labels. |
+| `load_image` | `["load_image","C:/data/replacement.nii.gz"]` | Map in and replace current voxel data. |
+| `multiply_image`, `add_image`, `minus_image`, `max_image`, `min_image` | `["multiply_image","C:/data/mask.nii.gz"]` | Map in and multiply, add, subtract, or keep the voxelwise maximum/minimum. |
+| `open` | `["open","C:/data/replacement.nii.gz"]` | Load data and metadata through TIPL into the current image object. |
+| `save` | `["save","C:/output/processed.nii.gz"]` | Save data with transformation, voxel size, and MNI flag. If the window was opened with extra batch files, a modal batch-processing prompt may appear: avoid unattended batch saves unless expected. |

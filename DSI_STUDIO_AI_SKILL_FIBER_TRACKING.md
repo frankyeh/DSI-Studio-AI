@@ -1,42 +1,25 @@
 # DSI Studio Fiber-Tracking Guide for AI Agents
 
-Use launcher commands throughout this workflow:
+Use `bash ./dsi.sh <command> [parameters...]` (always with `bash`). A successful `open_fib` returns
+`tracking window created, id: tracking...` and selects that `tracking<hex-address>` window; use
+`set_window` only to switch to another open tracking window (`list_window` confirms or discovers IDs).
 
-```bash
-bash ./dsi.sh <command> [parameters...]
-```
+A streamline is a computational trajectory along reconstructed orientations, not an observed axon or a
+connectivity-strength measure. Anatomical validity needs source QC, justified settings, explicit region
+logic, and visual inspection. Differential tractography has its own guide:
+`DSI_STUDIO_AI_SKILL_DIFFERENTIAL_TRACTOGRAPHY.md`.
 
-Always include `bash` before `./dsi.sh`. A successful `open_fib` returns the exact
-`tracking<hex-address>` in `tracking window created, id: tracking...` and
-automatically selects that new tracking window, so commands in this file can act on
-it directly. Use `set_window` only when switching to another already-open tracking
-window. Use `list_window` to confirm the ID or discover another tracking window when
-needed.
-
-Tractography follows reconstructed diffusion orientations. A streamline is a
-computational trajectory, not an observed axon or a measure of connectivity
-strength. Anatomical validity requires source QC, justified tracking settings,
-explicit region logic, and visual inspection.
-
-## Optional public tracking examples
-
-Offer an already-reconstructed FZ from the
-[example dataset catalog](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md):
-**SCA2 `sub-control01_ses-01_dwi.gqi.fz`** for basic tracking
-and **UPenn GBM `sub-100_dwi.gqi.fz`** for tumor-aware tracking
-near a lesion (with matched structural NIfTI and segmentation).
-Use one small subject, obtain approval before downloading, and
-inspect geometry and tracking quality before interpreting pathways.
-
-## Tutorials
-
-- https://www.youtube.com/watch?v=xyFNXB9nJ90
-- https://www.youtube.com/watch?v=oJK8jwTHVhc
-- https://www.youtube.com/watch?v=V2pxI2tooPs
+**Examples.** Offer an already-reconstructed FZ from the
+[example dataset catalog](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md): **SCA2
+`sub-control01_ses-01_dwi.gqi.fz`** for basic tracking, **UPenn GBM `sub-100_dwi.gqi.fz`** for
+tumor-aware tracking (with matched structural NIfTI and segmentation). One small subject, approval
+before download, and geometry/quality inspection before interpreting pathways. Tutorials:
+https://www.youtube.com/watch?v=xyFNXB9nJ90, https://www.youtube.com/watch?v=oJK8jwTHVhc,
+https://www.youtube.com/watch?v=V2pxI2tooPs
 
 ## Choose the workflow
 
-| Goal | Preferred approach |
+| Goal | Approach |
 |---|---|
 | Data/reconstruction QC | Whole-brain tracking |
 | Standard named pathway | AutoTrack when the atlas contains it |
@@ -44,588 +27,178 @@ inspect geometry and tracking quality before interpreting pathways.
 | Region-to-region connectivity | End-region constraints |
 | Cohort standardization | AutoTrack with fixed settings and QC |
 
-Begin by inspecting whole-brain tracking. Major pathways should be coherent,
-plausibly symmetric, and free of systematic flips. If many bundles fail, inspect
-the acquisition, reconstruction, b-table, orientation, and mask before changing
-tract-specific regions.
+Start with whole-brain tracking: major pathways should be coherent, plausibly symmetric, and free of
+systematic flips. If many bundles fail, check acquisition, reconstruction, b-table, orientation, and
+mask before changing tract-specific regions.
 
 ## Tracking parameters
 
-Start from DSI Studio defaults. Change one setting at a time for a documented
-reason; do not tune parameters until a desired-looking tract appears.
+Start from defaults and change one setting at a time for a documented reason, never until a
+desired-looking tract appears. Inspect first with `bash ./dsi.sh list_param tracking`; change e.g. with
+`bash ./dsi.sh set_params "fa_threshold=0.08&min_length=20"`.
 
-| Parameter | Lower value | Higher value | Rule |
+| Parameter | Lower | Higher | Rule |
 |---|---|---|---|
-| Tracking threshold | Extends into uncertain tissue | Stops earlier and may miss low-anisotropy fibers | Change only for widespread premature stopping or excessive low-anisotropy tracking |
-| Angular threshold | Straighter and conservative | Follows sharper curves but permits false turns | Match expected tract anatomy |
-| Step size | Finer and slower | Coarser and faster | Use default or a validated voxel-aware protocol |
-| Smoothing | Follows local directions | Adds directional persistence | Treat as trajectory regularization, not display smoothing |
-| Minimum length | Retains short/noisy fragments | Removes short valid pathways too | Match expected anatomy |
-| Maximum length | Allows long trajectories | Limits loops and erroneous continuation | Set a plausible anatomical bound |
+| Tracking threshold | Extends into uncertain tissue | Stops earlier, may miss low-anisotropy fibers | Change only for widespread premature stopping or excessive low-anisotropy tracking |
+| Angular threshold | Straighter, conservative | Sharper curves, more false turns | Match expected anatomy |
+| Step size | Finer, slower | Coarser, faster | Default or a validated voxel-aware protocol |
+| Smoothing | Follows local directions | Directional persistence | Trajectory regularization, not display smoothing |
+| Minimum length | Keeps short/noisy fragments | Also removes short valid pathways | Match expected anatomy |
+| Maximum length | Allows long trajectories | Limits loops and erroneous continuation | Plausible anatomical bound |
 
-Tract count is the number of accepted streamlines. Seed count limits attempts.
-Neither represents axons or biological connection strength.
-
-Inspect live tracking parameters before changing them:
-
-```bash
-bash ./dsi.sh list_param tracking
-```
-
-Example parameter change:
-
-```bash
-bash ./dsi.sh set_params "fa_threshold=0.08&min_length=20"
-```
-
-## Differential tractography types
-
-Use the terminology from the DSI Studio practicum:
-https://practicum.labsolver.org/dT.html
-
-The type number describes **study design and analysis space**, not the mathematical
-formula selected by `dt_threshold_type`:
-
-1. **Type 1:** longitudinal comparison in native space.
-2. **Type 2:** longitudinal comparison in template space.
-3. **Type 3:** cross-sectional comparison in native space.
-4. **Type 4:** cross-sectional comparison in template space.
-
-Do not interpret "Type 1" as "the first differential formula." The formula index is
-a separate setting.
-
-## Type 1 differential tractography: longitudinal comparison in native space
-
-Type 1 compares a patient's baseline and follow-up scans in the baseline native
-diffusion space. Prefer **GQI** for both scans.
-
-For each longitudinal pair:
-
-1. Run GQI reconstruction on the baseline and follow-up SRC files.
-2. Export the desired scalar metric, commonly `dti_fa`, from the **follow-up** GQI
-   FIB.
-3. Open the **baseline** `.gqi.fz` as the tracking FIB.
-4. Add only the exported follow-up metric as another slice.
-5. Wait for rigid-body registration to finish.
-6. Select the baseline and follow-up metrics for differential tracking and run
-   tractography.
-
-The opened baseline GQI FIB already contains its own built-in scalar metrics, such as
-`dti_fa`. Do **not** export the baseline FA and add it back as another slice.
-
-If the follow-up metric has not already been exported:
-
-```bash
-bash ./dsi.sh open_fib "<followup.gqi.fz>"
-bash ./dsi.sh list_slice
-bash ./dsi.sh save_slice_image "<followup_dti_fa.nii.gz>" "dti_fa"
-```
-
-Then open or return to the baseline GQI FIB and add only the follow-up scalar map:
-
-```bash
-bash ./dsi.sh open_fib "<baseline.gqi.fz>"
-bash ./dsi.sh add_slice "<followup_dti_fa.nii.gz>"
-bash ./dsi.sh list_slice
-```
-
-`add_slice` applies rigid-body registration to align the follow-up slice to the
-opened baseline GQI diffusion space. DSI Studio may still run registration when the
-two scans have identical matrix size and voxel size. Poll `list_slice` and do not
-configure differential tracking until the follow-up row reports `ready` rather than
-`registering`.
-
-### Type 1 differential metric selection
-
-There are two supported ways to configure `m1` and `m2`. The safer default for an
-agent is `list_param` plus `set_param` because the differential dropdown indices are
-runtime-dependent.
-
-First query the exact options:
-
-```bash
-bash ./dsi.sh list_param dt_index1
-bash ./dsi.sh list_param dt_index2
-```
-
-The returned `dt_index` values are **not the same as `list_slice` row indices**. The
-differential dropdown may include synthetic entries such as `zero` and `one`,
-built-in metrics, and eligible custom slices. Never copy a `list_slice` row number
-into `dt_index1` or `dt_index2` without checking `list_param`.
-
-For example, a baseline GQI window may report:
-
-```text
-options: 0=zero, 1=one, 2=qa, 3=qir, 4=dti_fa, ..., 8=followup_dti_fa
-```
-
-For a baseline-normalized decrease using those example indices:
-
-```bash
-bash ./dsi.sh set_param dt_index1 4
-bash ./dsi.sh set_param dt_index2 8
-bash ./dsi.sh set_param dt_threshold_type 0
-bash ./dsi.sh set_param dt_threshold 0.2
-```
-
-Always use the indices returned by the current tracking window rather than assuming
-`4` or `8` will apply to another subject or another set of loaded slices.
-
-`set_param` alone does not apply the metrics to tracking; `run_dif_tracking` (see
-"Run and verify Type 1" below) resolves `dt_index1`/`dt_index2` into the engine's
-differential-tracking state before tracking.
-
-The exact-name alternative is `set_dt_index`, which also syncs `dt_index1`/
-`dt_index2` to the resolved metrics:
-
-```bash
-bash ./dsi.sh set_dt_index "dti_fa&<exact-followup-slice-name>" 0
-```
-
-Here the first name is `m1`, the second is `m2`, and the final number is the
-zero-based **differential formula index**. It is not the practicum Type number. Use
-`list_slice` and/or `list_param` to obtain exact metric names; do not guess them.
-
-### Differential formula and direction
-
-For a baseline-normalized decrease analysis, use baseline as `m1` and follow-up as
-`m2`. Formula index `0` is:
-
-```text
-(m1 - m2) / m1
-```
-
-Positive values therefore indicate a decrease from baseline to follow-up. With
-`dt_threshold=0.2`, the differential tracking criterion is a baseline-normalized
-decrease greater than 20%.
-
-The current formula ordering is:
-
-```text
-0  (m1-m2)/m1
-1  (m1-m2)/m2
-2  m1-m2
-3  (m2-m1)/m1
-4  (m2-m1)/m2
-5  m2-m1
-6  m1/max(m1)
-7  m2/max(m2)
-```
-
-Formula `0` is used for the common baseline-normalized decrease analysis because it
-is the desired calculation, **not because the workflow is Type 1**.
-
-A successful setup should report an expression equivalent to:
-
-```text
-dt metrics:(dti_fa-<followup>)/dti_fa
-```
-
-The streamline directions come from the opened baseline FIB; the differential metric
-acts as an additional tracking termination criterion.
-
-### Run and verify Type 1
-
-Before tracking, verify the current settings:
-
-```bash
-bash ./dsi.sh list_param tracking
-bash ./dsi.sh list_param dt_index1
-bash ./dsi.sh list_param dt_index2
-```
-
-Then run tracking and wait for completion:
-
-```bash
-bash ./dsi.sh run_dif_tracking "<descriptive differential bundle name>"
-bash ./dsi.sh list_tract status
-bash ./dsi.sh list_tract
-```
-
-Use `run_dif_tracking`, not `run_tracking`, to launch a differential run: it resolves
-`dt_index1`/`dt_index2` into `set_dt_index` and fails if both are still `0`. A plain
-`run_tracking` call fails outright if `dt_index1`/`dt_index2` are nonzero but were
-never applied, and otherwise clears any leftover differential-tracking state from an
-earlier run instead of using it.
-
-For a 20% baseline-normalized decrease, confirm
-`(baseline-followup)/baseline` and `dt_threshold=0.2` in the operation output.
-
-Save the result with a filename that records the reconstruction space, metric,
-direction, and threshold:
-
-```bash
-bash ./dsi.sh save_tract "<subject>_GQI_dtiFA_decrease20.tt.gz" <bundle-index>
-```
-
-## Type 2 differential tractography: longitudinal comparison in template space
-
-Type 2 compares baseline and follow-up scans in a common template space using
-**QSDR**. This is the workflow used when a template-space result is desired.
-
-For each longitudinal pair:
-
-1. Run QSDR reconstruction on both baseline and follow-up SRC files.
-2. Export the desired scalar map, commonly `dti_fa`, from **both** QSDR FIB files.
-3. Open the template FIB as the tracking framework.
-4. Add the exported baseline and follow-up maps as slices.
-5. Wait until both slices are ready and verify their alignment.
-6. Select the baseline and follow-up metrics and run differential tractography.
-
-The main advantage is that the comparison and tractography are expressed in a common
-template space. Normalization also partly handles longitudinal deformation, and the
-template provides a common tracking framework across scans or subjects.
-
-The main caution is **spatial normalization/misalignment**. Errors in nonlinear
-registration can produce local metric differences that look like biological change.
-Type 2 therefore requires careful inspection of the alignment of both scalar maps to
-the template, especially near tissue boundaries, ventricles, lesions, atrophy, or
-other regions with deformation. A visually plausible tract does not by itself prove
-that the differential signal is free of registration error.
-
-The previous QSDR workflow that opens the template FIB and inserts both baseline and
-follow-up QSDR FA maps is therefore a valid **Type 2** analysis; it should not be
-labeled Type 1.
-
-## Differential tractography common errors
-
-| Error | Correct response |
-|---|---|
-| Treating the practicum Type number as `dt_threshold_type` | Type 1-4 describe study design and analysis space; `dt_threshold_type` separately selects the mathematical formula |
-| Exporting both baseline and follow-up FA for Type 1 | Open the baseline GQI FIB and add only the follow-up FA; baseline `dti_fa` is already inside the FIB |
-| Calling a QSDR/template workflow Type 1 | Longitudinal QSDR/template-space comparison is Type 2 |
-| Assuming equal dimensions mean no Type 1 registration | `add_slice` can still run rigid-body registration; wait for `ready` |
-| Using `list_slice` row numbers as `dt_index` values | Query `list_param dt_index1` and `list_param dt_index2`; the index spaces differ |
-| Reversing baseline and follow-up for a decrease analysis | Use `m1=baseline`, `m2=follow-up` for `(m1-m2)/m1` |
-| Guessing names with `set_dt_index` | Use exact names returned by DSI Studio |
-| Calling `run_tracking` to launch a differential run | Use `run_dif_tracking`; `run_tracking` does not apply `m1`/`m2` and clears leftover differential state |
-| Starting Type 1 tracking while the follow-up slice is registering | Poll `list_slice` until the slice status is `ready` |
-| Trusting Type 2 differences without checking normalization | Inspect both maps in template space; misregistration can mimic biological change |
-
-Record at minimum the practicum type, baseline and follow-up FIBs, scalar-map
-sources, reconstruction method, analysis space, registration status, `m1`, `m2`,
-differential formula, threshold, tracking parameters, tract count, seed count, and
-saved tract path.
+Tract count is accepted streamlines; seed count limits attempts. Neither represents axons or
+connection strength.
 
 ## Build regions from anatomy
 
-Prefer anatomical segmentation over drawing regions from scratch:
+Prefer segmentation to drawing: segment an aligned T1w in the tracking window (else the isotropic
+diffusion image `iso`), select and merge labels into the needed regions, inspect boundaries and
+registration in all three planes, and give every region an explicit role and anatomical purpose. Many
+models are modality agnostic, but successful inference does not prove anatomical validity.
 
-1. Segment an aligned T1w image in the tracking window.
-2. If T1w is unavailable, segment the isotropic diffusion image (`iso`).
-3. Select and manually merge segmented labels to form the needed region sets.
-4. Inspect boundaries and registration in all three planes.
-5. Assign every region an explicit tracking role.
-
-Many segmentation models are modality agnostic, but successful inference does not
-prove anatomical validity.
-
-| Region role | Effect |
+| Role | Effect |
 |---|---|
 | Seed | Starts trajectories |
-| ROI | Retains trajectories passing through it |
+| ROI | Keeps trajectories passing through it |
 | ROA | Rejects trajectories entering it |
-| End | Requires termination in the region |
+| End | Requires termination in it |
 | Terminative | Stops propagation when reached |
-| NotEnd | Rejects termination in the region |
-| Limiting | Constrains propagation to the region |
+| NotEnd | Rejects termination in it |
+| Limiting | Constrains propagation to it |
 
-Seed and ROI are not interchangeable. Multiple inclusive ROIs usually express an
-AND condition. Every region should have a stated anatomical purpose.
-
-Avoid oversized regions that include adjacent pathways, undersized regions that
-miss anatomy or registration variation, and ROAs that intersect valid fibers.
-Spatial overlap alone does not establish tract identity because unrelated
-trajectories can cross the same voxels.
+Seed and ROI are not interchangeable; multiple inclusive ROIs usually mean AND. Avoid oversized regions
+that capture adjacent pathways, undersized ones that miss anatomy or registration variation, and ROAs
+intersecting valid fibers. Spatial overlap alone does not establish tract identity: unrelated
+trajectories cross the same voxels.
 
 ## Manual tracking
 
-Use manual tracking for distorted anatomy, lesions, pathways absent from the atlas,
-or a required explicit anatomical definition.
-
-Before `run_tracking`:
+For distorted anatomy, lesions, pathways absent from the atlas, or a required explicit definition:
 
 ```bash
 bash ./dsi.sh list_param tracking
-bash ./dsi.sh list_region
-bash ./dsi.sh run_tracking "<bundle-name>" "<region-index:role&...>"
-```
-
-Call `list_region` only after regions were created, loaded, segmented, or restored.
-A newly opened FIB normally has no regions.
-
-Record the Seed, ROI, ROA, endpoint, and Terminative logic. Inspect the initial
-bundle before adding filters or exclusion regions.
-
-Explicit region-role syntax uses `region-index:role` entries joined by `&`:
-
-```bash
+bash ./dsi.sh list_region          # only after regions were created/loaded/segmented; a new FIB has none
 bash ./dsi.sh run_tracking "CST" "0:3&1:0&2:1"
 ```
 
-Roles are `0=ROI`, `1=ROA`, `2=End`, `3=Seed`, `4=Terminative`, `5=NotEnd`, and
-`6=Limiting`.
+Entries are `region-index:role` joined by `&`; roles `0=ROI`, `1=ROA`, `2=End`, `3=Seed`,
+`4=Terminative`, `5=NotEnd`, `6=Limiting`. Record the Seed, ROI, ROA, endpoint, and Terminative logic,
+and inspect the initial bundle before adding filters or exclusions.
 
 ## AutoTrack
 
-Use AutoTrack for standard named pathways and reproducible cohort workflows.
-Normally discover the exact internal atlas identifier first:
+For standard named pathways and reproducible cohorts. Normally discover exact identifiers with
+`bash ./dsi.sh list_auto_tract`; a task skill may supply verified identifiers and waive discovery for
+them. Names are underscore-separated hierarchical prefixes (`Association_*`, `ProjectionBrainstem_*`,
+`Commissure_*`); never guess or use shorthand such as `Corticospinal Tract`. For a whole tract family
+use the parent (the whole left cingulum is `Association_CingulumL`, not an `Association_CingulumL_...`
+child; likewise the corpus callosum parent); choose a child only for a requested subdivision or branch.
+
+`run_auto_track` is asynchronous: launch **all** requested bundles with the same settings first, then
+poll the full table about every 10 s until every row is `done` (no per-bundle waiting or rapid
+polling). Only then run anything depending on finished geometry or indices (statistics,
+`tract_to_region`, saving, editing, overlap, visualization).
 
 ```bash
-bash ./dsi.sh list_auto_tract
-```
-
-A task-specific DSI Studio AI skill may provide verified exact AutoTrack identifiers
-and explicitly state that discovery is unnecessary for those entries. In that case,
-use the identifiers from that skill directly.
-
-AutoTrack identifiers are hierarchical. When the user asks for the whole tract
-family, choose the parent entry rather than one of its branch-specific descendants.
-For example, map the entire left cingulum with `Association_CingulumL`, not an
-`Association_CingulumL_...` child; use the corresponding parent entry for the corpus
-callosum. Select a child only when a specific subdivision or branch is requested.
-
-Then use the exact returned or task-skill-provided names. `run_auto_track` is
-asynchronous, and independent named bundles can be launched back-to-back without
-waiting for the previous one to finish. When several bundles are needed with the same
-current settings, launch **all of them first**:
-
-```bash
+bash ./dsi.sh set_params "max_tract_count=10000&max_seed_count=50000000&tip_iteration=4"
 bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractL"
 bash ./dsi.sh run_auto_track "ProjectionBrainstem_CorticospinalTractR"
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusL"
 bash ./dsi.sh run_auto_track "Association_ArcuateFasciculusR"
+bash ./dsi.sh list_tract   # each row running or done
 ```
 
-Do not wait for each AutoTrack call to finish before launching the next requested
-bundle. After the final launch, poll the full tract table approximately every 10
-seconds:
+Starting point for a named bundle: tract limit 10,000, seed limit 50,000,000 (stops low-yield pathways
+from running indefinitely), TIP 3–4. Named bundles carry built-in anatomical constraints, so add
+ROI/ROA/END/NotEND/Limiting/Terminative regions only for a specific question such as isolating a minor
+branch.
 
-```bash
-bash ./dsi.sh list_tract
-```
-
-Each tract row reports `running` or `done`. Continue polling about every 10 seconds
-until all requested rows are `done`. Only then perform operations that depend on the
-finished tract geometry or indices, such as statistics, `tract_to_region`, saving,
-editing, overlap analysis, or visualization. Avoid rapid per-bundle polling; grouped
-polling is both sufficient and preferred.
-
-Atlas names use underscore-separated hierarchical prefixes such as
-`Association_*`, `ProjectionBrainstem_*`, and `Commissure_*`. Never guess or use
-human-readable shorthand such as `Corticospinal Tract`.
-
-For a standard named bundle, a practical starting point is:
-
-```text
-tract limit: 10,000
-seed limit: 50,000,000
-TIP iterations: 3–4
-```
-
-```bash
-bash ./dsi.sh set_params "max_tract_count=10000&max_seed_count=50000000&tip_iteration=4"
-```
-
-The seed limit prevents difficult, low-yield pathways from running indefinitely.
-AutoTrack already carries built-in anatomical region constraints for the named
-bundle, so do not add ROI/ROA/END/NotEND/Limiting/Terminative constraints unless a
-specific anatomical question requires additional restriction, such as isolating a
-minor branch.
-
-If one expected named pathway finishes with zero tracts, use a bounded tolerance
-retry rather than repeatedly increasing tolerance until something appears. First
-record the current settings and failed result:
-
-```bash
-bash ./dsi.sh list_param tracking
-bash ./dsi.sh list_tract
-```
-
-By default, the current AutoTrack batch implementation uses three tolerance attempts:
-the default tolerance, default plus one subject voxel size, and default plus two
-subject voxel sizes. Mirror that bounded pattern for an interactive retry when the
-voxel size is known. For the human template the current default tolerance is 24 mm;
-for 2-mm isotropic subject data this corresponds to 24, 26, and 28 mm. Use
-`set_param tolerance <value>` and rerun the same exact AutoTrack identifier. For a
-single failed bundle, wait for that retry result before deciding whether to advance to
-the next tolerance. If several bundles require retry at the same tolerance, launch
-those retry `run_auto_track` calls back-to-back, then poll `list_tract` about every
-10 seconds until all retry rows are `done`; do not serially wait for each retry bundle.
-If the subject voxel size differs, apply the same default/+1 voxel/+2 voxel pattern
-rather than copying the 26/28-mm examples. If the voxel size is not available from the
-current data metadata, do not invent it.
-
-Stop after those bounded attempts. If the pathway is still empty, report it as
-unmappable with the seed limit, tolerance values, and tract counts. Do not treat zero
-yield as proof that the anatomical pathway is absent. If many named pathways fail,
-investigate data quality, b-table/orientation, reconstruction, and mapping rather than
-continuing to relax tolerance.
-
-To tell a registration failure from a tracking-parameter failure, run file-based
-AutoTrack with `--debug=1 --overwrite=1` (see "AutoTrack diagnostics" in
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`). It saves the warped template and atlas
-plus a per-attempt table without changing the tracking result.
-
-Larger tolerance accepts more variation and false positives; smaller tolerance may
-reject distorted or variable anatomy.
+**Zero-tract retry (bounded).** Record `list_param tracking` and `list_tract` first. The batch
+implementation tries three tolerances: default, default + one subject voxel size, default + two (human
+template default 24 mm, so 24, 26, 28 mm for 2-mm isotropic data; scale by the actual voxel size, and
+never invent it if metadata lack it). Use `set_param tolerance <value>` and rerun the same identifier;
+for one bundle wait for each result before advancing, and for several bundles at the same tolerance
+launch the retries back-to-back and poll together. Stop after these attempts: report the pathway as
+unmappable with seed limit, tolerances, and counts; zero yield does not prove the pathway is absent. If
+many pathways fail, investigate data quality, b-table/orientation, reconstruction, and mapping instead
+of relaxing tolerance. Larger tolerance accepts more variation and false positives; smaller may reject
+distorted anatomy. To tell registration failure from tracking failure, run file-based AutoTrack with
+`--debug=1 --overwrite=1` ("AutoTrack diagnostics" in `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`),
+which saves the warped template and atlas plus a per-attempt table without changing the result.
 
 ## Atlas-overlap statistics
 
-When the question is spatial overlap with a **built-in atlas**, use the dedicated
-nonmutating overlap commands instead of creating temporary atlas regions.
-
-For one region versus an atlas:
+For overlap with a **built-in atlas**, use the nonmutating commands (exact atlas name required for AI;
+verify it with `list_atlas`):
 
 ```bash
 bash ./dsi.sh list_region
 bash ./dsi.sh show_region_overlap_statistics <region-index> <exact-atlas-name>
-```
-
-For one tract versus an atlas:
-
-```bash
 bash ./dsi.sh list_tract
 bash ./dsi.sh show_tract_overlap_statistics <tract-index> <exact-atlas-name>
 ```
 
-For AI callers the atlas name must be explicit. Each command reports only atlas labels
-with nonzero intersection and returns the normal region-statistics table for those
-temporary intersections. The source region/tract is not added as a result column, and
-neither command creates, deletes, renames, reorders, or modifies Region-table rows.
-This avoids the index churn and cleanup required by
-`add_region_from_atlas` + `region_action_all_inter_1st` when only statistics are
-needed.
-
-Use `list_atlas` when the exact built-in atlas name is not already verified. Use
-`add_region_from_atlas` only when actual atlas region objects are needed for display,
-editing, tracking constraints, or downstream mask operations.
-
-`show_tract_overlap_statistics` compares a tract with a built-in atlas; it does not
-compare a tract with an arbitrary user/segmentation region. For tract overlap with a
-tumor, edema, resection cavity, or other ordinary mask, use `tract_to_region` and the
-appropriate region operations instead.
+They report only labels with nonzero intersection as a normal region-statistics table (the source
+region/tract is not a result column) and never create, delete, rename, reorder, or modify Region rows,
+avoiding the index churn and cleanup of `add_region_from_atlas` + `region_action_all_inter_1st`. Use
+`add_region_from_atlas` only when real atlas regions are needed for display, editing, tracking
+constraints, or mask operations. For tract overlap with a tumor, edema, resection cavity, or other
+ordinary mask, use `tract_to_region` and region operations instead.
 
 ## Bundle cleanup
 
-TIP is bundle-level cleanup. Apply it to a visually coherent tract bundle, including
-an AutoTrack bundle or a previously loaded or recognized bundle result. If the bundle
-is sufficiently populated (roughly 5,000–10,000 or more tracts before pruning),
-3–4 TIP iterations are normally desired. Do not disable TIP merely to maximize tract
-count. Use no TIP only when intentionally examining an unpruned bundle or when the
-bundle is too sparse for pruning.
-
-Do not routinely apply TIP or repeated-trajectory deletion to whole-brain
-tractography. A whole-brain tract set contains many pathways rather than one coherent
-visual bundle and generally does not need bundle-specific pruning.
-
-AutoTrack applies its configured `tip_iteration` automatically. For a previously
-loaded or already generated bundle that still needs cleanup, apply one additional TIP
-iteration at a time and inspect the result:
-
-```bash
-bash ./dsi.sh trim_tract <bundle-index>
-```
-
-To remove near-duplicate trajectories from checked coherent bundles when specifically
-needed:
-
-```bash
-bash ./dsi.sh delete_repeated_tract 1
-```
-
-Uncheck all non-target bundles before checked-bundle cleanup operations. Preserve the
-original or obtain user approval when cleanup must remain recoverable.
+TIP is bundle-level cleanup for a visually coherent bundle (AutoTrack, loaded, or recognized). With
+roughly 5,000–10,000+ tracts before pruning, 3–4 iterations are normally desired; do not disable TIP
+just to maximize tract count, and skip it only to examine an unpruned bundle or when the bundle is too
+sparse. Never routinely apply TIP or repeated-trajectory deletion to whole-brain tractography (many
+pathways, not one bundle). AutoTrack applies `tip_iteration` itself; for an existing bundle apply one
+iteration at a time with `bash ./dsi.sh trim_tract <bundle-index>` and inspect. Remove near-duplicates
+from checked coherent bundles only when needed with `bash ./dsi.sh delete_repeated_tract 1`, after
+unchecking non-target bundles. Both modify bundles: preserve the original or get user approval when
+cleanup must stay recoverable.
 
 ## Result cleanup and visualization
 
-After asynchronous tracking has been launched, wait for the requested tract batch to
-finish before tract-dependent cleanup or visualization. For an AutoTrack batch, poll
-the full tract table about every 10 seconds:
+When every requested `list_tract` row is `done`:
+
+1. Read final bundle indices and counts; apply cleanup only when appropriate.
+2. `bash ./dsi.sh color_all_cluster` (distinct colors).
+3. `bash ./dsi.sh check_tract <whole-brain-index> 0` (hide whole-brain; never obscure mapped bundles).
+4. `bash ./dsi.sh show_only_tracts <target-index>`.
+5. `bash ./dsi.sh set_param show_slice 0`.
+6. `bash ./dsi.sh add_surface 0 25` (subject-mapped white-matter context).
+
+Pick a useful view per bundle rather than one camera; e.g. the left arcuate from view 0 in small
+increments, then verify orientation and capture several oblique views:
 
 ```bash
-bash ./dsi.sh list_tract
-```
-
-Proceed when every requested row reports `done`. Then:
-
-1. Inspect bundle indices and tract counts from the final `list_tract` output.
-2. Apply bundle cleanup only when appropriate.
-3. Assign distinct bundle colors:
-
-   ```bash
-   bash ./dsi.sh color_all_cluster
-   ```
-
-4. Hide the whole-brain bundle:
-
-   ```bash
-   bash ./dsi.sh check_tract <whole-brain-index> 0
-   ```
-
-5. Show only the target bundle:
-
-   ```bash
-   bash ./dsi.sh show_only_tracts <target-index>
-   ```
-
-6. Turn off slice rendering:
-
-   ```bash
-   bash ./dsi.sh set_param show_slice 0
-   ```
-
-7. Add subject-mapped built-in white-matter context:
-
-   ```bash
-   bash ./dsi.sh add_surface 0 25
-   ```
-
-Choose a useful inspection view for each bundle rather than reusing one camera. For
-the left arcuate fasciculus, start from view 0 and adjust in small increments:
-
-```bash
-bash ./dsi.sh set_view 0
+bash ./dsi.sh set_view 0 0
 bash ./dsi.sh rotate "15 1 0 0"
 bash ./dsi.sh rotate "20 0 1 0"
 ```
 
-Verify orientation and capture several oblique views. Do not obscure mapped bundles
-with whole-brain streamlines.
-
-TIP and repeated-tract deletion modify checked bundles. Preserve the original or
-obtain user approval when cleanup must remain recoverable.
-
-## Quality-control guide
+## Quality control
 
 | Observation | Check or response |
 |---|---|
-| Most tracts stop early | Reconstruction, mask, and tracking threshold |
+| Most tracts stop early | Reconstruction, mask, tracking threshold |
 | Tracts enter gray matter or CSF | Threshold may be too low |
-| Expected curve is missing | ROI placement and local orientations before raising angle |
-| Implausible sharp turns | Reduce angular threshold and inspect crossings |
-| Bundle is fragmented | Sampling, threshold, restrictive regions, and minimum length |
-| Many unrelated branches | Region size, waypoint logic, and conservative ROAs |
+| Expected curve missing | ROI placement and local orientations before raising angle |
+| Implausible sharp turns | Lower angular threshold; inspect crossings |
+| Fragmented bundle | Sampling, threshold, restrictive regions, minimum length |
+| Many unrelated branches | Region size, waypoint logic, conservative ROAs |
 | Bundle vanishes after ROA | ROA likely intersects valid anatomy |
-| TIP removes nearly everything | Bundle is too sparse or tracking settings are poor |
-| AutoTrack takes too long | Low yield; retain a finite seed limit |
-| Many AutoTrack pathways fail | Data, b-table, orientation, or reconstruction problem |
-| One pathway fails | Tract yield, tolerance, or anatomical distortion |
+| TIP removes nearly everything | Bundle too sparse or settings poor |
+| AutoTrack takes too long | Low yield; keep a finite seed limit |
+| Many AutoTrack pathways fail | Data, b-table, orientation, or reconstruction |
+| One pathway fails | Yield, tolerance, or anatomical distortion |
 
-Endpoint tracking is sensitive to gray-white segmentation, gyral bias, anisotropy
-near cortex, and endpoint-mask extent. Failure to reach cortex does not necessarily
-prove absence of a connection.
+Endpoint tracking is sensitive to gray-white segmentation, gyral bias, anisotropy near cortex, and
+endpoint-mask extent; failing to reach cortex does not prove a connection is absent.
 
 ## Reproducibility
 
-Record:
-
-- source FIB and reconstruction space;
-- tracking method, index, threshold, angle, step size, and smoothing;
-- minimum/maximum length and stopping criteria;
-- tract and seed limits;
-- every region name, source, space, role, and anatomical purpose;
-- AutoTrack identifier, tolerance, and TIP iterations;
-- repeated-tract threshold and other cleanup;
-- random seed when exact repeatability is required;
-- output tract files and QC findings.
+Record: source FIB and reconstruction space; tracking method, index, threshold, angle, step size,
+smoothing; min/max length and stopping criteria; tract and seed limits; every region's name, source,
+space, role, and purpose; AutoTrack identifier, tolerance, TIP iterations; repeated-tract threshold and
+other cleanup; random seed when exact repeatability is required; output files and QC findings.

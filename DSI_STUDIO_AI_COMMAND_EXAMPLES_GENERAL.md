@@ -1,117 +1,12 @@
 # DSI Studio AI General Command Examples and Inventory
 
-These commands target the fixed `main` window. `main` is the default selection for
-a new session; if a `set_window` call has since switched to another window, return
-to `main` first:
+These commands target the fixed `main` window, the default selection of a new session; after
+switching elsewhere, return with `bash ./dsi.sh set_window main`. Command names and text or path
+parameters are strings; send standalone numbers as JSON numbers. Never send a filesystem path by
+itself as a request; supply paths only as parameters of the commands below.
 
-```bash
-bash ./dsi.sh set_window main
-```
-
-Command names and text or path parameters are strings. Send standalone numeric
-parameters as JSON numbers.
-
-Do not send a filesystem path by itself as a named-pipe request. Supply paths
-only as parameters of the documented commands below.
-
-## Example datasets for DICOM import lessons
-
-The DSI Studio repository's `.github/workflows/test.yml` contains
-real DICOM conversion tests. Use
-[`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md)
-to offer public Siemens, Philips, sagittal, and XA30 fixtures and a
-reproducible conversion walkthrough. For interactive AI sessions use
-the `rename_dicom_dir` / `convert_dicom_dir` commands below; the
-GitHub Actions workflow uses CLI `--action=ren` / `--action=src`.
-A DICOM `test` command is **not** part of the AI launcher.
-Only rename files in a disposable example copy, and inspect output
-before declaring the test successful.
-
-## Main-window commands
-
-| Command | Common example | Exact behavior |
-|---|---|---|
-| `list_recent_fib` | `["list_recent_fib"]` | List valid saved recent FIB/FZ paths using forward slashes. If none of the saved paths currently exists, print `no recent files`. Takes no arguments. |
-| `list_recent_src` | `["list_recent_src"]` | List valid saved recent SRC/SZ paths using forward slashes. If none of the saved paths currently exists, print `no recent files`. Takes no arguments. |
-| `reset_settings` | `["reset_settings"]` | Clear all application settings and synchronize them. Takes no arguments. |
-| `set_work_dir` | `["set_work_dir","C:/work"]` | Change the working directory: it becomes the current directory for relative paths in `run_shell`, `run_cli`, `write_text_file`, `patch_text_file`, and `web_upload` (remembered per chat) and is added to the work-directory list. The directory must exist. It is also the folder a local agent may write with its own tools: Codex gets the new folder from the next message; other agents keep the folder they started with until the chat is restarted. Without a parameter, open a directory picker. |
-| `rename_dicom` | `["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Rename one or more DICOM files in their current parent directories. Each file is a separate command element. Without file parameters, open a file picker. |
-| `rename_dicom_dir` | `["rename_dicom_dir","C:/dicom"]` | Rename DICOM files recursively at the supplied directory. Without a parameter, open a directory picker. |
-| `convert_dicom_dir` | `["convert_dicom_dir","C:/dicom"]` | Recursively convert DICOM series in the supplied directory to SRC/SZ or NIfTI output without overwriting existing output. Without a parameter, open a directory picker. |
-| `bids_to_src` | `["bids_to_src","C:/bids","C:/bids/derivatives"]` | Search the supplied BIDS folder for diffusion NIfTI data and create SRC/SZ files in the supplied output folder, creating it first if it does not exist. Without an input parameter, first open a BIDS-folder picker. Without an output parameter (a second element), ask the local user to choose one (always an existing folder). |
-| `nifti_dir_to_src` | `["nifti_dir_to_src","C:/nifti"]` | Find diffusion NIfTI data in the supplied directory and create SRC/SZ files there. Existing outputs may prompt for overwrite decisions. Without a parameter, open a directory picker. |
-| `collect_network_measures` | `["collect_network_measures","C:/net/a.txt","C:/net/b.txt"]` | Collect one or more network-measure text files into `<first-file>.collected.txt`. Each file is a separate command element. Without file parameters, open a file picker. |
-| `open_src` | `["open_src","C:/data/a.sz","C:/data/b.sz"]` | Open one or more SRC/SZ or histology inputs in one reconstruction window. Each file is a separate command element. A successful command selects the new reconstruction window and reports `recon window created, id: recon...` in `output`. Without file parameters, open a file picker. |
-| `open_dwi_nifti` | `["open_dwi_nifti","C:/data/dwi.nii.gz"]` | Open one or more diffusion NIfTI inputs through `open_DWI`. Without file parameters, open a NIfTI picker. |
-| `open_dwi_dicom` | `["open_dwi_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Open one or more DICOM inputs through `open_DWI`. Each file is a separate command element. Without file parameters, open a DICOM picker. |
-| `open_dwi_2dseq` | `["open_dwi_2dseq","C:/scan/2dseq"]` | Open one or more 2dseq, FDF, or NRRD diffusion inputs through `open_DWI`. Without file parameters, open a picker. |
-| `open_src_dir` | `["open_src_dir","C:/src"]` | Search the supplied directory for `*src.gz` and `.sz` files and load them into one reconstruction window. A successful command reports its `recon...` ID. Without a parameter, open a directory picker. |
-| `open_fib` | `["open_fib","C:/data/subject.fz"]` | Open the supplied `.fz`, `*fib.gz`, or `.dz` file and create and select a tracking window. Without a parameter, open a FIB picker. |
-| `open_structural_tracking` | `["open_structural_tracking","C:/data/T1w.nii.gz"]` | Pass the supplied NIfTI or 2dseq structural image to `loadFib`. Without a parameter, open a structural-image picker. |
-| `open_template` | `["open_template","<template-name>"]` | Open the exact built-in population/species template FIB as a tracking window. An invalid name returns an error. Without a parameter, open the template currently selected in the main-window list. |
-| `create_db` | `["create_db"]` | Open the connectometry database-creation dialog. Takes no arguments. |
-| `create_average` | `["create_average"]` | Open the average-database creation dialog. Takes no arguments. |
-| `open_db` | `["open_db","C:/data/group.db.fz"]` | Load the supplied connectometry database and create a database window. Database-loading failures are returned through `error`. Without a parameter, open a database picker. |
-| `open_connectometry` | `["open_connectometry","C:/data/group.db.fz"]` | Load the supplied connectometry database and create a group-connectometry window. Database-loading failures are returned through `error`. Without a parameter, open a database picker. |
-| `open_auto_track` | `["open_auto_track"]` | Create and show the main AutoTrack window. Takes no arguments. |
-| `open_nonlinear_registration` | `["open_nonlinear_registration"]` | Create and show the nonlinear-registration toolbox. Takes no arguments. |
-| `open_xnat` | `["open_xnat"]` | Create and show the XNAT dialog. Takes no arguments. |
-| `xnat_list` | `["xnat_list"]`, `["xnat_list","100:200","^ADNI"]` | Return the XNAT experiments as a tab-separated table (header row first; fields include `ID`, `label`, `project`, `date`), newest first. The optional range is `N` (the first N, default 100) or `from:to` (0-based, `to` excluded) and counts only experiments in matching projects. The optional project filter is a case-insensitive regular expression; empty or omitted means all projects. Uses the server and login saved by the XNAT dialog; if none is saved or the login fails, ask the user to connect once in the XNAT dialog (`open_xnat`). |
-| `xnat_download` | `["xnat_download","XNAT_E00012,XNAT_E00013"]` | Download the scans of the listed experiments (one parameter; IDs separated by commas or spaces, as returned by `xnat_list`) into the download folder and sub-folder rule saved by the XNAT dialog, returning when finished. Each experiment's output folder is printed. Fails before downloading if any ID is not found. Same saved-login requirement as `xnat_list`. |
-| `open_console` | `["open_console"]` | Show the singleton application console. Takes no arguments. |
-| `clear_recent_src` | `["clear_recent_src"]` | Immediately clear the recent SRC/SZ table and saved `recentSrcFileList`. Takes no arguments and asks for no confirmation. |
-| `clear_recent_fib` | `["clear_recent_fib"]` | Immediately clear the recent FIB/FZ table and saved `recentFibFileList`. Takes no arguments and asks for no confirmation. |
-| `show_qc_nii` | `["show_qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]` | Run NIfTI quality checks. Each file is a separate command element. Without file parameters, open a file picker. AI callers get the report text directly in `output`; a local user instead sees it in a dialog. |
-| `show_qc_src` | `["show_qc_src","C:/data/a.sz","C:/data/b.sz"]` | Same as `show_qc_nii` for SRC/SZ files. |
-| `show_qc_fib` | `["show_qc_fib","C:/data/a.fz","C:/data/b.fz"]` | Same as `show_qc_nii` for FIB/FZ files. |
-| `save_qc_nii` | `["save_qc_nii","C:/report.txt","C:/data/a.nii.gz"]` | Same checks as `show_qc_nii`, but writes the report to the given path (first parameter) instead of returning it or showing a dialog. Without file parameters after the path, open a file picker. |
-| `save_qc_src` | `["save_qc_src","C:/report.txt","C:/data/a.sz"]` | Same as `save_qc_nii` for SRC/SZ files. |
-| `save_qc_fib` | `["save_qc_fib","C:/report.txt","C:/data/a.fz"]` | Same as `save_qc_nii` for FIB/FZ files. |
-| `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]` | Parse and execute one DSI Studio command-line string inside the running process. Missing `--action` defaults to `vis`; wildcard looping and each action's own requirements apply. |
-| `run_shell` | `["run_shell","cd \"C:\\data\" && dir *.fz"]` | Execute one shell command string from the chat's working directory (a standalone `cd` has no lasting effect); every command shows the local user a confirmation dialog first, then `dir`-like commands run synchronously and `curl` runs asynchronously as a synthetic `curlN` task. |
-| `write_text_file` | `["write_text_file","make_report.py","<script text>"]` | Write text to a local file exactly as sent (UTF-8, no BOM, overwrite), with no shell parsing. Every AI call asks the local user to confirm. Returns the path and byte count. Use it to write a script, then run it with `run_shell "python make_report.py"`. See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md`. |
-| `patch_text_file` | `["patch_text_file","src/main.cpp","@@ -12,2 +12,2 @@\n context\n-old line\n+new line"]` | Edit part of a text file with a unified diff for that one file (`---`/`+++` headers optional). Each hunk applies where its context and `-` lines match the current text exactly, nearest its stated line; if any hunk does not match, nothing is written and the error names that hunk. CRLF files stay CRLF. Every AI call asks the local user to confirm, showing the diff. Also available in headless mode. |
-| `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open one or more supported medical image volumes in a new `view_image` window and select it. Each file is a separate command element. Image-opening failures are returned through `error`. Without file parameters, open an image picker. Do not use this command for FIB tracking or ordinary JPG/PNG screenshots. |
-| `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. Takes no arguments. |
-| `get_agent_settings` | `["get_agent_settings"]`, `["get_agent_settings","Claude"]`, or `["get_agent_settings","ready"]` | Return a JSON array of local agent readiness on this host (Codex, Claude, Muse, Antigravity, Grok; one agent when named, case-insensitive; `ready` returns only agents that can be invoked now): `agent`, `host`, `scope` (`gui` or `headless`), `executable`, `status` (`ready`, `sign_in_required`, `not_installed`, `checking`, `error`, `unknown`), `account` (when ready) or `reason`, `models` (list, or `"unknown"` when not discovered) and `checked` time. Never signs in or sends a prompt. `ready` means installed and signed in by a noninteractive check; usage limits are not checked. The GUI reports its cached checks; headless checks the requested agents in parallel and reuses results for 5 minutes. Also available in headless mode. |
-| `new_chat` | `["new_chat","Claude"]`, `["new_chat","Codex","gpt-5","Atlas QA"]`, `["new_chat","Codex","default","Fix parser","C:/src/repo"]` | Create a DSI-managed chat with a local agent (case-insensitive), an optional native model (`default` or omitted: the agent's default), optionally ending with `:<thinking level>` for Codex (`low`, `medium`, `high`, `xhigh`) Claude (`low`, `medium`, `high`, `xhigh`, `max`), or an Antigravity, Grok, or Muse model that has levels, e.g. `gpt-5.5:high`, `gemini-4-argon:high`, `grok-4.7:xhigh`, or `default:high` (without a level: `medium` where the model supports it), an optional title, and an optional existing work directory (relative to the caller's; default: the GUI work directory or the headless start directory) that becomes the chat's `set_work_dir` folder and the folder its agent may write; the new chat inherits the calling chat's approval setting (auto or manual), and return JSON `id`, `agent`, `model`, `title`, `status` (`New`). The agent must be `ready` on this host (see `get_agent_settings`) and, where this host lists the agent's models, the list must contain the model; otherwise a clear error. Headless mode does not discover models, so any name is accepted there and a wrong one fails when the agent starts. The chat is saved at once and its agent starts with the first message; Codex and Antigravity then replace the id with their own, so find the chat again with `get_chat`. Ollama models are not available here. Without parameters, `new_chat` keeps its launcher meaning (registering an external agent's own session; see `DSI_STUDIO_AI_SKILL_LAUNCHER.md`). Also available in headless mode. |
-| `send_chat` | `["send_chat","<session-id>","Summarize the arcuate results."]` | Send a message to another DSI-managed local agent chat (Codex, Claude, Muse, Antigravity, Grok), keeping its agent, model and context. Returns JSON `id`, `status` and `message` (the number of the sent message): `delivered` when it was written to the running agent's input now, `queued` when the agent is starting or resuming and receives it once connected. Errors begin with `busy:` (the agent is mid-turn, starting or exiting: check `get_chat` and retry later), `unsupported:` (Web and external AgentServer chats have no delivery channel), or `error:` (the agent could not start; the reason follows). The target chat first records "Message from <your chat> via send_chat." Follow the reply with `get_chat <id> "<message+1>-"`; Codex and Antigravity replace a new chat's id on first launch, so use `get_chat` to find it again. Also available in headless mode. |
-| `get_chat` | `["get_chat"]`, `["get_chat",-5]`, `["get_chat","<session-id>"]`, `["get_chat","<session-id>",-3]`, `["get_chat","<session-id>","5-"]` | Without an ID: a JSON array of every chat this DSI Studio instance holds (its saved chats load at startup; `-N`: only the N most recent), newest first: `id`, `title`, `agent`, `provider`, `model`, `status`, `window`, `last_activity`. Every listed chat can be read and sent to. With an ID: that chat's metadata plus `messages` (number of user/assistant messages) and `history`. The optional range is `all` (default), `-N` (the last N messages), `N` (message number N, 1 = first), `N-` (message N onward) or `N-M` (messages N to M); each message comes with the command/activity/error entries that follow it (an agent's message is recorded before the commands it sends), each entry carries its `message` number, and a failed command's entry carries its `error`. To follow a chat's progress, remember `messages` and next request `"<messages+1>-"`: an empty `history` means no new message. `"<messages+1>-"` finds new messages only: an error or activity after the last message keeps that message's number. `status` stays `Thinking` until the agent's turn ends; when it changes, or when no reply arrives (a failed first launch returns the chat to `New`), read `get_chat <id> -1` for the latest entries, including errors. Read only: never selects, wakes, or changes the chat. Also available in headless mode. |
-| `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without running a query. Takes no arguments. |
-| `hub_repo` | `["hub_repo"]` | Show the Fiber Data Hub and list available repositories. |
-| `hub_tags` | `["hub_tags","<repo>"]` | List release tags for the exact repository returned by `hub_repo`. |
-| `hub_files` | `["hub_files","<repo>","",".*\\.fz$",0,20]` | Search files across every tag matching the case-insensitive tag regular expression. The filename filter is also a case-insensitive regular expression; empty tag or filename patterns match all. Offset and limit apply to the combined matches. |
-| `hub_open` | `["hub_open","<repo>","<exact-tag>",12]` | Download to temporary cache when needed and open one selected Hub file. The tag must be one exact tag; the file may be the returned row index or exact filename. |
-| `hub_show` | `["hub_show","<repo>","<exact-tag>"]` or `["hub_show","<repo>","<exact-tag>","subjects.tsv"]` | Without a file: return the tag's GitHub release note (explaining what the dataset is) directly in the response. With a file: download that `.tsv` release file and return its raw tab-separated content instead, rather than opening it as the release-note table in the Hub window. The tag must be one exact tag; the file may be the returned row index or exact filename; fails if a given file does not end in `.tsv`. |
-| `hub_download` | `["hub_download","<repo>","^HCP.*$","*.qsdr.fz","C:/data"]` | Download every file matching the wildcard pattern (`*`, `?`, `[...]`) in every tag matching the case-insensitive tag regular expression, so one call can fetch many files across many tags/subjects at once. |
-
-## Built-in template-space analysis
-
-`open_template` opens a built-in population/species FIB as a normal tracking window;
-use the template matching the data population. Installed names are determined by the
-packaged atlas/tract set and commonly include `human`, `human-neonate`, `rhesus`,
-`marmoset`, `rat`, and `mouse`.
-
-For common-space analysis, load scalar NIfTI maps into that template window with
-`add_mni_slice`. For `human`, this means MNI-space NIfTI; for other templates, use the
-corresponding template space. DSI Studio uses the NIfTI header transform for alignment,
-so the NIfTI may have a different voxel size or matrix from the template FIB. The
-loaded map becomes a regular slice and can be used for threshold/ROI creation, region
-statistics, tractography, atlas analysis, and rendering together with the template FIB
-metrics.
-
-```bash
-bash ./dsi.sh open_template human
-bash ./dsi.sh add_mni_slice "C:/data/mni_result.nii.gz"
-bash ./dsi.sh list_slice
-```
-
-After `open_template`, the new `tracking<hex-address>` is already selected; do not
-send `set_window` unless switching between already-open windows.
-
-## Multiple-file parameter format
-
-Commands that accept multiple files use one command-array element per file:
+Commands accepting multiple files take one command-array element per file, never one `&`-separated
+string (the router treats every element after the command name as a path):
 
 ```json
 ["open_src","C:/data/a.sz","C:/data/b.sz"]
@@ -119,209 +14,175 @@ Commands that accept multiple files use one command-array element per file:
 ["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]
 ```
 
-Do not combine multiple paths into one `&`-separated string. The current router
-collects every command element after the command name as a separate file path.
+Unless noted, a command without its file or folder parameter opens a local picker, and "no args"
+means it takes no arguments.
 
-After `open_src`, the new `recon<hex-address>` is already selected; follow
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`.
+## DICOM import lessons
 
-## Internal `run_cli` actions
+The DSI Studio repository's `.github/workflows/test.yml` contains real DICOM conversion tests. Offer
+its public Siemens, Philips, sagittal, and XA30 fixtures and a reproducible walkthrough from
+[`DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md`](DSI_STUDIO_AI_SKILL_EXAMPLE_DATA.md). Interactive AI sessions
+use `rename_dicom_dir` / `convert_dicom_dir`; the workflow uses CLI `--action=ren` / `--action=src`. A
+DICOM `test` command is **not** part of the AI launcher. Rename only a disposable example copy, and
+inspect the output before declaring success.
 
-`run_cli` accepts exactly one non-empty command-line string:
+## Main-window commands
 
-```json
-["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]
-["run_cli","--action=rec --source=C:/data/*.sz"]
+### Files, import, and settings
+
+| Command | Example | Behavior |
+|---|---|---|
+| `list_recent_fib`, `list_recent_src` | `["list_recent_fib"]`, `["list_recent_src"]` | List valid saved recent FIB/FZ or SRC/SZ paths with forward slashes, or `no recent files` when none exists. No args. |
+| `clear_recent_src`, `clear_recent_fib` | `["clear_recent_src"]`, `["clear_recent_fib"]` | Immediately clear the recent SRC/SZ or FIB/FZ table and saved `recentSrcFileList` / `recentFibFileList`, without confirmation. No args. |
+| `reset_settings` | `["reset_settings"]` | Clear and synchronize all application settings. No args. |
+| `set_work_dir` | `["set_work_dir","C:/work"]` | Change the chat's working directory (remembered per chat): the current directory for relative paths in `run_shell`, `run_cli`, `write_text_file`, `patch_text_file`, and `web_upload`, added to the main window's work-directory list, where its file dialogs open. The directory must exist. It is also where a local agent may write with its own tools: Codex gets the new folder with the next message; other agents keep their starting folder until the chat restarts. |
+| `rename_dicom` | `["rename_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]` | Rename DICOM files in their parent directories. |
+| `rename_dicom_dir` | `["rename_dicom_dir","C:/dicom"]` | Rename DICOM files recursively in the directory. |
+| `convert_dicom_dir` | `["convert_dicom_dir","C:/dicom"]` | Recursively convert DICOM series to SRC/SZ or NIfTI, never overwriting existing output. |
+| `bids_to_src` | `["bids_to_src","C:/bids","C:/bids/derivatives"]` | Find diffusion NIfTI in the BIDS folder and create SRC/SZ files in the output folder (created if missing). Without input it opens a BIDS-folder picker; without output it asks the user for an existing folder. |
+| `nifti_dir_to_src` | `["nifti_dir_to_src","C:/nifti"]` | Find diffusion NIfTI in the directory and create SRC/SZ files there; existing outputs may prompt for overwrite decisions. |
+| `open_dwi_nifti`, `open_dwi_dicom`, `open_dwi_2dseq` | `["open_dwi_nifti","C:/data/dwi.nii.gz"]`, `["open_dwi_dicom","C:/dicom/a.dcm","C:/dicom/b.dcm"]`, `["open_dwi_2dseq","C:/scan/2dseq"]` | Enter the DWI-import workflow for diffusion NIfTI, DICOM, or 2dseq/FDF/NRRD inputs through `open_DWI`; no reconstruction-window ID is guaranteed. |
+| `open_src` | `["open_src","C:/data/a.sz","C:/data/b.sz"]` | Open SRC/SZ or histology inputs in one reconstruction window, select it, and report `recon window created, id: recon...`; continue with `DSI_STUDIO_AI_COMMAND_EXAMPLES_RECONSTRUCTION.md`. |
+| `open_src_dir` | `["open_src_dir","C:/src"]` | Load the directory's `*src.gz` and `.sz` files into one reconstruction window and report its `recon...` ID. |
+| `open_fib` | `["open_fib","C:/data/subject.fz"]` | Open a `.fz`, `*fib.gz`, or `.dz` file in a new, selected tracking window. |
+| `open_structural_tracking` | `["open_structural_tracking","C:/data/T1w.nii.gz"]` | Pass a NIfTI or 2dseq structural image to `loadFib`. |
+| `open_template` | `["open_template","<template-name>"]` | Open the exact built-in population/species template FIB as a tracking window; an invalid name errors; without a parameter, the template selected in the main-window list. |
+| `open_image` | `["open_image","C:/data/T1w.nii.gz","C:/data/T2w.nii.gz"]` | Open supported medical-image volumes in a new, selected `view_image` window; failures return in `error`. Never for FIB tracking or JPG/PNG screenshots. |
+| `collect_network_measures` | `["collect_network_measures","C:/net/a.txt","C:/net/b.txt"]` | Collect network-measure text files into `<first-file>.collected.txt`. |
+
+### Quality control
+
+| Command | Example | Behavior |
+|---|---|---|
+| `show_qc_nii`, `show_qc_src`, `show_qc_fib` | `["show_qc_nii","C:/data/a.nii.gz","C:/data/b.nii.gz"]`, `["show_qc_src","C:/data/a.sz","C:/data/b.sz"]` | Run quality checks on NIfTI, SRC/SZ, or FIB/FZ files. AI callers get the report in `output`; a local user sees a dialog. |
+| `save_qc_nii`, `save_qc_src`, `save_qc_fib` | `["save_qc_nii","C:/report.txt","C:/data/a.nii.gz"]`, `["save_qc_src","C:/report.txt","C:/data/a.sz"]`, `["save_qc_fib","C:/report.txt","C:/data/a.fz"]` | The same checks, writing the report to the first parameter's path; without files after it, a file picker opens. |
+
+### Databases, tools, and windows
+
+| Command | Example | Behavior |
+|---|---|---|
+| `create_db`, `create_average` | `["create_db"]`, `["create_average"]` | Open the connectometry database-creation or average-database dialog. No args. |
+| `open_db` | `["open_db","C:/data/group.db.fz"]` | Load a connectometry database in a new database window; loading failures return in `error`. |
+| `open_connectometry` | `["open_connectometry","C:/data/group.db.fz"]` | Load a connectometry database in a new group-connectometry window; loading failures return in `error`. |
+| `open_auto_track`, `open_nonlinear_registration`, `open_xnat`, `open_console` | `["open_auto_track"]`, `["open_nonlinear_registration"]`, `["open_xnat"]`, `["open_console"]` | Create and show the AutoTrack window, nonlinear-registration toolbox, XNAT dialog, or singleton console. No args. |
+| `open_ai` | `["open_ai"]` | Show, raise, and activate the AI Agent window. No args. |
+| `open_hub` | `["open_hub"]` | Show, raise, and activate the Fiber Data Hub without a query. No args. |
+
+### Fiber Data Hub and XNAT
+
+| Command | Example | Behavior |
+|---|---|---|
+| `hub_repo` | `["hub_repo"]` | Show the Hub and list repositories. |
+| `hub_tags` | `["hub_tags","<repo>"]` | List release tags of the exact repository returned by `hub_repo`. |
+| `hub_files` | `["hub_files","<repo>","",".*\\.fz$",0,20]` | Search files across every tag matching the case-insensitive tag regex; the filename filter is also a case-insensitive regex; empty patterns match all. Offset and limit apply to the combined matches. |
+| `hub_open` | `["hub_open","<repo>","<exact-tag>",12]` | Download to the temporary cache when needed and open one file (returned row index or exact filename) of one exact tag. |
+| `hub_show` | `["hub_show","<repo>","<exact-tag>"]`, `["hub_show","<repo>","<exact-tag>","subjects.tsv"]` | Return the tag's GitHub release note, or with a file (row index or exact filename, must end in `.tsv`) its raw tab-separated content instead of opening it in the Hub window. |
+| `hub_download` | `["hub_download","<repo>","^HCP.*$","*.qsdr.fz","C:/data"]` | Download every file matching the wildcard (`*`, `?`, `[...]`) in every tag matching the case-insensitive tag regex: one call can fetch many files across tags and subjects. |
+| `xnat_list` | `["xnat_list"]`, `["xnat_list","100:200","^ADNI"]` | XNAT experiments as a tab-separated table, header first (fields include `ID`, `label`, `project`, `date`), newest first. Range `N` (first N, default 100) or `from:to` (0-based, `to` excluded), counted within projects matching the optional case-insensitive regex (empty: all). Uses the server and login saved in the XNAT dialog; if none or the login fails, ask the user to connect once there (`open_xnat`). |
+| `xnat_download` | `["xnat_download","XNAT_E00012,XNAT_E00013"]` | Download the listed experiments' scans (one parameter, IDs separated by commas or spaces) into the folder and sub-folder rule saved in the XNAT dialog, printing each output folder and returning when finished; fails before downloading if any ID is unknown. Same login requirement. |
+
+### Scripts, shell, and CLI
+
+Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before use (wildcards, global thread settings,
+overwrites, actions depending on open windows, platform behavior, completion verification).
+
+| Command | Example | Behavior |
+|---|---|---|
+| `run_cli` | `["run_cli","--action=vis --source=C:/data/subject.fz --cmd=list_tract"]`, `["run_cli","--action=rec --source=C:/data/*.sz"]` | One DSI Studio command-line string run inside the current process (GUI only). The optional exact lowercase `dsi_studio ` prefix is removed; missing `--action` defaults to `vis`; relative paths use the chat's working directory (`set_work_dir`); it ignores `set_window`. Wildcard looping applies (`--continue_on_error` keeps a loop going after a failed item); a failure returns `command line failed`, with details in the captured output. |
+| `run_shell` | `["run_shell","cd \"C:\\data\" && dir *.fz"]`, `["run_shell","curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""]` | One shell command string, shown to the local user for approval first. Others run synchronously (10-minute limit, `cmd.exe /c` or `/bin/sh -c`, non-zero exit fails with `command exited with code <N>`); `curl` runs asynchronously as a `curlN` task (`started curlN: curl -s -S ...`; `-s -S` added automatically). Each runs from the chat's working directory, so a standalone `cd` has no lasting effect. Use `curl -o` or `curl -O` instead of output redirection. Never include credentials, tokens, protected data, or untrusted text. In a GUI session run DSI Studio CLI actions with `run_cli`; a headless Web session runs them here (`DSI_STUDIO_AI_SKILL_WEB.md`). |
+| `write_text_file` | `["write_text_file","make_report.py","<script text>"]` | Write text exactly as sent (UTF-8, no BOM, overwrite), without shell parsing, after the local user confirms; returns the path and byte count. Then run it, e.g. `run_shell "python make_report.py"`. |
+| `patch_text_file` | `["patch_text_file","src/main.cpp","@@ -12,2 +12,2 @@\n context\n-old line\n+new line"]` | Edit one text file with a unified diff (`---`/`+++` headers optional). Each hunk applies nearest its stated line where its context and `-` lines match exactly; if any hunk does not match, nothing is written and the error names it. CRLF files stay CRLF. The user confirms with the diff shown. Also in headless mode. |
+
+### Agents and chats (also in headless mode)
+
+| Command | Example | Behavior |
+|---|---|---|
+| `get_agent_settings` | `["get_agent_settings"]`, `["get_agent_settings","Claude"]`, `["get_agent_settings","ready"]` | JSON array of local agent readiness on this host (Codex, Claude, Muse, Antigravity, Grok; one agent when named, case-insensitive; `ready`: only agents invocable now): `agent`, `host`, `scope` (`gui` or `headless`), `executable`, `status` (`ready`, `sign_in_required`, `not_installed`, `checking`, `error`, `unknown`), `account` (when ready) or `reason`, `models` (list, or `"unknown"` when not discovered), and `checked` time. Never signs in or sends a prompt. `ready` means installed and signed in by a noninteractive check; usage limits are not checked. The GUI reports cached checks; headless checks the requested agents in parallel and reuses results for 5 minutes. |
+| `new_chat` | `["new_chat","Claude"]`, `["new_chat","Codex","gpt-5","Atlas QA"]`, `["new_chat","Codex","default","Fix parser","C:/src/repo"]` | Create a DSI-managed chat with a local agent (case-insensitive) and return JSON `id`, `agent`, `model`, `title`, `status` (`New`). Optional: a native model (`default` or omitted: the agent's default), with an optional `:<thinking level>` for Codex (`low`, `medium`, `high`, `xhigh`), Claude (`low`, `medium`, `high`, `xhigh`, `max`), or an Antigravity, Grok, or Muse model with levels (e.g. `gpt-5.5:high`, `gemini-4-argon:high`, `grok-4.7:xhigh`, `default:high`; without a level, `medium` where supported); a title; and an existing work directory (relative to the caller's; default: the GUI work directory or the headless start directory) that becomes the chat's `set_work_dir` folder and the folder its agent may write. The chat inherits the caller's approval setting (auto or manual). The agent must be `ready` (`get_agent_settings`) and, where this host lists its models, the model must be listed; otherwise a clear error. Headless mode does not discover models, so any name is accepted and a wrong one fails when the agent starts. Ollama models are not available here. The chat is saved at once and its agent starts with the first message; Codex and Antigravity then replace the id, so find it again with `get_chat`. Without parameters, `new_chat` keeps its launcher meaning (registering an external agent's session; `DSI_STUDIO_AI_SKILL_LAUNCHER.md`). |
+| `send_chat` | `["send_chat","<session-id>","Summarize the arcuate results."]` | Send a message to another DSI-managed local agent chat (Codex, Claude, Muse, Antigravity, Grok), keeping its agent, model, and context. Returns JSON `id`, `status`, and `message` (the sent message's number): `delivered` (written to the running agent's input now) or `queued` (the agent is starting or resuming and receives it once connected). Errors begin with `busy:` (mid-turn, starting, or exiting: check `get_chat` and retry later), `unsupported:` (Web and external AgentServer chats have no delivery channel), or `error:` (the agent could not start; reason follows). The target first records "Message from <your chat> via send_chat." Follow the reply with `get_chat <id> "<message+1>-"`. |
+| `get_chat` | `["get_chat"]`, `["get_chat",-5]`, `["get_chat","<session-id>"]`, `["get_chat","<session-id>",-3]`, `["get_chat","<session-id>","5-"]` | Without an ID: every chat this instance holds (saved chats load at startup), newest first (`-N`: the N most recent), as `id`, `title`, `agent`, `provider`, `model`, `status`, `window`, `last_activity`; every listed chat can be read and sent to. With an ID: its metadata, `messages` (number of user/assistant messages), and `history` for the range `all` (default), `-N` (last N), `N` (message N, 1 = first), `N-` (N onward), or `N-M`. Each message comes with the command/activity/error entries that follow it (an agent's message is recorded before the commands it sends); each entry carries its `message` number, and a failed command's entry its `error`. To follow progress, request `"<messages+1>-"`: an empty `history` means no new message, and an error or activity after the last message keeps that message's number. `status` stays `Thinking` until the turn ends; when it changes, or no reply arrives (a failed first launch returns to `New`), read `get_chat <id> -1` for the latest entries, including errors. Read only: never selects, wakes, or changes the chat. |
+
+## Built-in template-space analysis
+
+`open_template` opens a built-in population/species FIB as a normal tracking window, already selected
+(no `set_window` needed); use the template matching the data population. Installed names depend on
+the packaged atlas/tract set and commonly include `human`, `human-neonate`, `rhesus`, `marmoset`,
+`rat`, and `mouse`. For common-space analysis, load scalar NIfTI maps with `add_mni_slice` (MNI space
+for `human`, the corresponding template space otherwise). Alignment uses the NIfTI header transform,
+so voxel size and matrix may differ from the template FIB. The map becomes a regular slice for
+threshold/ROI creation, region statistics, tractography, atlas analysis, and rendering with the
+template metrics.
+
+```bash
+bash ./dsi.sh open_template human
+bash ./dsi.sh add_mni_slice "C:/data/mni_result.nii.gz"
+bash ./dsi.sh list_slice
 ```
 
-- Keep the entire command line in one string.
-- The optional exact lowercase prefix `dsi_studio ` is removed before parsing.
-- Missing `--action` defaults to `vis`.
-- The action runs inside the current DSI Studio process, not in a new executable.
-- Relative paths use the chat's working directory (`set_work_dir`).
-- `run_cli` does not target the AI session's `set_window` selection; each CLI action
-  uses its own global command-line behavior.
-- The wildcard-aware action dispatcher is used. A source wildcard may run the action
-  repeatedly, and `--continue_on_error` controls whether a loop stops at its first
-  failed item.
-- A failed action returns `command line failed`; inspect captured output for the more
-  specific action message.
+## Fiber Data Hub details
 
-See `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` before using CLI actions, especially
-wildcards, global thread settings, overwrites, or actions that depend on open windows.
+Hub commands are routed before regular main-window handling, so they take their full argument lists.
 
-## Confirmation-gated `run_shell` commands
-
-`run_shell` accepts exactly one non-empty command string. The first token is matched
-case-insensitively; every command needs local user approval and is then passed to the
-operating system shell:
-
-```json
-["run_shell","cd \"C:\\data\" && dir \"*.fz\" /s /b"]
-["run_shell","curl -L -o \"atlas.zip\" \"https://example.org/atlas.zip\""]
-```
-
-- Send the entire command as one command-array element.
-- A standalone `run_shell "cd ..."` has no lasting effect: each command runs in its own shell from the chat's working directory. Put `cd` in the same command (`cd /data/sub01 && python make_report.py`), use absolute paths, or change the working directory for later commands with `set_work_dir <dir>`.
-- Every `run_shell` command shows the local user a confirmation dialog with the exact
-  command text and only runs if they approve it; there is no whitelist or character
-  restriction anymore, the dialog is the only gate. `run_shell` therefore cannot
-  complete unattended with nobody present to approve it, and a batched command array
-  containing `run_shell` pauses at that dialog before continuing.
-- Approved non-`curl` commands run synchronously with a 10-minute maximum wait; a
-  timeout kills the process and fails the command. On Windows they use `cmd.exe /c`;
-  on Unix they use `/bin/sh -c`. Standard output is returned and standard error is
-  logged. The external exit code is checked and a non-zero exit fails with
-  `command exited with code <N>`.
-- `curl` runs asynchronously once approved. DSI Studio always inserts ` -s -S`
-  right after `curl` before showing the confirmation dialog, so no need to include
-  them: `-s` suppresses curl's `\r`-redrawn progress meter (it would otherwise flood
-  the log, since there is no terminal to redraw a line in), `-S` still surfaces real
-  curl errors. Its initial reply reports `started curlN: curl -s -S ...`; this means
-  the task was registered, not that the transfer completed.
-- Initialize the session log cursor before the first asynchronous curl. With the
-  launcher, call `log` once before `run_shell curl`; the first log may be empty. With
-  a Web agent, send a `{"cmd":"log"}` request before the curl-start request.
-- While curl is active, `list_window` reports its synthetic `curlN` ID as `busy`.
-  Poll until the entry disappears, then call `log` again to retrieve output or errors.
-- There is currently no AI command for cancelling a `curlN` task, and no completion
-  timeout.
-- Relative `dir` and `curl` paths use the chat's working directory.
-- Use `curl -o` or `curl -O` instead of output redirection.
-- In a GUI session, use `run_cli`, not `run_shell`, for a DSI Studio CLI action.
-  `run_cli` is GUI-only; a headless Web session runs DSI Studio command lines through
-  `run_shell` (see `DSI_STUDIO_AI_SKILL_WEB.md`).
-- Do not place credentials, tokens, protected data, or untrusted command text in
-  `run_shell` — the local user sees the exact text in the confirmation dialog either
-  way.
-
-Read `DSI_STUDIO_AI_COMMAND_EXAMPLES_CLI_SHELL.md` for platform behavior, wildcard rules,
-working-directory effects, and completion verification.
-
-## Fiber Data Hub workflow
-
-Hub commands are routed before the regular main-window command handling, so they
-may use their full documented argument lists:
-
-```json
-["hub_repo"]
-["hub_tags","<repo>"]
-["hub_files","<repo>","",".*\\.fz$",0,20]
-["hub_open","<repo>","<exact-tag>",12]
-["hub_show","<repo>","<exact-tag>"]
-["hub_show","<repo>","<exact-tag>","subjects.tsv"]
-["hub_download","<repo>","^HCP.*$","*.qsdr.fz","C:/data"]
-```
-
-- Use the exact `owner/repository` string returned by `hub_repo`.
-- `hub_files` syntax is `hub_files <repo> [tag-regex] [filename-regex] [offset] [limit]`.
-  Both patterns are case-insensitive regular expressions. An empty pattern matches
-  all tags or filenames.
-- `hub_files` searches all matching tags and returns
-  `index`, `tag`, `file`, `size`, and `downloaded`. The index is the actual file-row
-  index within the reported tag.
-- Offset and limit apply after combining matching files across tags. Omit the limit
-  to return every remaining match; an explicit limit of `0` returns no rows.
-- `hub_open` obtains one file if needed and opens it in a new window; `hub_download`
-  downloads or caches files without opening them. Never use `hub_open` to fetch a
-  cohort: a request with more than one `hub_open` is rejected with
+- Use the exact `owner/repository` string from `hub_repo`. Syntax:
+  `hub_files <repo> [tag-regex] [filename-regex] [offset] [limit]`. It returns `index` (the file-row
+  index within its tag), `tag`, `file`, `size`, and `downloaded`. Offset and limit apply after
+  combining tags; omitting the limit returns every remaining match, and a limit of `0` returns no
+  rows. Send offset, limit, and row indices as JSON numbers.
+- `hub_open` requires one exact tag and a filename or row index, and opens one file in a new window.
+  When it must download first, the open happens after the reply and may not happen at all, so confirm
+  with `list_window` that a window title shows the file; otherwise `open_fib` the cached path, which
+  the log reports as `download file to <path>`. Never fetch a cohort with it: a request with more than
+  one `hub_open` fails with
   `multiple hub_open commands are not allowed in one request; use hub_download for bulk files`.
-  Bulk example (session-01 QSDR files of one OpenNeuro dataset):
+- `hub_show <repo> <tag>` returns the release note; read it first to learn what a dataset contains.
+  `hub_show <repo> <tag> <file>` (filename or row index, like `hub_open`) returns the file's raw
+  tab-separated text, unlike other `hub_` commands' status lines; it fails if the file is not a
+  `.tsv` release asset.
+- `hub_download` downloads or caches without opening. Its tag is a case-insensitive regex and its
+  file a wildcard (e.g. `*.qsdr.fz` or `*.gqi.fz`) anchored to the full name, so an exact filename
+  matches only that file; row indices work only for `hub_open`/`hub_show`. It requires the
+  destination directory (created when needed), skips files already there (a rerun fetches only what
+  is missing), reports a tag without a match as `skip`, and succeeds when at least one download
+  starts. Example (session-01 QSDR files of one OpenNeuro dataset):
   `["hub_download","data-openneuro/disease","^ds001378$","*_ses-01_dwi.qsdr.fz","C:/data/ds001378"]`.
-  Files already in the destination are skipped, so a rerun downloads only what is missing.
-- Before bulk-downloading subject `.fz` files, check whether the tag already
-  provides a derived file that matches the analysis, such as a `.dz`/`.db.fz`
-  connectometry database. Prefer the highest-level ready-made file over rebuilding
-  it from subject files.
-- `hub_open` requires one exact tag and accepts the exact filename or returned row
-  index. When the file must be downloaded first, the open happens after the command
-  returns and may not happen at all, so a success reply does not prove the file is
-  open. Confirm with `list_window` that a window title shows the intended file. If
-  not, `open_fib` the cached path, which the log reports as `download file to <path>`.
-- `hub_show <repo> <tag>` (no file) returns that tag's GitHub release note --
-  read this first to learn what a dataset actually contains before browsing or
-  downloading its files.
-- `hub_show <repo> <tag> <file>` requires one exact tag and accepts the exact
-  filename or returned row index, same as `hub_open`. Unlike every other `hub_`
-  command, its result is the downloaded file's raw tab-separated text, not a status
-  line -- read it directly instead of treating it as a log message. Fails if the
-  resolved file is not a `.tsv` release asset.
-- `hub_download` treats its tag parameter as a case-insensitive regular expression
-  and its file parameter as a wildcard pattern (`*`, `?`, `[...]`, e.g. `*.qsdr.fz`
-  or `*.gqi.fz`), matching every file in every matching tag -- one call can download
-  many files across many tags at once. A plain exact filename still matches only
-  that one file, since the wildcard is anchored to the full name (not a row index;
-  row indices only work for `hub_open`/`hub_show`). A tag with no matching file is
-  reported as `skip`; the command succeeds when at least one matching download is
-  started.
-- Send offset, limit, and returned row indices as JSON numbers.
-- `hub_download` requires its documented destination-directory parameter and creates
-  the directory when needed.
-- Verify the created window or destination file after GUI-backed network work.
+- Before bulk-downloading subject `.fz` files, prefer a derived file matching the analysis, such as a
+  `.dz`/`.db.fz` connectometry database, over rebuilding it.
+- Verify the created window or destination files after network-backed work.
 
-### Finding a dataset
+**Finding a dataset.** OpenNeuro datasets are in the `data-openneuro/*` repositories, tagged by
+dataset ID (e.g. `ds001378`). Filenames use BIDS subject IDs, not diagnoses, so searching for `sca2`
+or `patient` finds nothing. Read the group labels with `hub_show <repo> <tag> participants.tsv` (here
+`sub-SCA2xx` versus `sub-controlxx`), then select files by subject ID.
 
-OpenNeuro datasets are in the `data-openneuro/*` repositories, and the tag is the
-OpenNeuro dataset ID (for example `ds001378`). Filenames use BIDS subject IDs, not
-diagnoses, so searching filenames for a condition such as `sca2` or `patient` finds
-nothing. Read the group labels from the dataset's `participants.tsv` with
-`hub_show <repo> <tag> participants.tsv` (here `sub-SCA2xx` versus `sub-controlxx`),
-then select files by subject ID.
+## XNAT details
 
-## XNAT workflow
+`xnat_list [range] [project-regex]` and `xnat_download <IDs>` use the server, login, and download
+folder saved in the XNAT dialog; never request or pass the password. On `no saved XNAT login` or
+`XNAT login failed`, ask the user to connect once in the dialog (`open_xnat`). The range is counted
+after the project filter; use the table's `ID` column for downloads. Unknown IDs fail before any
+download, and reruns skip existing files.
 
-```json
-["xnat_list"]
-["xnat_list","100:200","^ADNI"]
-["xnat_download","XNAT_E00012,XNAT_E00013"]
-```
+## Routing and response notes
 
-- Both commands use the server, login, and download folder saved by the XNAT dialog.
-  Never request or pass the XNAT password. On `no saved XNAT login` or
-  `XNAT login failed`, ask the user to connect once in the XNAT dialog (`open_xnat`).
-- `xnat_list [range] [project-regex]`: the range is `N` (first N, default 100) or
-  `from:to` (0-based, `to` excluded), counted after the project filter. The reply is a
-  tab-separated table, newest first; use its `ID` column for downloads.
-- `xnat_download <IDs>`: one parameter with IDs separated by commas or spaces. Output
-  folders follow the dialog's saved sub-folder rule and are printed per experiment.
-  Unknown IDs fail before any download; existing files are skipped on reruns.
-
-## Important routing and response notes
-
-- `run_cli` and `run_shell` are global MainWindow commands and remain available when
-  a non-main window is selected. `run_cli` action handlers use their own state rather
-  than the session's persistent window selection.
-- Successful `open_src`, `open_fib`, and `open_image` commands automatically select
-  the new reconstruction, tracking, or image window and normally return its exact ID
-  in `output`. Follow-up commands target it directly; keep the ID for later switching.
-  `list_window` can confirm an ID or discover another already-open supported window.
-- Do not invent aliases. Use `list_recent_fib` and `list_recent_src` exactly.
-- Supplying paths as documented command parameters is supported. Never send a
-  path alone as the complete named-pipe request.
-- Commands without parameters may open a local picker. Cancellation can return
-  without an immediate command error, so verify the resulting window, file, or
-  application state.
-- A successful command result includes `output` only when text was captured. When
-  no text was captured, the result contains `cmd` and `status` but no `output`.
-- A successful asynchronous `curl` start is not download completion. Initialize the
-  log cursor before the transfer, verify completion through `list_window`, then read
-  the later incremental `log` output.
-- Invalid template names, database-loading failures, and image-opening failures
-  propagate through the `error` field.
-- Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` before use
-  because they immediately modify saved application state.
-- Use `list_param` in a reconstruction window before changing reconstruction
-  parameters. Use the appropriate `list_param` command in a tracking window before
-  changing tracking or rendering parameters.
-
-## GUI interaction notes
-
-- `bids_to_src` asks the local user to select an output directory only when the
-  output-folder parameter (the second element) is omitted; supply it to run
-  unattended.
-- `open_dwi_nifti`, `open_dwi_dicom`, and `open_dwi_2dseq` enter the DWI-import
-  workflow; they do not directly guarantee a returned reconstruction-window ID.
-- Picker-based commands require local GUI interaction and their cancellation may
-  return without an immediate error.
-- Verify opened windows and generated files rather than relying only on the lack
-  of an `error` field.
+- `run_cli` and `run_shell` stay available while a non-main window is selected; `run_cli` actions use
+  their own state, not the selection.
+- Successful `open_src`, `open_fib`, and `open_image` select the new window and normally return its
+  exact ID in `output`; keep it for later switching (`list_window` confirms IDs or finds other open
+  windows, e.g. `recon<hex-address>`, `tracking<hex-address>`).
+- Do not invent aliases: use `list_recent_fib` and `list_recent_src` exactly.
+- `output` appears only when text was captured; otherwise a successful result has only `cmd` and
+  `status`.
+- Picker-based commands need local GUI interaction, and cancellation may return without an error.
+  `bids_to_src` asks for an output folder only when the second element is omitted; supply it to run
+  unattended. Verify opened windows and generated files rather than relying on the absence of
+  `error`.
+- An asynchronous `curl` start is not completion: initialize the log cursor first (`{"cmd":"log"}` on
+  Web), verify completion with `list_window`, then read the new `log` output. Each `run_shell` runs
+  from the chat's working directory, so put `cd` in the same command
+  (`cd /data/sub01 && python make_report.py`) or use `set_work_dir <dir>`; a standalone
+  `run_shell "cd ..."` has no lasting effect, and `run_shell curl` paths are relative to it too.
+- Invalid template names, database-loading failures, and image-opening failures return in `error`.
+- Confirm `reset_settings`, `clear_recent_src`, and `clear_recent_fib` first: they immediately modify
+  saved state.
+- Run `list_param` in a reconstruction window before changing reconstruction parameters, and the
+  tracking window's `list_param` before changing tracking or rendering parameters.

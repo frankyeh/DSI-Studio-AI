@@ -1,330 +1,194 @@
 # DSI Studio AI Reconstruction Commands and Examples
 
-Open an SRC/SZ file with:
+`bash ./dsi.sh open_src "C:/data/subject.sz"` replies `recon window created, id: recon...` and selects
+the new window, so the commands below act on it directly (`set_window` only to switch). The shared
+`bring_to_front`, `minimize`, `maximize`, and `close` are dispatcher-level, not reconstruction
+operations (`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md`); after `close`, verify with `list_window` and
+select `main` or another valid ID, since the session keeps the closed `recon...` ID.
 
-```bash
-bash ./dsi.sh open_src "C:/data/subject.sz"
-```
+The reconstruction dispatcher accepts one command name and at most one parameter; keep several
+values or assignments in one quoted composite string. Public operations use concise names without the
+old `src_` prefix (`recon`, `list_param`, `set_param`, `set_params`, `mask_from_unet`, `resample`,
+`bias_field_correction`); never use `reconstruction`, `src_recon`, `src_reconstruction`, or old
+`src_` names.
 
-A successful reply includes:
+## GUI versus AI commands
 
-```text
-recon window created, id: recon...
-```
+The dialog's **2a Mask**, **2b Preprocessing**, and **2c Methods** pages and **Edit...** (Edit DWI,
+Edit B-table) are GUI navigation. Mask Open/Save are **File → Open Mask...** and
+**File → Save Mask...**; AI `mask_open` still works, and there is no `save_mask` AI command. **Align
+Selected DWI...** rigidly aligns the selected 3D DWI to the first DWI and rotates its b-vector; it is
+not `align_acpc`. The Preprocessing page's seven Yes/No questions and **Run Preprocessing** choose a
+branch from reverse-PE and shell/DSI information (conditional TOPUP/EDDY, motion, T1w distortion,
+bias-field correction, resampling), mark recorded corrections, and skip recognized completed steps.
+**There is no `run_preprocessing` command:** inspect the SRC data and processing record, run the
+appropriate *individual* commands below, and never reapply corrections. Question-by-question behavior
+and sequencing cautions are in
+[`DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md`](DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md).
 
-It also automatically selects that new reconstruction window, so commands below can
-act on it directly. Use `set_window` only when switching to another already-open
-window.
-
-`bring_to_front`, `minimize`, `maximize`, and `close` are shared dispatcher-level
-window controls, not reconstruction-window operations. Read
-`DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for their authoritative behavior. In particular,
-after closing this window, select `main` or another valid current window ID because
-the session retains the closed `recon...` ID.
-
-The reconstruction-window dispatcher accepts one command name and at most one
-parameter. Keep multiple values or assignments in one quoted composite string.
-
-## Current GUI navigation versus AI commands
-
-The redesigned reconstruction dialog has **2a Mask**, **2b Preprocessing**,
-and **2c Methods** sidebar pages; **Edit...** reveals **Edit DWI** and
-**Edit B-table**. The Mask page no longer has Open/Save buttons: use
-**File → Open Mask...** or **File → Save Mask...** in the GUI. The AI
-`mask_open` command below still works, and GUI Save Mask is not a new
-`save_mask` AI launcher command. **Align Selected DWI...** in Edit DWI
-rigidly aligns the selected 3D DWI volume to the first DWI and rotates
-its b-vector; do not mistake it for the `align_acpc` AI command.
-
-The **Preprocessing** page has seven Yes/No questions and a GUI
-**Run Preprocessing** button that chooses a branch from reverse-PE and
-shell/DSI acquisition information, with conditional TOPUP/EDDY, motion,
-T1w distortion, bias-field correction, and resampling. It marks
-previously recorded corrections and skips recognized completed steps.
-**There is no corresponding `run_preprocessing` launcher command.**
-Agents should inspect the SRC data and processing record, choose the
-appropriate *individual* commands listed below, and avoid reapplying
-corrections. Refer to
-[`DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md`](DSI_STUDIO_AI_SKILL_RECONSTRUCTION.md)
-for the question-by-question GUI behavior and sequencing cautions.
-
-## Naming rule
-
-All public reconstruction operations use concise names without the old `src_`
-prefix:
-
-```text
-recon
-list_param
-set_param
-set_params
-mask_from_unet
-resample
-bias_field_correction
-```
-
-Do not use `reconstruction`, `src_recon`, `src_reconstruction`, or old `src_`
-operation names. Use the concise names documented below.
-
-## Reconstruction parameters
-
-Inspect current values before changing them:
+## Parameters
 
 ```bash
 bash ./dsi.sh list_param
 bash ./dsi.sh list_param method
-```
-
-Set one or more values with one composite `name=value` parameter:
-
-```bash
 bash ./dsi.sh set_param "method=4"
 bash ./dsi.sh set_params "method=4&param=1.25&thread_count=8"
 ```
 
-Both setters accept `name=value[&name=value...]`.
+`list_param` lists all parameters and values, or one exact name. `set_param` and `set_params` take
+the same `name=value[&name=value...]` composite.
 
 | Parameter | Meaning |
 |---|---|
-| `method` | Reconstruction method: `1` DTI, `4` GQI, `7` QSDR |
+| `method` | `1` DTI, `4` GQI, `7` QSDR |
 | `thread_count` | Reconstruction thread count |
-| `other_output` | Comma-separated output metric IDs; `dwi` stores template-space DWI in a QSDR `.fz` (shell schemes only); `fixel` stores fiber directions as `fixelN`: GQI/QSDR refine peaks analytically instead of the default `indexN`, and DTI writes `fixel0` instead of the default `dir0`; readable only by DSI Studio builds from 2026-10 on. `all` excludes `dwi`, `fixel`, and `debug` |
+| `other_output` | Comma-separated output metric IDs. `dwi` stores template-space DWI in a QSDR `.fz` (shell schemes only). `fixel` stores fiber directions as `fixelN` (GQI/QSDR refine peaks analytically instead of the default `indexN`; DTI writes `fixel0` instead of the default `dir0`), readable only by DSI Studio builds from 2026-10 on. `all` excludes `dwi`, `fixel`, and `debug`. |
 | `dti_ignore_high_b` | Ignore high-b-value data for tensor metrics |
-| `r2_weighted` | Enable R2-weighted reconstruction |
+| `r2_weighted` | R2-weighted reconstruction |
 | `param` | GQI/QSDR diffusion sampling length ratio |
 | `template` | Zero-based template index |
-| `qsdr_reso` | QSDR output resolution in millimeters |
-| `reg_resolution` | Registration resolution |
-| `reg_speed` | Registration speed |
-| `reg_smoothing` | Registration smoothing |
-| `hist_downsampling` | Histology downsampling level |
-| `hist_raw_smoothing` | Histology raw-image smoothing |
-| `hist_tensor_smoothing` | Histology tensor smoothing |
-| `hist_resolution` | Isotropic histology resolution |
+| `qsdr_reso` | QSDR output resolution (mm) |
+| `reg_resolution`, `reg_speed`, `reg_smoothing` | Registration resolution, speed, and smoothing |
+| `hist_downsampling`, `hist_raw_smoothing`, `hist_tensor_smoothing`, `hist_resolution` | Histology downsampling level, raw-image smoothing, tensor smoothing, and isotropic resolution |
 
-## Reconstruction command inventory
+## Command inventory
 
-| Command | Complete example | Behavior |
+Commands marked "path" open a local dialog or picker when the parameter is omitted.
+
+| Command | Example | Behavior |
 |---|---|---|
-| `list_param` | `bash ./dsi.sh list_param` | List all reconstruction parameters and current values. Supply one exact parameter name to list only it. |
-| `set_param` | `bash ./dsi.sh set_param "method=4"` | Set one or more assignments in one composite parameter. |
-| `set_params` | `bash ./dsi.sh set_params "method=4&param=1.25"` | Same assignment syntax as `set_param`; useful when setting several values. |
-| `recon` | `bash ./dsi.sh recon 4` | Run reconstruction synchronously. Optional method: `1` DTI, `4` GQI, or `7` QSDR. Omission uses the current `method`. |
-| `save_src` | `bash ./dsi.sh save_src "C:/output/subject.sz"` | Save the current source data. Omit the path to let the user choose it locally. |
-| `save_nifti` | `bash ./dsi.sh save_nifti "C:/output/dwi.nii.gz"` | Save a 4D diffusion NIfTI plus bval/bvec files. Omit the path for a local save dialog. |
-| `save_b0` | `bash ./dsi.sh save_b0 "C:/output/b0.nii.gz"` | Save the first b0 volume. Omit the path for a local save dialog. |
-| `save_dwi_sum` | `bash ./dsi.sh save_dwi_sum "C:/output/dwi_sum.nii.gz"` | Save the summed diffusion image. Omit the path for a local save dialog. |
-| `save_b_table` | `bash ./dsi.sh save_b_table "C:/output/subject.b_table.txt"` | Save the b-table (b-value and b-vector per DWI). Omit the path for a local save dialog. |
-| `save_bval` | `bash ./dsi.sh save_bval "C:/output/subject.bval"` | Save FSL-format b-values. Omit the path for a local save dialog. |
-| `save_bvec` | `bash ./dsi.sh save_bvec "C:/output/subject.bvec"` | Save FSL-format b-vectors (y flipped to FSL convention). Omit the path for a local save dialog. |
-| `mask_open` | `bash ./dsi.sh mask_open "C:/data/mask.nii.gz"` | Replace the reconstruction mask using a supplied file. Omit the path to let the user choose it locally. |
-| `mask_from_unet` | `bash ./dsi.sh mask_from_unet` | Generate a mask with the U-Net tissue model of the current template's species (b0 foreground probability > 0.5). The old name `mask_unet` is still accepted. Inspect the mask before reconstruction. |
-| `mask_from_template` | `bash ./dsi.sh mask_from_template 0` | Generate a mask using a zero-based template index. Omission uses the current template setting. |
-| `mask_threshold` | `bash ./dsi.sh mask_threshold 100` | Create a mask using an integer signal threshold. Omit the threshold to let the user choose it locally. |
-| `mask_erosion` | `bash ./dsi.sh mask_erosion` | Erode the current mask. |
-| `mask_dilation` | `bash ./dsi.sh mask_dilation` | Dilate the current mask. |
-| `mask_defragment` | `bash ./dsi.sh mask_defragment` | Keep the principal connected mask component. |
-| `mask_slice_defragment` | `bash ./dsi.sh mask_slice_defragment` | Apply slice-wise mask cleanup. |
-| `mask_smoothing` | `bash ./dsi.sh mask_smoothing` | Smooth the current mask. |
-| `mask_fit` | `bash ./dsi.sh mask_fit` | Fit the current mask to the diffusion-sum image. |
-| `mask_negate` | `bash ./dsi.sh mask_negate` | Invert the current mask. |
-| `mask_remove_background` | `bash ./dsi.sh mask_remove_background` | Permanently zero signals outside the current mask. |
-| `mask_background_signals` | `bash ./dsi.sh mask_background_signals "C:/data/probability.nii.gz"` | **Masking Background Signals**: multiply every DWI volume voxelwise by an external 3D NIfTI weight map, and set the binary reconstruction mask where the map is > 0. Image dimensions must match; this changes DWI signals, not only the mask. Omit the path for a local picker. Legacy `probabilistic_masking` remains accepted. |
-| `set_voxel_size` | `bash ./dsi.sh set_voxel_size "1.5 1.5 2.0"` | Replace the three voxel-size values without resampling. Supply all three values; omit them to let the user enter them locally. |
-| `remove` | `bash ./dsi.sh remove "0,3:5,60:end"` | Remove DWIs by zero-based index or range (`a:b`, `a:end`) or by b-value (`b>3000`, `b<100`), comma-separated. Fails if nothing matches or every DWI would be removed. Recorded as a step; same syntax as CLI `--remove`. |
-| `add_other_image` | `bash ./dsi.sh add_other_image "t1w:C:/data/T1w.nii.gz"` | Register another NIfTI image to the DWI and store it in the reconstructed FIB under the optional `name:` prefix (default: the file name). Same syntax as CLI `--other_image`. Omit the path for a local picker. |
+| `recon` | `bash ./dsi.sh recon 4` | Reconstruct synchronously; optional method `1`/`4`/`7`, default the current `method`. |
+| `save_src` | `bash ./dsi.sh save_src "C:/output/subject.sz"` | Save the current source data (path). |
+| `save_nifti` | `bash ./dsi.sh save_nifti "C:/output/dwi.nii.gz"` | 4D diffusion NIfTI plus bval/bvec (path). |
+| `save_b0`, `save_dwi_sum` | `bash ./dsi.sh save_b0 "C:/output/b0.nii.gz"`, `bash ./dsi.sh save_dwi_sum "C:/output/dwi_sum.nii.gz"` | First b0 volume, or the summed diffusion image (path). |
+| `save_b_table`, `save_bval`, `save_bvec` | `bash ./dsi.sh save_b_table "C:/output/subject.b_table.txt"`, `bash ./dsi.sh save_bval "C:/output/subject.bval"`, `bash ./dsi.sh save_bvec "C:/output/subject.bvec"` | The b-table (b-value and b-vector per DWI), FSL b-values, or FSL b-vectors (y flipped to FSL convention) (path). |
+| `mask_open` | `bash ./dsi.sh mask_open "C:/data/mask.nii.gz"` | Replace the mask from a file (path). |
+| `mask_from_unet` | `bash ./dsi.sh mask_from_unet` | Mask from the U-Net tissue model of the current template's species (b0 foreground probability > 0.5); old name `mask_unet` still accepted. Inspect before reconstruction. |
+| `mask_from_template` | `bash ./dsi.sh mask_from_template 0` | Mask from a zero-based template index (default: current template). |
+| `mask_threshold` | `bash ./dsi.sh mask_threshold 100` | Mask from an integer signal threshold (omitted: the user chooses). |
+| `mask_erosion`, `mask_dilation`, `mask_smoothing`, `mask_negate` | `bash ./dsi.sh mask_erosion` | Erode, dilate, smooth, or invert the mask. |
+| `mask_defragment`, `mask_slice_defragment` | `bash ./dsi.sh mask_defragment` | Keep the principal connected component, or clean up slice-wise. |
+| `mask_fit` | `bash ./dsi.sh mask_fit` | Fit the mask to the diffusion-sum image. |
+| `mask_remove_background` | `bash ./dsi.sh mask_remove_background` | Permanently zero signals outside the mask. |
+| `mask_background_signals` | `bash ./dsi.sh mask_background_signals "C:/data/probability.nii.gz"` | **Masking Background Signals**: multiply every DWI voxelwise by an external 3D NIfTI weight map of matching dimensions and set the mask where the map is > 0; this changes DWI signals, not only the mask (path). Legacy `probabilistic_masking` accepted. |
+| `set_voxel_size` | `bash ./dsi.sh set_voxel_size "1.5 1.5 2.0"` | Replace all three voxel sizes without resampling (omitted: the user enters them). |
+| `remove` | `bash ./dsi.sh remove "0,3:5,60:end"` | Remove DWIs by comma-separated zero-based index or range (`a:b`, `a:end`) or b-value (`b>3000`, `b<100`); fails if nothing matches or every DWI would go. Recorded as a step; same syntax as CLI `--remove`. |
+| `add_other_image` | `bash ./dsi.sh add_other_image "t1w:C:/data/T1w.nii.gz"` | Register another NIfTI to the DWI and store it in the FIB under the optional `name:` prefix (default: file name); same as CLI `--other_image` (path). |
 | `smooth_signals` | `bash ./dsi.sh smooth_signals` | Smooth diffusion signals. |
-| `crop_background` | `bash ./dsi.sh crop_background 5` | Crop background with an optional voxel border. Omission uses zero. |
-| `resample` | `bash ./dsi.sh resample 2` | Resample to the supplied isotropic millimeter resolution. Omit it to let the user choose locally. |
-| `align_acpc` | `bash ./dsi.sh align_acpc 2` | Align to AC-PC space at the supplied output resolution. Omit it to let the user choose locally. |
-| `flip_x` | `bash ./dsi.sh flip_x` | Flip diffusion images and b-vector X. |
-| `flip_y` | `bash ./dsi.sh flip_y` | Flip diffusion images and b-vector Y. |
-| `flip_z` | `bash ./dsi.sh flip_z` | Flip diffusion images and b-vector Z. |
-| `swap_xy` | `bash ./dsi.sh swap_xy` | Swap image X/Y axes, voxel sizes, and matching b-vector components. |
-| `swap_yz` | `bash ./dsi.sh swap_yz` | Swap image Y/Z axes, voxel sizes, and matching b-vector components. |
-| `swap_xz` | `bash ./dsi.sh swap_xz` | Swap image X/Z axes, voxel sizes, and matching b-vector components. |
-| `check_btable` | `bash ./dsi.sh check_btable` | Check b-table orientation against the current template when available; if template loading is unavailable it falls back to the no-template method. Applies the best detected b-vector permutation/flip when it improves the score. |
-| `check_btable2` | `bash ./dsi.sh check_btable2` | Check b-table orientation without a template. It temporarily reconstructs DTI internally, scores 24 axis permutation/flip candidates, and applies the best detected b-vector orientation when it improves the score. |
-| `flip_bx` | `bash ./dsi.sh flip_bx` | Flip only b-vector X. |
-| `flip_by` | `bash ./dsi.sh flip_by` | Flip only b-vector Y. |
-| `flip_bz` | `bash ./dsi.sh flip_bz` | Flip only b-vector Z. |
-| `swap_bxby` | `bash ./dsi.sh swap_bxby` | Swap b-vector X/Y. |
-| `swap_bybz` | `bash ./dsi.sh swap_bybz` | Swap b-vector Y/Z. |
-| `swap_bxbz` | `bash ./dsi.sh swap_bxbz` | Swap b-vector X/Z. |
-| `load_bval` | `bash ./dsi.sh load_bval "C:/data/new.bval"` | Replace the b-values from an FSL bval file. The value count must equal the DWI count. Same as CLI `--bval` on `--action=rec`. |
-| `load_bvec` | `bash ./dsi.sh load_bvec "C:/data/new.bvec"` | Replace the b-vectors from an FSL bvec file (three rows or one row per DWI; y flipped as on import). Same as CLI `--bvec` on `--action=rec`. |
-| `regenerate_btable` | `bash ./dsi.sh regenerate_btable` or `bash ./dsi.sh regenerate_btable "C:/data/reference.sz"` | Rebuild lost or corrupted b-vectors from a single- or multi-shell reference SRC. Without a parameter, it uses the current template's reference `<template>.sz` (e.g. `human.sz` for the human template; see below). Groups the DWIs with b ≥ 500 into shells and matches each shell to the reference shell with the nearest mean b-value. Affinely aligns the reference b0 to this b0, then gives each DWI the correlation-weighted direction of its three best-correlated reference DWIs in the matched shell. The recorded b-values are kept, and DWIs with b < 500 are left unchanged. Leaves the b-table unchanged on failure. CLI: `--cmd=regenerate_btable` or `--cmd=regenerate_btable=<reference.sz>`. |
-| `scheme_balance` | `bash ./dsi.sh scheme_balance` | Resample a multishell or single-shell b-table to the GQI balanced scheme and store the balanced DWI (Edit > Scheme Balance). Reconstruction then applies only the GQI weighting. Fails for DSI-grid schemes or when already applied. CLI: `--cmd=scheme_balance`. |
-| `topup` | `bash ./dsi.sh topup "C:/data/reverse_pe.rz"` | Run TOPUP using an explicit reverse-PE source. With no parameter, an AI command uses automatic reverse-PE discovery. |
-| `topup_eddy` | `bash ./dsi.sh topup_eddy "C:/data/reverse_pe.rz"` | Run TOPUP when possible, followed by EDDY. With no parameter, an AI command uses automatic reverse-PE discovery. |
-| `eddy` | `bash ./dsi.sh eddy` | Run EDDY without an explicit TOPUP source. |
-| `motion_correction` | `bash ./dsi.sh motion_correction` | Run motion correction. |
-| `bias_field_correction` | `bash ./dsi.sh bias_field_correction` | Correct signal inhomogeneity. |
-| `correct_by_t1w` | `bash ./dsi.sh correct_by_t1w "C:/data/T1w.nii.gz\|1.5"` | Correct AP–PA susceptibility distortion using the subject's T1w image. The optional `\|<mm>` suffix sets the isotropic output resolution (`0` or no suffix = native). Omit the path for a local picker. The legacy `correct_by_t2w` token is an alias that runs the same correction at native resolution. |
-| `orientation_correction` | `bash ./dsi.sh orientation_correction` | Apply automatic volume-orientation correction. |
-| `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range and record it for replay on additional SRC files. Omit it to let the user enter it locally. |
+| `crop_background` | `bash ./dsi.sh crop_background 5` | Crop background with an optional voxel border (default 0). |
+| `resample` | `bash ./dsi.sh resample 2` | Resample to the isotropic resolution in mm (omitted: the user chooses). |
+| `align_acpc` | `bash ./dsi.sh align_acpc 2` | Align to AC-PC space at the output resolution (omitted: the user chooses). |
+| `flip_x`, `flip_y`, `flip_z` | `bash ./dsi.sh flip_x` | Flip images and the b-vector component. |
+| `swap_xy`, `swap_yz`, `swap_xz` | `bash ./dsi.sh swap_xy` | Swap image axes, voxel sizes, and matching b-vector components. |
+| `flip_bx`, `flip_by`, `flip_bz`, `swap_bxby`, `swap_bybz`, `swap_bxbz` | `bash ./dsi.sh flip_bx` | Flip or swap b-vector components only. |
+| `check_btable` | `bash ./dsi.sh check_btable` | Check b-table orientation against the current template (falling back to the no-template method if it cannot load); apply the best permutation/flip when it improves the score. |
+| `check_btable2` | `bash ./dsi.sh check_btable2` | No-template check: reconstruct DTI internally, score 24 axis permutation/flip candidates, and apply the best when it improves the score. |
+| `load_bval`, `load_bvec` | `bash ./dsi.sh load_bval "C:/data/new.bval"`, `bash ./dsi.sh load_bvec "C:/data/new.bvec"` | Replace b-values (count must equal the DWI count) or b-vectors (three rows or one row per DWI; y flipped as on import) from FSL files; same as CLI `--bval`/`--bvec` on `--action=rec`. |
+| `regenerate_btable` | `bash ./dsi.sh regenerate_btable`, `bash ./dsi.sh regenerate_btable "C:/data/reference.sz"` | Rebuild lost or corrupted b-vectors from a single- or multi-shell reference SRC (default: the template's reference `<template>.sz`, e.g. `human.sz`). DWIs with b ≥ 500 are grouped into shells, each matched to the reference shell with the nearest mean b-value; the reference b0 is affinely aligned to this b0; each DWI gets the correlation-weighted direction of its three best-correlated reference DWIs in the matched shell. B-values are kept, DWIs with b < 500 unchanged, and the b-table is untouched on failure. CLI: `--cmd=regenerate_btable` or `--cmd=regenerate_btable=<reference.sz>`. |
+| `scheme_balance` | `bash ./dsi.sh scheme_balance` | Resample a multishell or single-shell b-table to the GQI balanced scheme and store the balanced DWI (Edit > Scheme Balance); reconstruction then applies only the GQI weighting. Fails for DSI-grid schemes or when already applied. CLI: `--cmd=scheme_balance`. |
+| `topup`, `topup_eddy` | `bash ./dsi.sh topup "C:/data/reverse_pe.rz"`, `bash ./dsi.sh topup_eddy "C:/data/reverse_pe.rz"` | TOPUP with an explicit reverse-PE source, or TOPUP when possible followed by EDDY; without a parameter, an AI command discovers the reverse-PE source automatically. |
+| `eddy` | `bash ./dsi.sh eddy` | EDDY without an explicit TOPUP source. |
+| `motion_correction`, `bias_field_correction`, `orientation_correction` | `bash ./dsi.sh motion_correction` | Motion correction, signal inhomogeneity correction, or automatic volume-orientation correction. |
+| `correct_by_t1w` | `bash ./dsi.sh correct_by_t1w "C:/data/T1w.nii.gz\|1.5"` | Correct AP–PA susceptibility distortion with the subject's T1w; optional `\|<mm>` sets the isotropic output resolution (`0` or none = native) (path). Legacy `correct_by_t2w` is an alias at native resolution. |
+| `partial_fov` | `bash ./dsi.sh partial_fov "-36 -30 -20 36 30 24"` | Set the QSDR partial-FOV MNI coordinate range, recorded for replay on additional SRC files (omitted: the user enters it). |
 
 ## Pre-reconstruction QC and b-table orientation
 
-Before reconstruction, run SRC/SZ QC on the acquisition group and review neighboring
-DWI correlation (NDC), masked NDC, DWI contrast, bad slices, and the outlier flag:
+Run SRC/SZ QC on the acquisition group and review neighboring DWI correlation (NDC), masked NDC, DWI
+contrast, bad slices, and the outlier flag (based on masked NDC; inspect DWI contrast separately for
+unusually poor values). Low-SNR or artifact-heavy SRC files make b-table inference unreliable.
 
 ```bash
 bash ./dsi.sh show_qc_src "scan1.sz" "scan2.sz" "scan3.sz"
-```
-
-Use QC to identify poor acquisitions before choosing data for b-table orientation
-checking. The automatic `outlier` flag is based on masked NDC; inspect DWI contrast
-separately for unusually poor values. A low-SNR or artifact-heavy SRC can make
-b-table inference unreliable.
-
-For acquisitions expected to share the same b-table orientation convention, choose
-one representative `.sz` with good NDC, good signal/contrast, and no major QC
-problem, then run the no-template check:
-
-```bash
 bash ./dsi.sh open_src "good_representative.sz"
 bash ./dsi.sh check_btable2
 ```
 
-`check_btable2` reconstructs DTI internally and compares 24 b-vector axis
-permutation/flip candidates; a separate `recon` is not required. If it reports a
-b-vector flip or swap, apply the identical **b-table-only** transformation to all
-acquisitions in the same group using `flip_bx`, `flip_by`, `flip_bz`, `swap_bxby`,
-`swap_bybz`, and/or `swap_bxbz` as appropriate. This assumes the scanner/export
-pipeline used the same b-table orientation convention consistently across that group.
-Do not infer group-wide orientation from a poor-SNR outlier.
+For acquisitions sharing a b-table convention, run `check_btable2` (no separate `recon` needed) on one
+representative `.sz` with good NDC and contrast and no major QC problem. If it reports a flip or swap,
+apply the identical **b-table-only** transformation (`flip_bx`, `flip_by`, `flip_bz`, `swap_bxby`,
+`swap_bybz`, `swap_bxbz`) to every acquisition in the group, assuming the scanner/export pipeline used
+one convention. Never infer group orientation from a poor-SNR outlier.
 
-If the b-table is missing or wrong in a way flips and swaps cannot fix, replace it:
-`load_bval` / `load_bvec` when the correct FSL files exist, or `regenerate_btable`
-with a reference SRC whose b-table is known to be correct. `regenerate_btable` replaces
-b-vectors only, so the recorded b-values must be right.
+If flips and swaps cannot fix the b-table, replace it: `load_bval`/`load_bvec` when the correct FSL
+files exist, or `regenerate_btable` with a reference whose b-table is known correct (it replaces only
+b-vectors, so the b-values must be right). Then run `check_btable2` and inspect fiber directions
+before reconstruction.
 
-- **Automatic reference:** run `regenerate_btable` without a parameter. DSI Studio
-  takes the current template's name and downloads
-  `https://github.com/data-others/atlas/releases/download/<template>/<template>.sz`
-  once to the system temp folder (`<temp>/data-others/atlas/<template>/`). It reuses
-  the file on later runs (also offline) and downloads it again if the cached copy is
-  invalid. The human template's 2 mm reference (`human/human.sz`) is published; other
-  templates' references are not yet. A missing asset (404), no network without a valid
-  cache, a corrupt download, or a cancelled download reports an error and leaves the
-  b-table unchanged. Do not use the old HCP1065 links.
-- **Explicit reference:** `regenerate_btable=<reference.sz>` uses any SRC you supply
-  (command line or AI command only; the GUI always uses the automatic reference).
-- **Parallel runs — important:** do not start several parameterless
-  `regenerate_btable` runs at the same time while the cache may be missing or being
-  replaced; they can race on the same cache file. Download and check the reference
-  once in a single process, then give every parallel job the explicit path
-  (`--cmd=regenerate_btable=<path>`).
-- **Cluster or batch runs:** the temp folder is often per job (`$TMPDIR` on Slurm), so
-  put the template's `.sz` on persistent shared storage and pass that path.
+- **Automatic reference:** without a parameter, DSI Studio downloads
+  `https://github.com/data-others/atlas/releases/download/<template>/<template>.sz` once to
+  `<temp>/data-others/atlas/<template>/` in the system temp folder, reuses it later (also offline),
+  and downloads again if the cache is invalid. Only the human template's 2 mm reference
+  (`human/human.sz`) is published. A missing asset (404), no network without a valid cache, a corrupt
+  download, or a cancelled download reports an error and leaves the b-table unchanged. Do not use the
+  old HCP1065 links.
+- **Explicit reference:** `regenerate_btable=<reference.sz>` uses any SRC you supply (command line or
+  AI command only; the GUI always uses the automatic reference).
+- **Parallel runs:** never start several parameterless runs while the cache may be missing or being
+  replaced (they race on the same file); fetch and check the reference once, then pass every job the
+  explicit path (`--cmd=regenerate_btable=<path>`).
+- **Cluster or batch runs:** the temp folder is often per job (`$TMPDIR` on Slurm), so keep the
+  template's `.sz` on persistent shared storage and pass that path.
 
-After `regenerate_btable`, run `check_btable2` and inspect fiber directions before
-reconstruction.
-
-As an alternative, CLI QC can check every `.sz` independently against a selected
-template:
+Alternatively, CLI QC checks every `.sz` independently:
 
 ```bash
 bash ./dsi.sh run_cli "--action=qc --source=C:/data/group/*.sz --check_btable=1 --template=<template> --output=C:/data/group/qc.tsv"
 ```
 
-For `--action=qc`, `--check_btable=1` enables b-table checking for each matched SRC;
-providing `--template` uses template-based checking, while omitting `--template`
-uses the no-template method. Template-based checking can also be unreliable when
-registration is poor; DSI Studio warns when template registration correlation is
-low. Prefer a good-quality representative when applying one orientation convention
-to a whole acquisition group.
+`--check_btable=1` enables the check per matched SRC; `--template` selects template-based checking,
+omitting it the no-template method. Template-based checking can fail with poor registration (DSI
+Studio warns at low registration correlation); prefer a good representative when applying one
+convention to a whole group.
 
-## Isotropic resolution before reconstruction
+## Isotropic resolution
 
-Isotropic voxel size is important for reliable fiber tracking. If an SRC/SZ has
-non-isotropic resolution, resample it to an appropriate isotropic resolution before
-reconstruction:
+Isotropic voxels matter for reliable tracking. `resample 2` gives 2 mm isotropic sampling. Resample
+non-isotropic data as one of the last steps before `recon`: keep the original sampling for b-table
+checks and corrections that depend on the original data or geometry (TOPUP/EDDY, motion or
+distortion correction), then resample.
 
-```bash
-bash ./dsi.sh resample 2
-```
-
-The scalar parameter is the target voxel size in millimeters, so `resample 2`
-produces 2 mm isotropic sampling. Resampling should usually be one of the last
-preprocessing steps before `recon`. Keep the original DWI sampling while performing
-b-table checks and corrections that may depend on the original diffusion data or
-geometry, such as TOPUP/EDDY, motion correction, or distortion correction; then
-resample after those steps and before reconstruction.
-
-## Post-correction quality control
-
-After `eddy`, `motion_correction`, or another correction, compare saved files with the
-MainWindow QC commands:
+## Post-correction QC
 
 ```bash
 bash ./dsi.sh show_qc_src "raw.sz" "corrected.sz"
 bash ./dsi.sh show_qc_fib "raw.gqi.fz" "corrected.gqi.fz"
 ```
 
-Both accept multiple files and remain available regardless of the selected window.
-`show_qc_src` reports DWI contrast, neighboring DWI correlation (including masked),
-bad slices, and outlier status. Compare before and after correction; higher
-neighboring DWI correlation indicates better inter-volume consistency, while DWI
-contrast should not be treated as simply higher-is-better. `show_qc_fib` reports
-Coherence Index (and QSDR R2 when applicable), not DWI contrast or neighboring DWI
-correlation.
+These MainWindow commands take several files and work whatever window is selected. `show_qc_src`
+reports DWI contrast, neighboring DWI correlation (including masked), bad slices, and outlier status:
+higher neighboring DWI correlation means better inter-volume consistency, but DWI contrast is not
+simply higher-is-better. `show_qc_fib` reports Coherence Index (and QSDR R2 when applicable), not DWI
+contrast or neighboring DWI correlation. The verified teaching dataset `ds002087` in
+`data-openneuro/others` has raw, `eddy_corrected`, and `motion_corrected` `.sz`/`.gqi.fz` pairs for two
+runs.
 
-The verified teaching dataset `ds002087` is under `data-openneuro/others` and contains
-raw, `eddy_corrected`, and `motion_corrected` `.sz`/`.gqi.fz` pairs for two runs.
+## Worked examples
 
-## Worked example: GQI reconstruction
-
-First discover and open an exact recent SRC/SZ path:
+GQI reconstruction:
 
 ```bash
 bash ./dsi.sh list_recent_src
 bash ./dsi.sh open_src "<exact path returned by list_recent_src>"
-```
-
-The new reconstruction window is already selected by `open_src`. Inspect the current
-configuration, set the intended GQI values, and reconstruct:
-
-```bash
 bash ./dsi.sh list_param
 bash ./dsi.sh set_params "method=4&param=1.25&other_output=fa,md,rd,rdi"
 bash ./dsi.sh recon 4
 ```
 
-A successful reply includes one line for each generated file:
+Each generated file is reported as `reconstruction output: C:/data/subject.gqi.fz`; use that exact
+path for `open_fib`, never one inferred from the source filename.
 
-```text
-reconstruction output: C:/data/subject.gqi.fz
-```
-
-Use the exact returned path for any later `open_fib` call. Do not infer it from the
-source filename.
-
-## Worked example: let the user choose a mask
-
-The agent may intentionally invoke a local picker instead of deciding the path:
-
-```bash
-bash ./dsi.sh mask_open -Chat "Please choose the reconstruction mask in DSI Studio."
-```
-
-While the picker is open, DSI Studio may report the window or application as
-`waiting`. The command completes after the user chooses a file or cancels. Then
-inspect the visible mask before continuing.
+Letting the user choose a mask: `bash ./dsi.sh mask_open -Chat "Please choose the reconstruction mask in DSI Studio."`
+While the picker is open, DSI Studio may report `waiting`; the command completes after the user
+chooses or cancels. Then inspect the mask.
 
 ## Cautions
 
-- Reconstruction-window operations are synchronous from the relay's perspective. A
-  client timeout does not prove processing stopped; do not immediately resend.
-- The shared `close` command is not a reconstruction handler. It closes the selected
-  window through the central dispatcher. Verify with `list_window`, then reset the
-  target with `set_window main` or another valid ID.
-- The AI path does not show the user-only pre-reconstruction confirmation sequence.
-  Apply resampling, bias-field correction, or orientation correction only when the
-  workflow or user calls for it.
-- Commands modify the loaded source state and are replayed on additional SRC files
-  in a multi-file reconstruction window. Preserve original data or obtain approval
-  before irreversible signal or mask changes.
-- Record the source file, mask source, corrections, method, parameter values, output
-  metrics, template, resolution, and exact returned output paths for reproducibility.
+- Operations are synchronous from the relay's perspective; a client timeout does not prove processing
+  stopped, so do not resend immediately.
+- The AI path skips the user-only pre-reconstruction confirmations; apply resampling, bias-field
+  correction, or orientation correction only when the workflow or user calls for it.
+- Commands modify the loaded source and are replayed on every SRC of a multi-file window. Preserve
+  original data or obtain approval before irreversible signal or mask changes.
+- Record the source file, mask source, corrections, method, parameter values, output metrics,
+  template, resolution, and exact returned output paths.

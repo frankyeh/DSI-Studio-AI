@@ -1,123 +1,95 @@
 # DSI Studio AI Rendering Command Examples and Inventory
 
-Use these with a `tracking<hex-address>` window. Select it once before sending
-any command below:
+Rendering, camera, surface, and display commands confirmed in the current source (generic rows with
+no handler were removed after checking the full tracking-window dispatch chain). Use these in a
+`tracking<hex-address>` window, selected once with `bash ./dsi.sh set_window tracking<hex-address>`
+(it persists until changed). Names and text, path, or composite parameters are strings; send
+standalone numbers as JSON numbers.
 
-```bash
-bash ./dsi.sh set_window tracking<hex-address>
-```
+## Camera and view
 
-The selection persists for the session until changed by another `set_window` call.
-Command names and text, path, or composite parameters are strings. Send standalone
-numeric parameters as JSON numbers.
-
-This file contains rendering, camera, surface, and display commands confirmed in the current source. Earlier generic rows with no handler were removed only after checking the full tracking-window dispatch chain.
-
-| Command | Common example | Important behavior |
+| Command | Example | Behavior |
 |---|---|---|
-| `rotate` | `["rotate","15 1 0 0"]` | Rotate the 3D view by degrees around axis `x y z`. |
-| `rotate_view` | `["rotate_view","left",15]` | Rotate the 3D view by a `command[2]` angle in degrees toward `command[1]`: `"left"`/`"right"` yaw around the vertical axis, `"up"`/`"down"` pitch around the horizontal axis. A friendlier alternative to `rotate` when the exact axis vector doesn't matter. |
-| `set_view` | `["set_view",0,0]` | Reset to numeric view `0`, `1`, or `2`; other view numbers are rejected. `command[2]` is `0` for unflipped or `1` for flipped. **For reproducible/scripted views always provide it explicitly**; when omitted, the current flip state toggles after each call. |
-| `set_zoom` | `["set_zoom",1.5]` | Set the absolute camera zoom derived from the transformation-matrix determinant; zero is rejected. |
-| `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera transformation with the first 16 supplied floats. |
-| `get_camera` | `["get_camera"]` | Print `view_direction`, `view_position (voxel)`, `image_left`, and `image_up`. `image_left` and `image_up` report the subject-anatomical LPS directions at the left and top of the current screen, derived from the inverse camera matrix, so rolled and oblique views can be verified without reading pixels. Use `save_camera` for the raw, round-trippable 16-float matrix. |
-| `preview_screen` | `["preview_screen","3d"]` | Recommended inline **coarse** inspection for an agent when no image file is being opened. `command[1]` selects `"3d"` or `"roi"`. It prints digit-grid text plus summary stats; use it for gross position, orientation, occupancy, and layer checks, not as a substitute for full-resolution visual QC. See "Reading `preview_screen` output" below. |
-| `open_camera` | `["open_camera","C:/work/camera.txt"]` | Load at least 16 camera-matrix floats from a text file. |
-| `save_camera` | `["save_camera","C:/work/camera.txt"]` | Save the current 16-float transformation matrix. |
-| `store_camera` | `["store_camera"]` | Store the current camera in the default `cameraa` settings slot; the current implementation shows a modal notice and records the command as canceled. |
-| `store_camera1` | `["store_camera1"]` | Store the current camera in slot 1; shows a modal notice. |
-| `store_camera2` | `["store_camera2"]` | Store the current camera in slot 2; shows a modal notice. |
-| `restore_camera` | `["restore_camera"]` | Restore the default `cameraa` settings slot. |
-| `restore_camera1` | `["restore_camera1"]` | Restore camera slot 1. |
-| `restore_camera2` | `["restore_camera2"]` | Restore camera slot 2. |
+| `rotate` | `["rotate","15 1 0 0"]` | Rotate by degrees around axis `x y z`. |
+| `rotate_view` | `["rotate_view","left",15]` | Rotate by `command[2]` degrees: `"left"`/`"right"` yaw around the vertical axis, `"up"`/`"down"` pitch around the horizontal axis; easier than `rotate` when the exact axis doesn't matter. The direction-to-sign mapping is not empirically re-verified: test a small angle with `preview_screen 3d` before a large rotation. |
+| `set_view` | `["set_view",0,0]` | Reset to view `0`, `1`, or `2` (others rejected); `command[2]` `0` unflipped, `1` flipped. **Always pass it for scripted views**: omitted, the flip state toggles on each call. |
+| `set_zoom` | `["set_zoom",1.5]` | Absolute zoom (from the transformation-matrix determinant); zero is rejected. |
+| `set_camera` | `["set_camera","1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"]` | Replace the camera matrix with the first 16 floats (at least 16 required; extras ignored). |
+| `get_camera` | `["get_camera"]` | Print `view_direction`, `view_position (voxel)`, `image_left`, and `image_up`; the last two are the subject LPS directions at the screen's left and top (from the inverse camera matrix), so rolled or oblique views can be verified without pixels. |
+| `save_camera`, `open_camera` | `["save_camera","C:/work/camera.txt"]` | Save the raw round-trippable 16-float matrix; load one from a file (at least 16 floats). |
+| `store_camera`, `store_camera1`, `store_camera2` | `["store_camera"]` | Store the camera in the default `cameraa` settings slot, slot 1, or slot 2. Each shows a modal notice and records the command as canceled although the setting is stored. |
+| `restore_camera`, `restore_camera1`, `restore_camera2` | `["restore_camera"]` | Restore the default `cameraa` slot, slot 1, or slot 2. |
 | `set_stereoscopic` | `["set_stereoscopic"]` | Switch the OpenGL widget to stereoscopic view mode. |
-| `save_screen` | `["save_screen","C:/output/tracts.png","1920 1080"]` | Save the current 3D rendering as a single view. Use this only when the user explicitly wants a plain screenshot; otherwise prefer `save_lr_screen` (see below). Optional third element `"width height"` temporarily resizes the GL widget around the grab, then restores it. |
-| `save_lr_screen` | `["save_lr_screen","C:/output/tracts_lr.png","1920 1080"]` | **Recommended default for saving a 3D rendering.** Saves the same left/right stereo-pair view as the "Copy to Clipboard -> 3D Screen Left/Right Views" menu action, giving two angles of the same scene in one image so spatial/anatomical relationships (tract shape, parcel-tract overlap, bilateral structures) are legible without a live 3D session. Same filename/dialog/optional-size behavior as `save_screen`. |
-| `save_hd_screen` | `["save_hd_screen","C:/output/tracts_hd.png","1920 1080"]` | Prompts for a size interactively if the third element is omitted (do not omit it when scripting), then delegates to `save_screen` with that size. Functionally the same as calling `save_screen` with a size, kept for backward compatibility. |
-| `save_3view_screen` | `["save_3view_screen","C:/output/tracts_3view.png","1920 1080"]` | Save a 2×2 composite containing three 3D views and the current slice scene. Optional third element resizes like `save_screen`. |
-| `save_h3view_screen` | `["save_h3view_screen","C:/output/tracts_h3view.png","1920 1080"]` | Save four cropped directional views in a horizontal image. Optional third element resizes like `save_screen`. |
-| `save_v3view_screen` | `["save_v3view_screen","C:/output/tracts_v3view.png","1920 1080"]` | Save four directional views in a vertical image. Optional third element resizes like `save_screen`. |
-| `save_rotation_video` | `["save_rotation_video","C:/output/rotation.avi"]` | Save a rotating MJPG AVI by rotating the 3D view around the Y axis in 0.2-degree steps through 360 degrees at 30 fps. If the path is omitted, open a save dialog. On non-macOS builds, the current writer temporarily renders at 1980×1080. On all platforms, the camera and widget size are restored on success, failure, or cancellation. JPEG-encoding and AVI-open failures return errors; cancellation is reported separately. A canceled or failed export may leave a partial file. |
-| `save_3d_model` | `["save_3d_model","C:/output/tumor.model.obj"]` | Export visible slices, checked tracts, checked regions, and the visible surface as a 3D model. The extension picks the format: `.obj` writes OBJ (+ .mtl and slice texture JPGs); `.glb` writes one glTF binary file with embedded slice textures and transparency (e.g. `["save_3d_model","C:/output/tumor.model.glb"]` for PowerPoint 3D models). Requires at least one checked tract or region. If a tract has more than 3,000 visible tracks, `delete_repeated_tract` runs automatically first; if still over 3,000, the export fails. If the path is omitted, a save dialog opens. |
-| `add_surface` | `["add_surface",0,25]` | Recommended. For a built-in slice (such as `qa`), map the ICBM152 white-matter template to subject space and build a white-matter isosurface at threshold `25`. See "Brain surface" below. |
-| `add_surface` | `["add_surface",7,0.6]` | For a custom slice (an added image), build an isosurface of that image at threshold `0.6`. Always pass the threshold: omitting it opens a local dialog. |
-| `add_surface_left` | `["add_surface_left",7,0.6]` | Create a surface after retaining the source portion on the left side of the current X slice position. |
-| `add_surface_right` | `["add_surface_right",7,0.6]` | Create a surface after retaining the source portion on the right side of the current X slice position. |
-| `add_surface_upper` | `["add_surface_upper",7,0.6]` | Create a surface after retaining the source portion above the current Z slice position. |
-| `add_surface_lower` | `["add_surface_lower",7,0.6]` | Create a surface after retaining the source portion below the current Z slice position. |
-| `add_surface_posterior` | `["add_surface_posterior",7,0.6]` | Create a surface after retaining the posterior portion relative to the current Y slice position. |
-| `add_surface_anterior` | `["add_surface_anterior",7,0.6]` | Create a surface after retaining the anterior portion relative to the current Y slice position. |
-| `clear_surface` | `["clear_surface"]` | Remove the current single surface, refresh the OpenGL view, and leave the `show_surface` rendering setting unchanged. |
-| `show_fib_protocol` | `["show_fib_protocol"]` | Return the FIB file's processing protocol (numbered steps from source to FIB) for methods/provenance. AI callers get the text directly in `output`; a local user sees it in a dialog. |
-| `save_fib_protocol` | `["save_fib_protocol","C:/output/sub01_fib_protocol.txt"]` | Same text as `show_fib_protocol`, always written to the given path, for any caller. The path is required. |
+
+## Screens, video, and 3D models
+
+The optional third element `"width height"` (e.g. `"1920 1080"`) temporarily resizes the GL widget
+around the grab, then restores it; with no path a save dialog opens.
+
+| Command | Example | Behavior |
+|---|---|---|
+| `save_lr_screen` | `["save_lr_screen","C:/output/tracts_lr.png","1920 1080"]` | **Default for saving a 3D rendering**: the left/right pair of the "Copy to Clipboard -> 3D Screen Left/Right Views" action, two angles in one image so tract shape, parcel-tract overlap, and bilateral structures are legible without a live session. |
+| `save_screen` | `["save_screen","C:/output/tracts.png","1920 1080"]` | A single view; use only when the user explicitly wants a plain screenshot. |
+| `save_hd_screen` | `["save_hd_screen","C:/output/tracts_hd.png","1920 1080"]` | Same as `save_screen` with a size (kept for compatibility); prompts for a size if omitted, so never omit it when scripting. |
+| `save_3view_screen` | `["save_3view_screen","C:/output/tracts_3view.png","1920 1080"]` | 2×2 composite: three 3D views plus the current slice scene. |
+| `save_h3view_screen`, `save_v3view_screen` | `["save_h3view_screen","C:/output/tracts_h3view.png","1920 1080"]` | Four directional views, horizontal (cropped) or vertical. |
+| `save_rotation_video` | `["save_rotation_video","C:/output/rotation.avi"]` | MJPG AVI rotating around Y in 0.2° steps through 360° at 30 fps; non-macOS builds render at 1980×1080 meanwhile. Camera and widget size are restored on success, failure, or cancel. JPEG-encoding and AVI-open failures return errors and cancellation is reported separately, but the AVI API does not report later frame-write or finalization errors, so success cannot rule out a disk-write failure; a canceled/failed export may leave a partial file. No extension validation or codec/fps/step controls. |
+| `save_3d_model` | `["save_3d_model","C:/output/tumor.model.obj"]` | Export visible slices, checked tracts, checked regions, and the visible surface. `.obj` writes OBJ (+ .mtl and slice texture JPGs); `.glb` writes one glTF binary with embedded textures and transparency (e.g. `tumor.model.glb` for PowerPoint 3D models). Needs at least one checked tract or region. A tract with more than 3,000 visible tracks gets `delete_repeated_tract` automatically; still over 3,000, the export fails. |
+| `preview_screen` | `["preview_screen","3d"]` | Coarse inline text inspection (`"3d"` or `"roi"`) when no image file is being opened; see below. |
+
+## Surfaces and provenance
+
+| Command | Example | Behavior |
+|---|---|---|
+| `add_surface` | `["add_surface",0,25]`, `["add_surface",7,0.6]` | Build the single isosurface from a slice index (default: the current slice, `list_slice` `current`=1) at a threshold. Built-in slice: ICBM152 white-matter template at `25` (recommended); custom slice: that image at a threshold in its range. Always pass the threshold (omitted: a local dialog waits for the user). See Brain surface. |
+| `add_surface_left`, `add_surface_right` | `["add_surface_left",7,0.6]` | Keep the source left/right of the current X slice position, then build. |
+| `add_surface_upper`, `add_surface_lower` | `["add_surface_upper",7,0.6]` | Keep the portion above/below the current Z position. |
+| `add_surface_posterior`, `add_surface_anterior` | `["add_surface_posterior",7,0.6]` | Keep the portion posterior/anterior of the current Y position. |
+| `clear_surface` | `["clear_surface"]` | Remove the surface and refresh; `show_surface` is unchanged. |
+| `show_fib_protocol` | `["show_fib_protocol"]` | The FIB's processing protocol (numbered steps from source to FIB) for methods/provenance: text in `output` for AI callers, a dialog for a local user. |
+| `save_fib_protocol` | `["save_fib_protocol","C:/output/sub01_fib_protocol.txt"]` | The same text written to the required path, for any caller. |
+
+There is one surface, styled through `set_param` (`surface_*`, `show_surface`). No handlers exist for
+surface IDs/lists, `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`,
+`set_surface_alpha`, `set_surface_visible`, or `set_device_color` (use the device table UI).
 
 ## Brain surface
 
-The recommended brain surface is the built-in MNI white-matter template warped to
-subject space. Select the first built-in slice (usually `qa`), then build the surface
-with threshold `25`, which is the threshold for the MNI white-matter map:
+The recommended surface is the MNI white-matter template warped to subject space:
 
 ```bash
-bash ./dsi.sh set_slice 0
-bash ./dsi.sh add_surface 0 25
+bash ./dsi.sh set_slice 0      # also displays it; index 0 is always built in (custom slices follow)
+bash ./dsi.sh add_surface 0 25 # 25 = MNI white-matter map threshold
 ```
 
-Passing index `0` already selects that slice for `add_surface`. The `set_slice 0` step
-also makes it the displayed slice. Index `0` is always a built-in slice, because
-custom slices are listed after the built-in ones.
-
-How `add_surface` chooses its image:
-
-- **Built-in slice** (`qa`, `dti_fa`, and other metrics in the FIB): the slice's own
-  values are not used. DSI Studio warps the ICBM152 white-matter template to subject
-  space and thresholds that, so a small value such as `0.6` does not give a QA
-  isosurface. Use `25`.
-- **Custom slice** (added with `add_slice` or `add_mni_slice`): the template is never
-  used, even with `25`. The isosurface is built from that image, so choose a threshold
-  in that image's value range.
-- The slice index defaults to the current slice (`list_slice` `current` = 1). Omitting
-  the threshold opens a local dialog that waits for the user, so always pass it.
-
-The template warp needs the subject-to-MNI mapping. A QSDR (MNI-space) FIB maps
-directly. For a native-space FIB (such as GQI), the first `add_surface` reuses a saved
-mapping file when one exists, or runs the normalization, which can take a while. If
-no mapping can be made (for example, no template for the species), DSI Studio falls
-back to the slice's own image. `25` is then far above the `qa` range, and the
-surface comes out empty or wrong. This fallback is silent, so check the result with
-`preview_screen 3d`.
+- **Built-in slice** (`qa`, `dti_fa`, other FIB metrics): the slice values are not used; the warped
+  template is thresholded, so `0.6` does not give a QA isosurface. Use `25`.
+- **Custom slice** (`add_slice`/`add_mni_slice`): the template is never used, even with `25`.
+- The warp needs the subject-to-MNI mapping. A QSDR FIB maps directly; for a native-space FIB (e.g.
+  GQI) the first call reuses a saved mapping file or runs normalization (can be slow). If no mapping
+  can be made (e.g. no template for the species), it **silently** falls back to the slice image, where
+  `25` is far above the `qa` range and the surface is empty or wrong: check with `preview_screen 3d`.
 
 ## Reading `preview_screen` output
 
-`command[1]` is `"3d"` or `"roi"` (required). `command[2]` is an optional zoom rectangle
-`"x0 y0 x1 y1"`, normalized `0..1` of the previously captured image for that channel; when given,
-it crops the cached capture instead of re-rendering the scene, so call once with `command[2]`
-empty first to establish the cache for the channel you want to zoom into.
-Cached crops are explicitly labeled and omit current camera/slice orientation, which may differ
-from the original capture. Use the original capture metadata, or request a fresh capture to
-verify the current scene.
+`command[1]` must be exactly `"3d"` or `"roi"`. Optional `command[2]` `"x0 y0 x1 y1"` (normalized
+`0..1`) crops that channel's cached capture instead of re-rendering, so first call without it; a zoom
+with no prior capture fails. Cached crops are labeled and omit the current camera/slice orientation,
+which may have changed: use the original metadata or re-capture. Channels are picked automatically
+from what is visible:
 
-There is no channel argument — channels are picked automatically from what is currently visible:
+- `"3d"`: the same camera frame as `get_camera`, then one block per enabled
+  `show_slice`/`show_region`/`show_tract`/`show_surface`, each captured with the other three hidden.
+- `"roi"`: `R_side=left|right` (side of anatomical right, from `orientation_convention`, matching the
+  2D view's "R" label), then `slice_info: <modality> <sagittal|coronal|axial> <position>/<total>`
+  (e.g. `slice_info: qa axial 41/80`; selected Slice Modality row, active orientation, 1-based
+  position), then a `slice` block (always) and `region` and `tract` blocks showing only that layer on a
+  black background (so small blobs or thin lines are not swamped by brain luminance). Those appear only
+  when the layer is enabled (region checked / "Show Tracts" on) and non-empty at this slice. This is
+  exact only in the single-slice ROI layout; 3-view/mosaic falls back to a composited per-channel
+  re-render gated on toggle state alone.
 
-- `["preview_screen","3d"]` first prints the same complete camera frame as `get_camera` —
-  `view_direction`, `view_position`, `image_left`, and `image_up` — then one block per enabled
-  `show_slice`/`show_region`/`show_tract`/`show_surface` toggle, each
-  captured in isolation (the other three temporarily hidden for that one capture).
-- `["preview_screen","roi"]` prints `R_side=left` or `R_side=right` (which side of the image the
-  anatomical right is on, from `orientation_convention` — the same side the 2D view's own "R" label
-  is drawn on), then `slice_info: <modality name> <sagittal|coronal|axial> <position>/<total>` (e.g.
-  `slice_info: qa axial 41/80`, matching the currently selected row in the Slice Modality box, which
-  of the three orientations is active, and the 1-based position among all slices along that axis),
-  then a `slice` block (the plain anatomy, always present), a `region` block, and a
-  `tract` block. The latter two show *only* that layer's own content (transparent background, so it
-  reads as black) rather than composited onto the anatomy — a small region blob or thin tract line
-  would otherwise be swamped by the much larger, dominant brain-shape luminance pattern in a coarse
-  digit grid and be unreadable. They only appear when that layer is both enabled (a region checked /
-  "Show Tracts" toolbutton on) and actually non-empty for the current slice position — e.g. a checked
-  region that doesn't intersect this slice produces no `region` block. This is only accurate for the
-  single-slice ROI layout; in 3-view/mosaic layout it falls back to a full per-channel re-render
-  (composited, like the live view) gated on the toolbutton/checked-region state alone.
-
-Each channel block is:
+Each block:
 
 ```text
 <label>:
@@ -126,62 +98,32 @@ Each channel block is:
 coverage=18% bbox=(0.34,0.12)-(0.71,0.88) left/right=48%/52% blobs=1 luminance(min/mean/max)=0/42/255
 ```
 
-A 16-column digit grid (each digit `0`-`9` is that cell's average luminance, `0`=black to `9`=white,
-row-labeled so line count doesn't have to be tracked), a small fixed 8x8 grid in the same format,
-then one summary line: `coverage` (fraction of cells classified as foreground against the image's
-own background luminance), the normalized foreground bounding box, the left/right foreground split,
-connected-component (`blobs`) count, and raw luminance range. A full capture is also written
-to a temp JPG (`dsi_preview_3d_<label>.jpg` / `dsi_preview_roi_<label>.jpg`) for cases where opening
-an actual image is preferable to reading the text form.
+A row-labeled 16-column digit grid (cell luminance `0`=black to `9`=white), a fixed 8x8 grid in the
+same format, then `coverage` (foreground cells against the image's own background), normalized
+foreground bbox, left/right split, connected components (`blobs`), and raw luminance. The full capture
+is also written to a temp JPG (`dsi_preview_3d_<label>.jpg` / `dsi_preview_roi_<label>.jpg`).
 
-### Agent visual-QC limits
+**Visual-QC limits.** The grid suits gross checks (expected side, layer intersects the slice, camera
+obviously wrong), not subtle boundaries, small contacts, segmentation acceptance, near-midline
+laterality, or detailed pre/post morphology. For full-resolution human review, when the user asked for
+saved images or gave an output location, use `save_roi_screen` (2D) and `save_lr_screen` (3D); never
+invent output paths to get around the preview, but report the limitation instead.
 
-The digit grid is intentionally low-resolution. It is appropriate for gross checks such
-as whether a lesion or tract is on the expected side, whether a layer intersects the
-current slice, and whether the camera is obviously wrong. It is not sufficient by
-itself for subtle boundaries, small contacts, definitive segmentation acceptance,
-precise laterality when the lesion is near midline, or detailed pre/post morphologic
-comparison.
-
-When the task requires full-resolution human review and the user has requested saved
-images or supplied an output location, use `save_roi_screen` for the 2D ROI/slice scene
-and `save_lr_screen` for 3D anatomy/tract context. Do not invent output paths solely to
-circumvent the text-preview limitation; instead report the limitation when no saved
-image destination is available.
-
-### Reproducible 3D captures
-
-For comparable captures across sessions or time points, do not rely on the current
-camera state. Reset it explicitly and keep the recipe identical:
+**Reproducible 3D captures.** Reset the camera explicitly and keep the recipe identical across
+sessions:
 
 ```bash
-bash ./dsi.sh set_view 0 0
-bash ./dsi.sh rotate "15 1 0 0"   # only if this same rotation is desired in every session
+bash ./dsi.sh set_view 0 0        # the final 0 prevents a flip toggle
+bash ./dsi.sh rotate "15 1 0 0"   # only if the same rotation is used every session
 bash ./dsi.sh rotate "20 0 1 0"
 bash ./dsi.sh preview_screen 3d
 ```
 
-The explicit final `0` in `set_view 0 0` matters: omitting the flip argument toggles
-the current flip state and can make nominally identical commands produce opposite
-views. When an exact camera matrix needs to be reused and a file destination is
-available, `save_camera`/`open_camera` provides a round-trippable alternative.
-
-## Source-confirmed cautions
-
-- `set_camera` and camera files require at least 16 floats; additional values are ignored.
-- `set_view` should include an explicit `flipped` value for scripted/reproducible captures; omission toggles the current flip state.
-- `store_camera`, `store_camera1`, and `store_camera2` display modal messages and return the command-history canceled state even though the setting is stored.
-- `save_rotation_video` does not validate the filename extension or expose codec/fps/step controls. JPEG-encoding and AVI-open failures are checked, but the underlying AVI API does not report later frame-write or finalization errors. A success reply therefore cannot rule out a later disk-write failure.
-- `clear_surface` removes the current single surface. Surface appearance and visibility remain controlled through `set_param` using `surface_*` and `show_surface`; there are no surface IDs/lists or `load_surface`, `save_surface`, `delete_surface`, `set_surface_color`, `set_surface_alpha`, or `set_surface_visible` command handlers.
-- `set_device_color` has no command handler; use the device table UI for device color.
-- Default to `save_lr_screen` when saving a 3D rendering to illustrate anatomy, tract shape, or a tract/region overlay. Use plain `save_screen` only when the user explicitly asks for a single screenshot.
-- `rotate_view`'s left/right/up/down-to-axis-sign mapping is a reasonable but not empirically re-verified choice; if a rotation visibly goes the wrong way, re-check with `preview_screen,3d` after a small-angle test call before doing a larger rotation.
-- `preview_screen` fails if `command[1]` is missing or not exactly `"roi"`/`"3d"`, and fails a zoom request (`command[2]` given) for a channel that has no prior non-zoom capture cached yet.
-- `preview_screen` is a coarse text-based agent inspection aid, not equivalent to full-resolution image review. Use `save_lr_screen`/`save_roi_screen` when a saved image is requested or an output destination is available for human QC.
+For an exact matrix with a file destination, use `save_camera`/`open_camera`.
 
 ## Rendering parameter reference
 
-These parameter IDs come from the embedded `:/data/options.txt` resource used by `RenderingTableWidget::initialize()`. Use:
+IDs come from the embedded `:/data/options.txt` used by `RenderingTableWidget::initialize()`:
 
 ```json
 ["list_param"]
@@ -190,193 +132,120 @@ These parameter IDs come from the embedded `:/data/options.txt` resource used by
 ["set_params","tract_alpha=0.5&show_tract=1"]
 ```
 
-Send numeric values as JSON numbers with `set_param`. `set_params` keeps its combined assignment expression as one string. Enum values are zero-based indices. A bare `int` resource type is a `0–10` slider; ranged integer and float entries show their exact minimum, maximum, and step below. Colors use packed Qt RGB/ARGB integers. The enum options listed below for metric/color-map/style parameters are resource *defaults* and may not match what's actually loaded — for a dropdown-type parameter, `["list_param","<id>"]` on a single parameter (not a domain/`"all"` listing) also prints a second `options: 0=<text>, 1=<text>, ...` line built live from the actual dropdown, since some lists (e.g. `tract_color_metrics`) are repopulated at runtime from the loaded data. Always check that line rather than assuming the table below when the exact index-to-label mapping matters.
+Send `set_param` values as JSON numbers; `set_params` keeps one assignment string. Enums are zero-based
+indices; Off/On settings are `0`/`1`; colors are packed Qt RGB/ARGB integers. "slider" means an
+integer `0–10` slider; ranges are `min–max/step`. Metric and color-map options below are resource
+defaults: `["list_param","<id>"]` on a single dropdown parameter (not a domain or `"all"` listing)
+also prints a live `options: 0=<text>, 1=<text>, ...` line (e.g. `tract_color_metrics` is repopulated
+from the loaded data); check it when the exact mapping matters. Each entry: `id` (UI label) values =
+default.
+
+**Shared enums.** Blend Func1 (`*_bend1`): `0`=ZERO, `1`=ONE, `2`=DST_COLOR,
+`3`=ONE_MINUS_DST_COLOR, `4`=SRC_ALPHA, `5`=ONE_MINUS_SRC_ALPHA, `6`=DST_ALPHA,
+`7`=ONE_MINUS_DST_ALPHA. Blend Func2 (`*_bend2`): the same except `2`=SRC_COLOR. Light (`*_light_option`):
+`0`=One source, `1`=Two sources, `2`=Three sources (tract: `2`=Off). Mesh Rendering: `0`=Original,
+`1`=Smoothed, `2`=Smoothed2. Color Map: `0`=assigned, `1`=files.
 
 ### Object visibility
 
-| Parameter ID | UI setting | Accepted value | Default | Source |
-|---|---|---|---|---|
-| `show_slice` | Slice Rendering | boolean `0`=off, `1`=on | on | Created as a checked root item in `TreeModel`. |
-| `show_tract` | Tract Rendering | boolean `0`=off, `1`=on | on | Created as a checked root item in `TreeModel`. |
-| `show_region` | Region Rendering | boolean `0`=off, `1`=on | on | Created as a checked root item in `TreeModel`. |
-| `show_surface` | Surface Rendering | boolean `0`=off, `1`=on | on | Created as a checked root item in `TreeModel`. |
-| `show_device` | Device Rendering | boolean `0`=off, `1`=on | on | Created as a checked root item in `TreeModel`. |
-| `show_label` | Label Rendering | boolean `0`=off, `1`=on | off | Created as an unchecked root item in `TreeModel`. |
-| `show_odf` | ODF Rendering | boolean `0`=off, `1`=on | off | Created as an unchecked root item in `TreeModel`. |
+Root items of `TreeModel` (Slice/Tract/Region/Surface/Device/Label/ODF Rendering): `show_slice`,
+`show_tract`, `show_region`, `show_surface`, `show_device` default on (`1`); `show_label`, `show_odf`
+default off (`0`).
 
-### Background and global rendering
+### Background and global
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `scale_voxel` | Scale with voxel size | `0`=Off; `1`=On | `1` (On) |
-| `perspective` | Perspective | integer slider `0–10` | `5` |
-| `3d_perspective` | 3D Perspective | float `0.5–3`; step `0.5` | `1.0` |
-| `bkg_color` | Background Color | packed Qt ARGB integer | `-1` |
-| `anti_aliasing` | Anti-aliasing | `0`=Off; `1`=On | `1` (On) |
-| `line_smooth` | Line Smooth | `0`=Off; `1`=On | `0` (Off) |
-| `point_smooth` | Point Smooth | `0`=Off; `1`=On | `0` (Off) |
-| `poly_smooth` | Polygon Smooth | `0`=Off; `1`=On | `0` (Off) |
-| `stereoscopy_angle` | Stereoview Angle | float `0.0–5.0`; step `0.2` | `1` |
+`scale_voxel` (Scale with voxel size) Off/On = 1 · `perspective` slider = 5 · `3d_perspective`
+(3D Perspective) `0.5–3/0.5` = 1.0 · `bkg_color` (Background Color) = -1 · `anti_aliasing` Off/On = 1
+· `line_smooth`, `point_smooth`, `poly_smooth` (Line/Point/Polygon Smooth) Off/On = 0 ·
+`stereoscopy_angle` (Stereoview Angle) `0.0–5.0/0.2` = 1.
 
-### Slice rendering
+### Slice
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `slice_alpha` | Opacity | float `0–1`; step `0.1` | `1` |
-| `slice_mag_filter` | Mag Filter | `0`=NEAREST; `1`=LINEAR | `1` (LINEAR) |
-| `slice_smoothing` | Smoothing | `0`=Off; `1`=On | `0` (Off) |
-| `slice_match_bkcolor` | Match Background Color | `0`=Off; `1`=On | `0` (Off) |
-| `slice_bend1` | Blend Func1 | `0`=ZERO; `1`=ONE; `2`=DST_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `2` (DST_COLOR) |
-| `slice_bend2` | Blend Func2 | `0`=ZERO; `1`=ONE; `2`=SRC_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `5` (ONE_MINUS_SRC_ALPHA) |
+`slice_alpha` (Opacity) `0–1/0.1` = 1 · `slice_mag_filter` (Mag Filter) `0`=NEAREST, `1`=LINEAR = 1 ·
+`slice_smoothing` (Smoothing) Off/On = 0 · `slice_match_bkcolor` (Match Background Color) Off/On = 0 ·
+`slice_bend1` = 2 (DST_COLOR) · `slice_bend2` = 5 (ONE_MINUS_SRC_ALPHA).
 
-### Tract rendering
+### Tract
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `tract_alpha` | Opacity | float `0–1`; step `0.1` | `1` |
-| `tract_color_saturation` | Saturation | float `0–1`; step `0.1` | `0.7` |
-| `tract_color_brightness` | Brightness | float `0–1`; step `0.1` | `0.5` |
-| `tract_color_style` | Style | `0`=Directional; `1`=Assigned; `2`=Local Metrics; `3`=Averaged Metrics; `4`=Max Metrics; `5`=Loaded Value | `0` (Directional) |
-| `tract_color_metrics` | Metrics | `0`=qa; `1`=iso | `0` (qa) |
-| `tract_color_max_value` | Max Value | float `0–1`; step `0.1` | `1.0` |
-| `tract_color_min_value` | Min Value | float `0–1`; step `0.1` | `0.0` |
-| `tract_color_map` | Map | `0`=assigned; `1`=files | `0` (assigned) |
-| `tract_color_max` | Max Color | packed Qt ARGB integer | `12079178` |
-| `tract_color_min` | Min Color | packed Qt ARGB integer | `14465098` |
-| `tract_show_color_bar` | Show Color Bar | `0`=Off; `1`=On | `1` (On) |
-| `tract_style` | Style | `0`=Line; `1`=Tube; `2`=End; `3`=End1; `4`=End2 | `1` (Tube) |
-| `tract_line_width` | Line Width | float `1.0–10`; step `0.5` | `3` |
-| `tract_visible_tract` | Visible Tracts | integer `5000–1000000`; step `5000` | `25000` |
-| `tract_shader` | Shade | integer `0–20`; step `1` | `4` |
-| `tract_tube_detail` | Tube Detail | `0`=Coarse; `1`=Fine; `2`=Finer; `3`=Finest | `1` (Fine) |
-| `tube_diameter` | Tube Diameter (voxel) | float `0.01–5`; step `0.1` | `0.2` |
-| `end_point_shift` | Endpoint Shift (voxel) | integer `0–10`; step `1` | `0` |
-| `tract_light_option` | Light | `0`=One source; `1`=Two sources; `2`=Off | `1` (Two sources) |
-| `tract_light_dir` | Light Direction | integer slider `0–10` | `2` |
-| `tract_light_shading` | Light Shading | integer slider `0–10` | `10` |
-| `tract_light_diffuse` | Light Diffuse | integer slider `0–10` | `10` |
-| `tract_light_ambient` | Light Ambient | integer slider `0–10` | `0` |
-| `tract_light_specular` | Light Specular | integer slider `0–10` | `0` |
-| `tract_specular` | Material Specular | integer slider `0–10` | `0` |
-| `tract_emission` | Material Emission | integer slider `0–10` | `0` |
-| `tract_shininess` | Material Shininess | integer slider `0–10` | `0` |
-| `tract_sel_angle` | Tract Selection Angle | integer `0–90`; step `5` | `45` |
-| `tract_bend1` | Blend Func1 | `0`=ZERO; `1`=ONE; `2`=DST_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `6` (DST_ALPHA) |
-| `tract_bend2` | Blend Func2 | `0`=ZERO; `1`=ONE; `2`=SRC_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `2` (SRC_COLOR) |
+| Parameter ID (UI) | Values = default |
+|---|---|
+| `tract_alpha` (Opacity) | `0–1/0.1` = 1 |
+| `tract_color_saturation`, `tract_color_brightness` | `0–1/0.1` = 0.7, 0.5 |
+| `tract_color_style` (Style) | `0`=Directional, `1`=Assigned, `2`=Local Metrics, `3`=Averaged Metrics, `4`=Max Metrics, `5`=Loaded Value = 0 |
+| `tract_color_metrics` (Metrics) | `0`=qa, `1`=iso = 0 |
+| `tract_color_max_value`, `tract_color_min_value` | `0–1/0.1` = 1.0, 0.0 |
+| `tract_color_map` (Map) | color map = 0 |
+| `tract_color_max`, `tract_color_min` (Max/Min Color) | 12079178, 14465098 |
+| `tract_show_color_bar` | Off/On = 1 |
+| `tract_style` (Style) | `0`=Line, `1`=Tube, `2`=End, `3`=End1, `4`=End2 = 1 |
+| `tract_line_width` | `1.0–10/0.5` = 3 |
+| `tract_visible_tract` (Visible Tracts) | `5000–1000000/5000` = 25000 |
+| `tract_shader` (Shade) | `0–20/1` = 4 |
+| `tract_tube_detail` | `0`=Coarse, `1`=Fine, `2`=Finer, `3`=Finest = 1 |
+| `tube_diameter` (Tube Diameter (voxel)) | `0.01–5/0.1` = 0.2 |
+| `end_point_shift` (Endpoint Shift (voxel)) | `0–10/1` = 0 |
+| `tract_light_option` | light = 1 (Two sources) |
+| `tract_sel_angle` (Tract Selection Angle) | `0–90/5` = 45 |
+| `tract_bend1`, `tract_bend2` | 6 (DST_ALPHA), 2 (SRC_COLOR) |
 
-### Region rendering and graph
+### Region and graph
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `region_alpha` | Opacity | float `0–1`; step `0.1` | `0.8` |
-| `region_color_style` | Style | `0`=Assigned; `1`=Metrics | `0` (Assigned) |
-| `region_color_metrics` | Metrics | `0`=qa; `1`=iso | `0` (qa) |
-| `region_color_max_value` | Max Value | float `0–1`; step `0.1` | `1.0` |
-| `region_color_min_value` | Min Value | float `0–1`; step `0.1` | `0.0` |
-| `region_color_map` | Map | `0`=assigned; `1`=files | `0` (assigned) |
-| `region_color_max` | Max Color | packed Qt ARGB integer | `12079178` |
-| `region_color_min` | Min Color | packed Qt ARGB integer | `14465098` |
-| `region_show_color_bar` | Show Color Bar | `0`=Off; `1`=On | `1` (On) |
-| `region_graph` | Graph | `0`=Off; `1`=On | `0` (Off) |
-| `region_node_size` | Node Size | integer slider `0–10` | `4` |
-| `region_constant_node_size` | Constant Node Size | `0`=Off; `1`=On | `0` (Off) |
-| `region_hide_unconnected_node` | Hide Unconnected Node | `0`=Off; `1`=On | `1` (On) |
-| `region_edge_size` | Edge Size | integer slider `0–10` | `4` |
-| `region_constant_edge_size` | Constant Edge Size | `0`=Off; `1`=On | `0` (Off) |
-| `region_pos_edge_color1` | Edge Min Color(Positive) | packed Qt ARGB integer | `-1` |
-| `region_pos_edge_color2` | Edge Max Color(Positive) | packed Qt ARGB integer | `8224255` |
-| `region_neg_edge_color1` | Edge Min Color(Negative) | packed Qt ARGB integer | `-1` |
-| `region_neg_edge_color2` | Edge Max Color(Negative) | packed Qt ARGB integer | `16743293` |
-| `region_edge_threshold` | Binary Graph Threshold | float `0.00–1`; step `0.1` | `0.1` |
-| `region_mesh_smoothed` | Mesh Rendering | `0`=Original; `1`=Smoothed; `2`=Smoothed2 | `1` (Smoothed) |
-| `region_light_option` | Light | `0`=One source; `1`=Two sources; `2`=Three sources | `0` (One source) |
-| `region_light_dir` | Light Direction | integer slider `0–10` | `2` |
-| `region_light_shading` | Light Shading | integer slider `0–10` | `2` |
-| `region_light_diffuse` | Light Diffuse | integer slider `0–10` | `10` |
-| `region_light_ambient` | Light Ambient | integer slider `0–10` | `0` |
-| `region_light_specular` | Light Specular | integer slider `0–10` | `0` |
-| `region_specular` | Material Specular | integer slider `0–10` | `0` |
-| `region_emission` | Material Emission | integer slider `0–10` | `1` |
-| `region_shininess` | Material Shininess | integer slider `0–10` | `0` |
-| `region_bend1` | Blend Func1 | `0`=ZERO; `1`=ONE; `2`=DST_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `4` (SRC_ALPHA) |
-| `region_bend2` | Blend Func2 | `0`=ZERO; `1`=ONE; `2`=SRC_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `5` (ONE_MINUS_SRC_ALPHA) |
+| Parameter ID (UI) | Values = default |
+|---|---|
+| `region_alpha` (Opacity) | `0–1/0.1` = 0.8 |
+| `region_color_style` (Style) | `0`=Assigned, `1`=Metrics = 0 |
+| `region_color_metrics` | `0`=qa, `1`=iso = 0 |
+| `region_color_max_value`, `region_color_min_value` | `0–1/0.1` = 1.0, 0.0 |
+| `region_color_map` | color map = 0 |
+| `region_color_max`, `region_color_min` | 12079178, 14465098 |
+| `region_show_color_bar` | Off/On = 1 |
+| `region_graph` (Graph) | Off/On = 0 |
+| `region_node_size`, `region_edge_size` | slider = 4, 4 |
+| `region_constant_node_size`, `region_constant_edge_size` | Off/On = 0 |
+| `region_hide_unconnected_node` | Off/On = 1 |
+| `region_pos_edge_color1`, `region_pos_edge_color2` (Edge Min/Max Color(Positive)) | -1, 8224255 |
+| `region_neg_edge_color1`, `region_neg_edge_color2` (Edge Min/Max Color(Negative)) | -1, 16743293 |
+| `region_edge_threshold` (Binary Graph Threshold) | `0.00–1/0.1` = 0.1 |
+| `region_mesh_smoothed` (Mesh Rendering) | mesh = 1 |
+| `region_light_option` | light = 0 |
+| `region_bend1`, `region_bend2` | 4 (SRC_ALPHA), 5 (ONE_MINUS_SRC_ALPHA) |
 
-### Surface rendering
+### Surface and device
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `surface_color` | Color | packed Qt ARGB integer | `11184810` |
-| `surface_alpha` | Opacity | float `0–1`; step `0.05` | `0.2` |
-| `surface_mesh_smoothed` | Mesh Rendering | `0`=Original; `1`=Smoothed; `2`=Smoothed2 | `2` (Smoothed2) |
-| `surface_light_option` | Light | `0`=One source; `1`=Two sources; `2`=Three sources | `2` (Three sources) |
-| `surface_light_dir` | Light Direction | integer slider `0–10` | `5` |
-| `surface_light_shading` | Light Shading | integer slider `0–10` | `4` |
-| `surface_light_diffuse` | Light Diffuse | integer slider `0–10` | `2` |
-| `surface_light_ambient` | Light Ambient | integer slider `0–10` | `0` |
-| `surface_light_specular` | Light Specular | integer slider `0–10` | `0` |
-| `surface_specular` | Material Specular | integer slider `0–10` | `0` |
-| `surface_emission` | Material Emission | integer slider `0–10` | `0` |
-| `surface_shininess` | Material Shininess | integer slider `0–10` | `0` |
-| `surface_bend1` | Blend Func1 | `0`=ZERO; `1`=ONE; `2`=DST_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `2` (DST_COLOR) |
-| `surface_bend2` | Blend Func2 | `0`=ZERO; `1`=ONE; `2`=SRC_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `5` (ONE_MINUS_SRC_ALPHA) |
+`surface_color` (Color) = 11184810 · `surface_alpha` (Opacity) `0–1/0.05` = 0.2 ·
+`surface_mesh_smoothed` mesh = 2 · `surface_light_option` = 2 · `surface_bend1` = 2 (DST_COLOR),
+`surface_bend2` = 5. `device_light_option` = 2 · `device_bend1` = 4 (SRC_ALPHA), `device_bend2` = 5.
 
-### Device rendering
+### Lighting and material sliders
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `device_light_option` | Light | `0`=One source; `1`=Two sources; `2`=Three sources | `2` (Three sources) |
-| `device_light_dir` | Light Direction | integer slider `0–10` | `5` |
-| `device_light_shading` | Light Shading | integer slider `0–10` | `4` |
-| `device_light_diffuse` | Light Diffuse | integer slider `0–10` | `6` |
-| `device_light_ambient` | Light Ambient | integer slider `0–10` | `0` |
-| `device_light_specular` | Light Specular | integer slider `0–10` | `0` |
-| `device_specular` | Material Specular | integer slider `0–10` | `0` |
-| `device_emission` | Material Emission | integer slider `0–10` | `0` |
-| `device_shininess` | Material Shininess | integer slider `0–10` | `0` |
-| `device_bend1` | Blend Func1 | `0`=ZERO; `1`=ONE; `2`=DST_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `4` (SRC_ALPHA) |
-| `device_bend2` | Blend Func2 | `0`=ZERO; `1`=ONE; `2`=SRC_COLOR; `3`=ONE_MINUS_DST_COLOR; `4`=SRC_ALPHA; `5`=ONE_MINUS_SRC_ALPHA; `6`=DST_ALPHA; `7`=ONE_MINUS_DST_ALPHA | `5` (ONE_MINUS_SRC_ALPHA) |
+All are `0–10` sliders: `<p>_light_dir` (Light Direction), `_light_shading`, `_light_diffuse`,
+`_light_ambient`, `_light_specular`, and material `<p>_specular`, `<p>_emission`, `<p>_shininess`.
+Defaults (dir/shading/diffuse/ambient/specular; material specular/emission/shininess):
+
+| Prefix `<p>` | Light | Material |
+|---|---|---|
+| `tract` | 2/10/10/0/0 | 0/0/0 |
+| `region` | 2/2/10/0/0 | 0/1/0 |
+| `surface` | 5/4/2/0/0 | 0/0/0 |
+| `device` | 5/4/6/0/0 | 0/0/0 |
+| `odf` | 2/2/10/0/0 | 0/1/0 |
+
+Expanded IDs: `tract_light_dir`, `tract_light_shading`, `tract_light_diffuse`, `tract_light_ambient`, `tract_light_specular`, `tract_specular`, `tract_emission`, `tract_shininess`; `region_light_dir`, `region_light_shading`, `region_light_diffuse`, `region_light_ambient`, `region_light_specular`, `region_specular`, `region_emission`, `region_shininess`; `surface_light_dir`, `surface_light_shading`, `surface_light_diffuse`, `surface_light_ambient`, `surface_light_specular`, `surface_specular`, `surface_emission`, `surface_shininess`; `device_light_dir`, `device_light_shading`, `device_light_diffuse`, `device_light_ambient`, `device_light_specular`, `device_specular`, `device_emission`, `device_shininess`; `odf_light_dir`, `odf_light_shading`, `odf_light_diffuse`, `odf_light_ambient`, `odf_light_specular`, `odf_specular`, `odf_emission`, `odf_shininess`.
 
 ### Labels and directional axis
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `show_track_label` | Show Track Label | `0`=Off; `1`=On | `1` (On) |
-| `show_track_label_location` | Track Label Location | `0`=With Track; `1`=Middle; `2`=Middle Bottom | `0` (With Track) |
-| `track_label_color` | Track Label Color | packed Qt ARGB integer | `9868955` |
-| `track_label_bold` | Track Label Bold | `0`=Off; `1`=On | `1` (On) |
-| `track_label_size` | Tract Label Size | integer `2–100`; step `2` | `12` |
-| `show_region_label` | Show Region Label | `0`=Off; `1`=On | `1` (On) |
-| `region_label_color` | Region Label Color | packed Qt ARGB integer | `9868955` |
-| `region_label_bold` | Region Label Bold | `0`=Off; `1`=On | `1` (On) |
-| `region_label_size` | Region Label Size | integer `2–100`; step `2` | `12` |
-| `show_device_label` | Show Device Label | `0`=Off; `1`=On | `1` (On) |
-| `device_label_color` | Device Color | packed Qt ARGB integer | `9868955` |
-| `device_label_bold` | Device Bold | `0`=Off; `1`=On | `1` (On) |
-| `device_label_size` | Device Size | integer `2–100`; step `2` | `12` |
-| `show_directional_axis` | Axis | `0`=Off; `1`=On | `0` (Off) |
-| `axis_line_thickness` | Axis Line Thickness | float `1.0–20.0`; step `0.5` | `10` |
-| `axis_line_length` | Axis Line Length | float `1.0–10.0`; step `0.5` | `5` |
-| `show_axis_label` | Axis Label | `0`=Off; `1`=On | `1` (On) |
-| `axis_label_size` | Axis Label Size | integer `2–48`; step `2` | `26` |
-| `axis_label_bold` | Axis Label Bold | `0`=Off; `1`=On | `1` (On) |
+`show_track_label` Off/On = 1 · `show_track_label_location` `0`=With Track, `1`=Middle,
+`2`=Middle Bottom = 0 · `track_label_color` = 9868955 · `track_label_bold` Off/On = 1 ·
+`track_label_size` (Tract Label Size) `2–100/2` = 12. `show_region_label`, `region_label_color`,
+`region_label_bold`, `region_label_size` and `show_device_label`, `device_label_color` (Device Color),
+`device_label_bold` (Device Bold), `device_label_size` (Device Size): the same values and defaults.
+`show_directional_axis` (Axis) Off/On = 0 · `axis_line_thickness` `1.0–20.0/0.5` = 10 ·
+`axis_line_length` `1.0–10.0/0.5` = 5 · `show_axis_label` (Axis Label) Off/On = 1 · `axis_label_size`
+`2–48/2` = 26 · `axis_label_bold` Off/On = 1.
 
-### ODF rendering
+### ODF
 
-| Parameter ID | UI setting | Accepted value | Default |
-|---|---|---|---|
-| `odf_position` | Position | `0`=Along Slide; `1`=Slide Intersection; `2`=All | `0` (Along Slide) |
-| `odf_scale` | Size | float `0.1–32`; step `1` | `2` |
-| `odf_color` | Color | `0`=Dir; `1`=Blue; `2`=Red | `0` (Dir) |
-| `odf_skip` | Interleaved | `0`=none; `1`=2; `2`=4 | `0` (none) |
-| `odf_smoothing` | Smoothing | `0`=off; `1`=on | `0` (off) |
-| `odf_shape` | Shape | `0`=original; `1`=1st; `2`=2nd | `0` (original) |
-| `odf_min_max` | Min-Max Normalization | `0`=off; `1`=on | `1` (on) |
-| `odf_light_option` | Light | `0`=One source; `1`=Two sources; `2`=Three sources | `0` (One source) |
-| `odf_light_dir` | Light Direction | integer slider `0–10` | `2` |
-| `odf_light_shading` | Light Shading | integer slider `0–10` | `2` |
-| `odf_light_diffuse` | Light Diffuse | integer slider `0–10` | `10` |
-| `odf_light_ambient` | Light Ambient | integer slider `0–10` | `0` |
-| `odf_light_specular` | Light Specular | integer slider `0–10` | `0` |
-| `odf_specular` | Material Specular | integer slider `0–10` | `0` |
-| `odf_emission` | Material Emission | integer slider `0–10` | `1` |
-| `odf_shininess` | Material Shininess | integer slider `0–10` | `0` |
+`odf_position` (Position) `0`=Along Slide, `1`=Slide Intersection, `2`=All = 0 · `odf_scale` (Size)
+`0.1–32/1` = 2 · `odf_color` `0`=Dir, `1`=Blue, `2`=Red = 0 · `odf_skip` (Interleaved) `0`=none,
+`1`=2, `2`=4 = 0 · `odf_smoothing` off/on = 0 · `odf_shape` `0`=original, `1`=1st, `2`=2nd = 0 ·
+`odf_min_max` (Min-Max Normalization) off/on = 1 · `odf_light_option` = 0.
