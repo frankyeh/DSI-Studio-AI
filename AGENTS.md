@@ -56,39 +56,25 @@ The shared controls `bring_to_front`, `minimize`, `maximize`, `move_window`, and
 before ordinary MainWindow/window routing. `run_cli` and `run_shell` are global MainWindow commands
 with their own execution models; read their guide (Section 8) before using them.
 
-## 2. Required startup sequence
+## 2. Required startup: set the task title
 
-Send these three requests in order, and inspect all three replies before reading further in this
-file or opening any other DSI Studio AI document.
-
-Exception: a coding task that only reads or edits source or text files (no DSI Studio data, window,
-or analysis) skips Steps 2.1-2.3. Edit files with your own tools or with `patch_text_file`
-(Section 8.3), and check the repository with `run_shell "git status"` or `run_shell "git diff"`.
-
-### 2.1 Set the task title
+Send this first, as its own request, and inspect the reply before reading further in this file or
+opening any other DSI Studio AI document:
 
 ```bash
 bash ./dsi.sh set_title "<concise title derived from the user's task>"
 ```
 
-Update it when the task changes substantially. Send `set_title` as its own request, never combined
-with an unrelated command.
+Update it when the task changes substantially, again as its own request. Then go straight to what the
+task needs; do not list recent files or send status messages unless the task calls for them.
 
-### 2.2 Send a progress message
+Exception: a coding task that only reads or edits source or text files (no DSI Studio data, window,
+or analysis) skips the title. Edit files with your own tools or with `patch_text_file`
+(Section 8.3), and check the repository with `run_shell "git status"` or `run_shell "git diff"`.
 
-```bash
-bash ./dsi.sh -Chat "<brief improvised message that you are reading the DSI Studio manual before continuing>"
-```
-
-`-Chat` is user-facing communication; it does not retrieve action history (use `log`). It is not a
-command: over Web it is the request's `chat` field (`{"chat":"..."}`), and `{"cmd":"chat"}` fails
-with `unknown command: chat`.
-
-### 2.3 Learn a main-window command
-
-```bash
-bash ./dsi.sh list_recent_fib
-```
+`-Chat "<message>"` is user-facing communication; it does not retrieve action history (use `log`). It
+is not a command: over Web it is the request's `chat` field (`{"chat":"..."}`), and
+`{"cmd":"chat"}` fails with `unknown command: chat`.
 
 ## 3. Window targeting, state, and replies
 
