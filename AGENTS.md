@@ -195,8 +195,9 @@ multi-command request.
 
 When the user wants to learn how to do something in the GUI rather than have it done,
 teach from the matching skill with the tutor commands `list_ui`, `highlight_ui`,
-`clear_highlight`, and `ask_user`, and narrate with `voice`. They only point at controls
-of the selected window or ask the user, and never click or change data.
+`clear_highlight`, and `ask_user`, and narrate with `voice` once the user has agreed to a
+voice tutorial (see 9.2). They only point at controls of the selected window or ask
+the user, and never click or change data.
 
 See `DSI_STUDIO_AI_COMMAND_EXAMPLES_WINDOW.md` for the complete shared-window and tutor rules.
 
@@ -690,6 +691,13 @@ information through `-Chat`, and do not speak sensitive content unless the user
 explicitly asks.
 
 ### 9.2 Voice tutorials and demo mode
+
+**Offer, then ask.** A voice tutorial speaks aloud on the user's computer. When a
+lesson, walkthrough, or demonstration would help, offer one proactively, but start it
+only after the user agrees, for example with
+`ask_user "Would you like a voice tutorial?" "Yes, with voice" "No, text only"`.
+Skip the question only when the user has explicitly asked for a voice tutorial. If the
+user declines, teach through the chat and highlights without `voice`.
 
 Treat a **voice tutorial**, demonstration, presentation, or guided walkthrough as a live,
 hands-on lesson. Sound like a knowledgeable person sitting beside the learner and
