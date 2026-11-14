@@ -118,7 +118,7 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 | Command | Exact behavior |
 |---|---|
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is the command the control sends (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
-| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` (`drag`, `shift` = Shift + drag, `freehand`, `rect`) animates a demonstration once, about 2 s, stopping when the user presses the mouse; another gesture or a fifth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
+| `highlight_ui <id> [caption] [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports, with an optional caption (120 characters at most). `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`; clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fifth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
 | `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. |
 | `ask_user <question> [option]...` | A modeless dialog at the top-right corner of the screen, on top of all windows and without taking focus, so the user keeps working in DSI Studio. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
 | `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
@@ -132,11 +132,16 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 - `pages`: the page list `nav_rail` of the main window (Tractography, Correlational, Image,
   Settings) or the reconstruction window (Mask, Preprocessing, Methods).
 - `view`: the 3D view `GLWidget` or 2D slice view `graphicsView`, the targets for gestures.
+- `panel`: a whole dock by objectName, with its title as `label`; in the tracking window
+  `regionDockWidget` (region list), `ROIdockWidget` (2D ROI window), `renderingWidgetHolder`
+  (Options), `TractWidgetHolder` (tract list), and `DeviceDockWidget` (devices). For tours.
 - `option`: a tracking-window Options tree entry as `option:<option id>`, with its tree path as
   `label` (e.g. `option:tube_diameter`, `Tract Rendering > Tube Diameter (voxel)`); the prefix keeps
   it distinct from a same-named toolbar button such as the `roi_*` buttons. Listed in alphabetical
   order of ids.
-- `menu` or `disabled menu`: a visible menu action by objectName, with its menu path as `label`. A
+- `menu` or `disabled menu`: a visible menu-bar item by objectName, with its menu path as `label`; a
+  menu itself goes by the menu's objectName (e.g. `menuTracts`, label `Tracts`), and highlighting it
+  opens it. Context-menu-only items are not listed. A
   generated item without a name, such as each U-Net model under Slices > Segment, is listed as
   `run:<command>=<param>` (e.g. `run:segment_brain=<model>`), `<param>` being what it sends.
 
@@ -232,7 +237,14 @@ no command; show them with a gesture that follows the GUI's behavior:
 | `graphicsView` | freehand region tool (`tool1`) | `freehand` | Hold the left button and draw around the area. Right-click, or hold Shift, to erase. |
 | `graphicsView` | rectangle tool (`tool0`) | `rect` | Drag from one corner to the opposite corner. |
 | `graphicsView` | sphere (`tool2`) or cube (`tool3`) tool | `drag` | Press at the center and drag outward to set the size. |
-| `graphicsView` | polygon tool (`tool4`) | none | Click each corner, then double-click to close the shape. |
+| `graphicsView` | polygon tool (`tool4`) | `click`, then `double` | Click each corner, then double-click to close the shape. |
+| `graphicsView` | any | `wheel` | Scroll to zoom the slice (hold Ctrl when the view shows a scroll bar). |
+| `GLWidget` | normal | `rotate` | Drag with the left button to rotate. |
+| `GLWidget` | normal | `roll` | Start the left drag in a corner (outside the inscribed circle) to roll the view in-plane. |
+| `GLWidget` | normal | `zoom` or `wheel` | Drag up with the right button, or scroll, to zoom in. |
+| `GLWidget` | normal | `pan` | Drag with the middle button (or both buttons, or Shift or Ctrl + left) to move the scene; with Ctrl the move is 16× finer. |
+| `GLWidget` | normal | `double` | Double-click a region, tract, or device to select its row. |
+| any button, drop-down, or tool | | `click` (`right` for a context menu) | Move to the control and click it. |
 
 Undo is Ctrl+Z for tract edits (the last edit of every checked bundle) and Undo Edit (Ctrl+Shift+Z)
 for the last region edit.
