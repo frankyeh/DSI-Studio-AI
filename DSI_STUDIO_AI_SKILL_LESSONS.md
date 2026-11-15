@@ -49,7 +49,7 @@ action, one explanation, and one check:
 - The first time a lesson opens a tracking window, offer the **Tracking window tour** with
   `ask_user "Quick tour of the tracking window?" Yes Skip`, run it on Yes, then continue the lesson.
 - Mouse actions have no command: add a gesture to the highlight (`click`, `double`, `right` on a
-  control; `rotate`, `zoom`, `pan`, `roll`, `wheel` in the 3D view; `freehand`, `rect`, `drag` in the
+  control; `rotate`, `zoom`, `pan`, `roll`, `wheel` in the 3D view; `sphere`, `freehand`, `rect`, `drag` in the
   ROI window; see the gesture table in the window manual).
 - End every analysis lesson with Lesson 11 (Before interpreting results).
 
@@ -130,8 +130,8 @@ panel the window does not show. Steps with a gesture or `click` end with `ask_us
 | 3 | `GLWidget` | `rotate` | **3D window**: shows slices, regions, tracts, and devices together. Drag with the left button to rotate. | The user rotates (`ask_user_act`) |
 | 4 | `GLWidget` | `zoom`, then `pan` | Right-drag up (or scroll) zooms; middle-drag moves the scene; Shift + left drag only tilts and Ctrl makes any drag finer. Starting a drag in a corner rolls the view (`roll`). | `ask_user_act` |
 | 5 | `ROIdockWidget` | | **ROI window** ("Draw Regions"): the 2D slice used to draw and check regions. The drop-down above it (`SliceModality`) switches the image; scrolling zooms (`graphicsView` with `wheel`). | Next |
-| 6 | `tool1` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Click one to select it. | `ask_user_act` |
-| 7 | `graphicsView` | `freehand` | With the freehand tool, hold the left button and draw around an area; right-click or Shift erases. Drawing creates or edits the current region, which also appears in 3D. | `list_region` |
+| 6 | `tool2` | `click` | The tool buttons choose how to draw: rectangle, freehand, sphere, cube, polygon, and more. Sphere is the most used; click it. | `ask_user_act` |
+| 7 | `graphicsView` | `sphere` | With the sphere tool, press at the center of the area and drag outward to set the size. Drawing creates or edits the current region, which also appears in 3D. | `list_region` |
 | 8 | `regionDockWidget` | | **Region list** ("Assign Regions"): every region with its checkbox, type (ROI, ROA, Seed, ...), and color. Checked regions are the ones shown, used for tracking, and measured. | Next |
 | 9 | `addRegionFromAtlas` | `click` | Regions can also come from a built-in atlas instead of drawing. The atlas list opens beside the window and stays open while the user works; choose a region, click **Add**, and **Close** when done (the button shows the same list again). | `ask_user_act`, then `list_region` |
 | 10 | `renderingWidgetHolder` | | **Options**: tracking parameters at the top, then how slices, tracts, regions, and surfaces are drawn. `highlight_ui option:<id>` points at one setting. | Next |
@@ -139,7 +139,7 @@ panel the window does not show. Steps with a gesture or `click` end with `ask_us
 | 12 | `perform_tracking` | `click` | **Fiber Tracking** starts tracking with the current regions and options (with the drawn region checked, only tracts through it); the result appears as a new row in the tract list and in 3D. | `list_tract` shows the row `done` |
 | 13 | `GLWidget` | `double` | Rotate to see the tracts, then double-click a tract or region in 3D: its row is selected in its list. | `ask_user_act` |
 | 14 | `DeviceDockWidget` *(if shown)* | | **Devices**: electrodes and other devices placed in the brain. | Next |
-| 15 | `menu_File`, then each menu below | | **Menus**, one highlight each, one sentence each (the menu opens; say the name too). | Next after each |
+| 15 | `menu_File`, then each menu below | | **Menus**, one highlight each, one sentence each (the menu-bar title is ringed; say the name too). | Next after each |
 
 Menus, from left to right:
 
