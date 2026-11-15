@@ -123,10 +123,10 @@ something in the GUI; use ordinary commands when the user asks you to do it.
 | Command | Exact behavior |
 |---|---|
 | `list_ui [filter]` | Lists visible controls of the selected window only (including its floating docks, not other windows it opened) as `{"total":N,"controls":[{"id","kind","label","run"}]}`, at most 50 entries; `total` counts all matches. `run` is the command the control sends (for example `open_dwi_dicom`, or `enable_slice=0` with its parameter). `filter` is a case-insensitive substring of `id`, `label`, or `run`. |
-| `highlight_ui <id> [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports; the words go in the `ask_user` dialog, which opens beside it. `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`; clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fourth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
+| `highlight_ui <id> [gesture]` | Draws an orange ring around the one visible control named `id` of a kind `list_ui` reports; the words go in the `ask_user` dialog, which opens beside it. `gesture` animates a demonstration once, about 2 s, stopping when the user presses the mouse: strokes `drag`, `shift` (Shift + drag), `freehand`, `rect`, `sphere` (a circle growing from the center); clicks `click`, `double`, `right` (the cursor glides to the control's center and clicks); 3D-view moves `rotate`, `roll`, `zoom`, `pan`, `wheel` (table below); another gesture or a fourth value fails with the usage text. Success replaces the earlier highlight; failure leaves it. |
 | `clear_highlight` | Removes the highlight: `cleared` or `nothing to clear`. Does not close a tutor question. |
 | `cancel_ask_user` | Closes the requesting session's active `ask_user`, `ask_user_modal`, or `ask_user_act` question. The waiting request returns `Cancel`; this command returns `cancelled`, or `nothing to cancel` if no question is open. Does not dismiss file dialogs, approval dialogs, or data windows. |
-| `ask_user <question> [option]...` | A modeless dialog beside the highlighted control (beside its open menu for a menu item; at the center of the screen when nothing is highlighted), on top of all windows and without taking focus, so the user keeps working in DSI Studio; highlight a control first to put the question next to it, where the user is looking. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. |
+| `ask_user <question> [option]...` | A modeless dialog beside the highlighted control (for a menu item, beside its menu-bar title and the menu that drops from it; at the center of the screen when nothing is highlighted), on top of all windows and without taking focus, so the user keeps working in DSI Studio; highlight a control first to put the question next to it, where the user is looking. For questions and step instructions with buttons such as `Done` and `Cancel`. Up to four options are buttons, one per row so long text shows in full; more are a drop-down list (first preselected), none means a typed answer. The question can be any text; the answer, returned exactly as given, is the `output`. One choice per question. Closing the dialog fails with `the user closed the question without answering`. The request returns only after the answer. While a computation shows a progress (`list_window` `progress`), the `ask_user` commands fail with `a progress is running; ask after it finishes`, since waiting for the answer would stall it. |
 | `ask_user_modal <question> [option]...` | The same, but blocks DSI Studio until the user answers, for decisions needed before anything else. |
 | `ask_user_act <instruction>` | The `ask_user` dialog with only `Cancel`, for a step on the highlighted control: it closes by itself and returns `done` when the user acts on that control (clicks a button or view, chooses a drop-down item, finishes a drag or drawing stroke in a view, or triggers the highlighted menu item), or returns `Cancel`. Fails with `highlight a control first` when nothing is highlighted. If the click opens a modal dialog (a file dialog), `done` returns after that dialog closes. Acting another way (a shortcut, another button) does not close it. |
 
@@ -148,7 +148,7 @@ something in the GUI; use ordinary commands when the user asks you to do it.
   order of ids.
 - `menu` or `disabled menu`: a visible menu-bar item by objectName, with its menu path as `label`; a
   menu itself goes by the menu's objectName (e.g. `menuTracts`, label `Tracts`), and highlighting it
-  opens it. Context-menu-only items are not listed. A
+  rings its menu-bar title. Context-menu-only items are not listed. A
   generated item without a name, such as each U-Net model under Slices > Segment, is listed as
   `run:<command>=<param>` (e.g. `run:segment_brain=<model>`), `<param>` being what it sends.
 
@@ -161,10 +161,10 @@ returned empty.
 - `run:<command>`: the one visible control, or else menu action, sending that command; when several
   send it with different parameters (`ambiguous control`), use `run:<command>=<param>` from `list_ui`;
 - `option:<id>`: the tree expands to it and its editor is ringed: `option: <tree path>`;
-- an enabled, visible menu action: the earlier highlight is removed and the menus open down to the
-  item and highlight it (as hovering does; nothing is triggered): `menu: <menu path>`, e.g.
-  `menu: Tracts > Save Tracts As...`. Also tell the user the path: open menus close when the user
-  clicks elsewhere, and a native macOS menu bar may not open.
+- an enabled, visible menu action: the earlier highlight is removed and its menu-bar title is ringed;
+  each menu item on the way to it is ringed when the user opens its menu (nothing opens or is
+  triggered): `menu: <menu path>`, e.g. `menu: Tracts > Save Tracts As...`. Also tell the user the
+  path: a native macOS menu bar shows no ring.
 
 Failures: `control not found or not visible`, `ambiguous control`, `control is disabled`, and
 `a dialog is open; ask the user to close it first` (every tutor command except `clear_highlight` and `cancel_ask_user`
@@ -173,16 +173,17 @@ refuses while a modal dialog is open).
 ### Opening a menu, then highlighting its item
 
 Discover both ids with `list_ui File` (use narrower filters if the result exceeds 50).
-Highlight the menu first, then its item in a separate request so the user can follow:
+Highlighting the item alone is enough: the menu-bar title is ringed, and once the user opens File,
+the item is ringed too:
 
 ```bash
-bash ./dsi.sh highlight_ui menu_File
 bash ./dsi.sh highlight_ui actionSave_SRC_file_as
+bash ./dsi.sh ask_user_act "Open File, then choose Save SRC File As"
 ```
 
 These are example reconstruction-window ids; use the ids returned by the current window.
-The first request opens File; the second opens the menu chain and selects the item using the
-menu's normal hover highlight. It never triggers the action or opens a save dialog.
+`ask_user_act` returns `done` when the user chooses the item, not when the menu opens. Highlighting
+never triggers the action or opens a save dialog.
 
 ### Cancelling a waiting tutor question
 
@@ -241,7 +242,7 @@ user asks "teach me how to ..." (for example, brain tumor analysis):
    highlighted control (a click, a choice, a menu item, a gesture); it returns `done` as soon as the
    user does it. Use `ask_user "<what to do now>" Done Cancel` (add `Help` or other options when
    useful) for steps elsewhere, such as working in a dialog. Both stay on top while the user works,
-   and a menu opened by `highlight_ui` stays open. After `done` or `Done`, read `log`: a `user operation` line (written by the main, reconstruction, and
+   and an open menu stays open. After `done` or `Done`, read `log`: a `user operation` line (written by the main, reconstruction, and
    tracking windows) with the same `cmd` shows the user started the step, and the lines after it the
    result. Then verify the outcome with state queries (`list_window`, the window's list commands) or
    a screenshot, as the skill does: the log does not prove success, repeated changes of one
@@ -274,7 +275,8 @@ no command; show them with a gesture that follows the GUI's behavior:
 | `GLWidget` | same | `shift` | Hold Shift while dragging to add bend points (a curved line). |
 | `graphicsView` | freehand region tool (`tool1`) | `freehand` | Hold the left button and draw around the area. Right-click, or hold Shift, to erase. |
 | `graphicsView` | rectangle tool (`tool0`) | `rect` | Drag from one corner to the opposite corner. |
-| `graphicsView` | sphere (`tool2`) or cube (`tool3`) tool | `drag` | Press at the center and drag outward to set the size. |
+| `graphicsView` | sphere tool (`tool2`), the most used | `sphere` | Press at the center and drag outward to set the size. |
+| `graphicsView` | cube tool (`tool3`) | `drag` | Press at the center and drag outward to set the size. |
 | `graphicsView` | polygon tool (`tool4`) | `click`, then `double` | Click each corner, then double-click to close the shape. |
 | `graphicsView` | any | `wheel` | Scroll to zoom the slice (hold Ctrl when the view shows a scroll bar). |
 | `GLWidget` | normal | `rotate` | Drag with the left button to rotate; hold Shift to tilt only (up/down drag, no turning), Ctrl for 16× finer moves (all drags). |
