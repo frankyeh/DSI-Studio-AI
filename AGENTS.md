@@ -177,8 +177,8 @@ once until it is done. Start it early with `prepare_mapping`, after telling (or,
 asking) the user, and poll `prepare_mapping check` until `ready`; see "Normalization before atlas
 work" in `DSI_STUDIO_AI_COMMAND_EXAMPLES_TRACT.md`.
 
-For menus, use ids from `list_ui`: highlight the parent menu first, then the item in a separate
-request. This opens the menu and applies its normal hover highlight without triggering the item.
+For menus, use ids from `list_ui`: highlighting an item rings its menu-bar title, then each item on
+the way once the user opens its menu, without opening or triggering anything.
 While a tutor question is waiting, other requests return `busy`. To dismiss it, send only
 `bash ./dsi.sh cancel_ask_user` from the same session, without parameters, other commands, or
 `-Chat`. The original question returns `Cancel`; wait for that reply before sending the next step.
@@ -512,7 +512,9 @@ explain the next visible action:
 bash ./dsi.sh voice "Reconstruction is complete."
 ```
 
-Success means the speech was queued or started, not finished. Keep durable user-facing information
+Success means the speech started, not finished. A newer `voice` line cuts the one playing and drops
+any still waiting, so the voice keeps up with a user who is ahead: put one step's words in one line,
+and send the next line for the next step. Keep durable user-facing information
 in `-Chat`, and do not speak sensitive content unless the user explicitly asks.
 
 ### 9.2 Voice tutorials and demo mode
