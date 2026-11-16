@@ -197,7 +197,9 @@ correction to scans sharing it, e.g. `--cmd="swap_bybz+flip_bx"` (swap y/z, then
 
 **Lost or corrupted bval/bvec**: replace them with `--bval=<file> --bvec=<file>` on `--action=rec` (or
 `load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which rebuilds b-vectors
-of DWIs with b ≥ 500 from the reference's nearest-b shell, keeping recorded b-values. The parameterless
+of DWIs with b ≥ 500 from the reference's nearest-b shell, keeping recorded b-values (DSI data needs an
+explicit DSI reference, since the template references are multishell, and each DWI with b ≥ 100 takes the b-value and b-vector of its best-correlated reference
+DWI). The parameterless
 form downloads
 `https://github.com/data-others/atlas/releases/download/<template>/<template>.sz` once to the system
 temp folder and reuses it; only the human 2 mm reference (`human/human.sz`) is published so far. A
