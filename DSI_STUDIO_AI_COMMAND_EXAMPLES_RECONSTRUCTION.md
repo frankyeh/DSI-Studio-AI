@@ -84,7 +84,7 @@ Commands marked "path" open a local dialog or picker when the parameter is omitt
 | `check_btable` | `bash ./dsi.sh check_btable` | Check b-table orientation against the current template (falling back to the no-template method if it cannot load); apply the best permutation/flip when it improves the score. |
 | `check_btable2` | `bash ./dsi.sh check_btable2` | No-template check: reconstruct DTI internally, score 24 axis permutation/flip candidates, and apply the best when it improves the score. |
 | `load_bval`, `load_bvec` | `bash ./dsi.sh load_bval "C:/data/new.bval"`, `bash ./dsi.sh load_bvec "C:/data/new.bvec"` | Replace b-values (count must equal the DWI count) or b-vectors (three rows or one row per DWI; y flipped as on import) from FSL files; same as CLI `--bval`/`--bvec` on `--action=rec`. |
-| `regenerate_btable` | `bash ./dsi.sh regenerate_btable`, `bash ./dsi.sh regenerate_btable "C:/data/reference.sz"` | Rebuild lost or corrupted b-vectors from a single- or multi-shell reference SRC (default: the template's reference `<template>.sz`, e.g. `human.sz`). DWIs with b ≥ 500 are grouped into shells, each matched to the reference shell with the nearest mean b-value; the reference b0 is affinely aligned to this b0; each DWI gets the correlation-weighted direction of its three best-correlated reference DWIs in the matched shell. B-values are kept, DWIs with b < 500 unchanged, and the b-table is untouched on failure. CLI: `--cmd=regenerate_btable` or `--cmd=regenerate_btable=<reference.sz>`. |
+| `regenerate_btable` | `bash ./dsi.sh regenerate_btable`, `bash ./dsi.sh regenerate_btable "C:/data/reference.sz"` | Rebuild lost or corrupted b-vectors from a single- or multi-shell reference SRC (default: the template's reference `<template>.sz`, e.g. `human.sz`). DWIs with b ≥ 500 are grouped into shells, each matched to the reference shell with the nearest mean b-value; the reference b0 is affinely aligned to this b0; each DWI gets the correlation-weighted direction of its three best-correlated reference DWIs in the matched shell. B-values are kept, DWIs with b < 500 unchanged, and the b-table is untouched on failure. A DSI SRC (q-space grid) needs a DSI reference (the template reference is not DSI, so pass one); each DWI with b ≥ 100 then takes both the b-value and the b-vector of its one best-correlated reference DWI. CLI: `--cmd=regenerate_btable` or `--cmd=regenerate_btable=<reference.sz>`. |
 | `scheme_balance` | `bash ./dsi.sh scheme_balance` | Resample a multishell or single-shell b-table to the GQI balanced scheme and store the balanced DWI (Edit > Scheme Balance); reconstruction then applies only the GQI weighting. Fails for DSI-grid schemes or when already applied. CLI: `--cmd=scheme_balance`. |
 | `topup`, `topup_eddy` | `bash ./dsi.sh topup "C:/data/reverse_pe.rz"`, `bash ./dsi.sh topup_eddy "C:/data/reverse_pe.rz"` | TOPUP with an explicit reverse-PE source, or TOPUP when possible followed by EDDY; without a parameter, an AI command discovers the reverse-PE source automatically. |
 | `eddy` | `bash ./dsi.sh eddy` | EDDY without an explicit TOPUP source. |
@@ -112,7 +112,7 @@ one convention. Never infer group orientation from a poor-SNR outlier.
 
 If flips and swaps cannot fix the b-table, replace it: `load_bval`/`load_bvec` when the correct FSL
 files exist, or `regenerate_btable` with a reference whose b-table is known correct (it replaces only
-b-vectors, so the b-values must be right). Then run `check_btable2` and inspect fiber directions
+b-vectors, so the b-values must be right; for DSI data with a DSI reference, it replaces both). Then run `check_btable2` and inspect fiber directions
 before reconstruction.
 
 - **Automatic reference:** without a parameter, DSI Studio downloads
@@ -122,8 +122,10 @@ before reconstruction.
   (`human/human.sz`) is published. A missing asset (404), no network without a valid cache, a corrupt
   download, or a cancelled download reports an error and leaves the b-table unchanged. Do not use the
   old HCP1065 links.
-- **Explicit reference:** `regenerate_btable=<reference.sz>` uses any SRC you supply (command line or
-  AI command only; the GUI always uses the automatic reference).
+- **Explicit reference:** `regenerate_btable=<reference.sz>` uses any SRC you supply (in the GUI,
+  **Regenerate B-table from SRC...**, or `regenerate_btable src` to pick it there). DSI data always
+  needs an explicit DSI reference: the template references are multishell, so the parameterless form
+  (the GUI's **Template-Based** button) reports an error for a DSI SRC.
 - **Parallel runs:** never start several parameterless runs while the cache may be missing or being
   replaced (they race on the same file); fetch and check the reference once, then pass every job the
   explicit path (`--cmd=regenerate_btable=<path>`).
