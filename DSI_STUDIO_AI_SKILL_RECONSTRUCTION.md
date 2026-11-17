@@ -56,7 +56,7 @@ or videos lag, the live build and source win.
 - **Mask (2a):** thresholding, smoothing, dilation/erosion, defragmentation, U-Net, or template. Open
   and Save are now **File → Open Mask...** / **File → Save Mask...** (the AI command `mask_open` is
   independent of the menu).
-- **Preprocessing (2b):** seven Yes/No questions select a highlighted path, run by one **Run
+- **Preprocessing (2b):** eight Yes/No questions select a highlighted path, run by one **Run
   Preprocessing** button; completed steps show ✓ and steps the SRC report records as applied are
   skipped. Its suggestions are not proof a correction is needed.
 - **Methods (2c):** DTI, GQI, or QSDR. GQI and QSDR show the diffusion sampling length ratio slider
@@ -84,6 +84,8 @@ or videos lag, the live build and source win.
    resampled (default suggested from voxel size).
 7. **Correct eddy current distortion?** Shell-based only; chooses combined TOPUP/EDDY or TOPUP alone on
    the TOPUP path.
+8. **Balance the shell sampling?** Shell-based only (default Yes); `scheme_balance` resamples each shell
+   so its directions are evenly distributed.
 
 Questions 1 and 2 pick one of four paths (reverse-PE present/absent × shell/DSI). Steps: `topup_eddy`,
 `topup`, `eddy`, `motion_correction`, `correct_by_t1w`, `scheme_balance` (shell data), `bias_field_correction`, `resample`, run in the
