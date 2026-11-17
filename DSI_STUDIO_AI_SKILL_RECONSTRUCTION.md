@@ -86,7 +86,7 @@ or videos lag, the live build and source win.
    the TOPUP path.
 
 Questions 1 and 2 pick one of four paths (reverse-PE present/absent × shell/DSI). Steps: `topup_eddy`,
-`topup`, `eddy`, `motion_correction`, `correct_by_t1w`, `bias_field_correction`, `resample`, run in the
+`topup`, `eddy`, `motion_correction`, `correct_by_t1w`, `scheme_balance` (shell data), `bias_field_correction`, `resample`, run in the
 flow's order and stopping on failure. Completion detection reads report text and can be incomplete:
 check the processing history rather than trusting a missing ✓. **Agents:** these are GUI features, not
 launcher parameters, and there is no `run_preprocessing` command. Inspect the acquisition, report, and
@@ -196,8 +196,9 @@ correction to scans sharing it, e.g. `--cmd="swap_bybz+flip_bx"` (swap y/z, then
 `+`); never infer a group correction from a low-SNR or artifact-heavy outlier.
 
 **Lost or corrupted bval/bvec**: replace them with `--bval=<file> --bvec=<file>` on `--action=rec` (or
-`load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which rebuilds b-vectors
-of DWIs with b ≥ 500 from the reference's nearest-b shell, keeping recorded b-values (DSI data needs an
+`load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which gives each shell
+of DWIs with b ≥ 500 its equivalent b-value estimated from the signal and rebuilds the b-vectors from the
+reference shell converted to that b-value; check the logged best correlation of each DWI (DSI data needs an
 explicit DSI reference, since the template references are multishell, and each DWI with b ≥ 100 takes the b-value and b-vector of its best-correlated reference
 DWI). The parameterless
 form downloads
@@ -208,6 +209,12 @@ unchanged; never use the retired HCP1065 links. `--cmd=regenerate_btable=<refere
 explicit reference. **Never run several parameterless `regenerate_btable` jobs in parallel** while the
 cache may be missing (they race on one file): download and check it once, put it on persistent shared
 storage (not per-job `$TMPDIR` on Slurm), and pass that path to every job. Then check orientation.
+
+**Matching another scheme**: `--cmd=convert_btable=<target.sz>` (`convert_btable`) converts shell
+data (not DSI) to the b-table of a shell SRC: both get equivalent b-values from their signal, each
+target shell takes the data shell with the nearest one, converted to the target's equivalent b-value and
+interpolated to the target directions; target b < 500 entries get the mean b0. It relies on the current
+b-vectors, so check or regenerate them first.
 
 Exclude corrupted volumes with `--remove=<indices or b>value>` on `--action=rec` or the `remove`
 command (e.g. `3,10:12` or `b>3000`); it is recorded in the steps and report.
@@ -249,11 +256,10 @@ populations. For multishell data consider fitting only suitable lower b-values a
 
 **QSDR.** Correct species template; resolution suited to acquisition and brain size (smaller voxels cost
 time and space and restore nothing). Verify nonlinear registration, laterality, and attached T1w/T2w
-alignment. For multishell or single-shell data, `dwi` in `other_output` stores template-space DWI in the
-`.fz` (scheme-balanced b-table, one volume per direction, `scheme_balance` added to the steps; DSI grids
-ignore it). `--action=rec` then accepts that `.fz` as `--source` (CLI only; the GUI opens `.fz` as FIB)
-to reconstruct again or save an `.sz` with `--save_src`; an `.fz` without DWI is rejected. Without
-`--output`, the name drops the source suffixes (`subject.qsdr.fz` gives `subject.gqi.fz`).
+alignment. For multishell or single-shell data, `dwi` in `other_output` also writes the template-space
+DWI beside the ordinary `.fz`: `<output>_dwi.nii.gz` (4D float) with `<output>_dwi.bval` and
+`<output>_dwi.bvec` (e.g. `subject.qsdr_dwi.nii.gz`), under the subject's current b-table (balanced if
+`scheme_balance` ran). DSI grids ignore it. The `.fz` itself holds no DWI.
 
 ### 7. Request only needed outputs
 
