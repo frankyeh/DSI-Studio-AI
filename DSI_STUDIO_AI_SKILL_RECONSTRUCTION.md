@@ -56,7 +56,7 @@ or videos lag, the live build and source win.
 - **Mask (2a):** thresholding, smoothing, dilation/erosion, defragmentation, U-Net, or template. Open
   and Save are now **File → Open Mask...** / **File → Save Mask...** (the AI command `mask_open` is
   independent of the menu).
-- **Preprocessing (2b):** eight Yes/No questions select a highlighted path, run by one **Run
+- **Preprocessing (2b):** nine Yes/No questions (three under **Advanced...**) select a highlighted path, run by one **Run
   Preprocessing** button; completed steps show ✓ and steps the SRC report records as applied are
   skipped. Its suggestions are not proof a correction is needed.
 - **Methods (2c):** DTI, GQI, or QSDR. GQI and QSDR show the diffusion sampling length ratio slider
@@ -84,11 +84,16 @@ or videos lag, the live build and source win.
    resampled (default suggested from voxel size).
 7. **Correct eddy current distortion?** Shell-based only; chooses combined TOPUP/EDDY or TOPUP alone on
    the TOPUP path.
-8. **Balance the shell sampling?** Shell-based only (default Yes); `scheme_balance` resamples each shell
-   so its directions are evenly distributed.
+8. **Balance the shell sampling?** Shell-based only (default No); `scheme_balance` stores each shell resampled
+   so its directions are evenly distributed; without it, GQI and QSDR balance internally and leave the SRC unchanged.
+9. **Correct signal drift?** Shell-based only (default No); `correct_signal_drift` normalizes
+   volume-to-volume signal jumps by gray matter, before scheme balance.
+
+Questions 4 (T1w-based distortion correction), 8, and 9 are hidden until **Advanced...** is clicked, and
+default to No.
 
 Questions 1 and 2 pick one of four paths (reverse-PE present/absent × shell/DSI). Steps: `topup_eddy`,
-`topup`, `eddy`, `motion_correction`, `correct_by_t1w`, `scheme_balance` (shell data), `bias_field_correction`, `resample`, run in the
+`topup`, `eddy`, `motion_correction`, `correct_by_t1w`, `correct_signal_drift` and `scheme_balance` (shell data, optional), `bias_field_correction`, `resample`, run in the
 flow's order and stopping on failure. Completion detection reads report text and can be incomplete:
 check the processing history rather than trusting a missing ✓. **Agents:** these are GUI features, not
 launcher parameters, and there is no `run_preprocessing` command. Inspect the acquisition, report, and
@@ -260,8 +265,13 @@ populations. For multishell data consider fitting only suitable lower b-values a
 time and space and restore nothing). Verify nonlinear registration, laterality, and attached T1w/T2w
 alignment. For multishell or single-shell data, `dwi` in `other_output` also writes the template-space
 DWI beside the ordinary `.fz`: `<output>_dwi.nii.gz` (4D float) with `<output>_dwi.bval` and
-`<output>_dwi.bvec` (e.g. `subject.qsdr_dwi.nii.gz`), under the subject's current b-table (balanced if
-`scheme_balance` ran). DSI grids ignore it. The `.fz` itself holds no DWI.
+`<output>_dwi.bvec` (e.g. `subject.qsdr_dwi.nii.gz`), under the original b-table of the SRC (sorted, first b0
+only), not the balanced one used for reconstruction. DSI grids ignore it. The `.fz` itself holds no DWI.
+These DWI outputs from a group can be averaged into one `.sz` with `--action=tmp` (GUI: Population Average):
+each must carry the MNI header flag and match the first in dimension, voxel size, srow, and DWI count per
+shell (b0/non-shell volumes counted last), else the error names the file and the difference. Scans with an
+outlying neighboring DWI correlation are excluded; the rest are interpolated shell by shell to the b-vectors
+of the highest-correlation scan (the leader), b0/non-shell volumes pair in order, and b-values are averaged.
 
 ### 7. Request only needed outputs
 
@@ -310,10 +320,10 @@ dsi_studio --action=rec --source=subject.sz --cmd="[Step T2][Corrections][EDDY]"
 dsi_studio --action=rec --source=subject_raw.sz --rev_pe=subject_rev_b0.nii.gz --save_src=subject_preprocessed.sz
 # QSDR
 dsi_studio --action=rec --source=subject.sz --method=7 --output=subject_qsdr.fz
-# QSDR with template-space DWI, then GQI or an SRC from that .fz
+# QSDR with template-space DWI (subject_qsdr_dwi.nii.gz/.bval/.bvec)
 dsi_studio --action=rec --source=subject.sz --method=7 --other_output=fa,md,rd,rdi,dwi --output=subject_qsdr.fz
-dsi_studio --action=rec --source=subject_qsdr.fz --method=4 --param=1.25 --output=subject_qsdr_gqi.fz
-dsi_studio --action=rec --source=subject_qsdr.fz --save_src=subject_qsdr.sz
+# average template-space DWI of a group into one SRC (default output <first>.avg.sz)
+dsi_studio --action=tmp --source=*_qsdr_dwi.nii.gz --output=group_avg.sz
 ```
 
 Parameters vary by version; prefer commands from the current GUI command history when reproducing an
