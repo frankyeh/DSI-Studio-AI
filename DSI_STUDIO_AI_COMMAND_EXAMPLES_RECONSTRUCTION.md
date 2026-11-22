@@ -42,7 +42,7 @@ the same `name=value[&name=value...]` composite.
 |---|---|
 | `method` | `1` DTI, `4` GQI, `7` QSDR |
 | `thread_count` | Reconstruction thread count |
-| `other_output` | Comma-separated output metric IDs. `dwi` writes template-space DWI beside a QSDR `.fz` as `<output>_dwi.nii.gz` with `.bval`/`.bvec` (shell schemes only); `--action=tmp` averages a group of these into one `.sz`. `fixel` stores fiber directions as `fixelN` (GQI/QSDR refine peaks analytically instead of the default `indexN`; DTI writes `fixel0` instead of the default `dir0`), readable only by DSI Studio builds from 2026-10 on. `all` excludes `dwi`, `fixel`, and `debug`. |
+| `other_output` | Comma-separated output metric IDs. `dwi` writes template-space DWI beside a QSDR `.fz` as `<output>_dwi.nii.gz` with `.bval`/`.bvec` (shell schemes only). The DWI follow the **scheme-balanced** b-table, not the original one: the first b0, then each shell resampled to 181, 126, 81, or 46 directions by its mean b-value (each b-value the angular-weighted mean of its shell's native b-values), each direction evaluated at the local QSDR Jacobian; no GQI weighting is applied. A SRC already balanced by `scheme_balance` keeps its directions; `--action=tmp` averages a group of these into one `.sz`. `fixel` stores fiber directions as `fixelN` (GQI/QSDR refine peaks analytically instead of the default `indexN`; DTI writes `fixel0` instead of the default `dir0`), readable only by DSI Studio builds from 2026-10 on. `all` excludes `dwi`, `fixel`, and `debug`. |
 | `dti_ignore_high_b` | Ignore high-b-value data for tensor metrics |
 | `r2_weighted` | R2-weighted reconstruction |
 | `param` | GQI/QSDR diffusion sampling length ratio |
