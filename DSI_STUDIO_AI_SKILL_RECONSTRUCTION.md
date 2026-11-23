@@ -87,7 +87,7 @@ or videos lag, the live build and source win.
 8. **Balance the shell sampling?** Shell-based only (default No); `scheme_balance` stores each shell resampled
    so its directions are evenly distributed; without it, GQI and QSDR balance internally and leave the SRC unchanged.
 9. **Correct signal drift?** Shell-based only (default No); `correct_signal_drift` normalizes
-   volume-to-volume signal jumps by gray matter, before scheme balance.
+   volume-to-volume signal jumps by the isotropic core signal of each shell, before scheme balance.
 
 Questions 4 (T1w-based distortion correction), 8, and 9 are hidden until **Advanced...** is clicked, and
 default to No.
@@ -203,9 +203,10 @@ correction to scans sharing it, e.g. `--cmd="swap_bybz+flip_bx"` (swap y/z, then
 `+`); never infer a group correction from a low-SNR or artifact-heavy outlier.
 
 **Lost or corrupted bval/bvec**: replace them with `--bval=<file> --bvec=<file>` on `--action=rec` (or
-`load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which gives each shell
-of DWIs with b ≥ 500 its equivalent b-value estimated from the signal and rebuilds the b-vectors from the
-reference shell converted to that b-value; check the logged best correlation of each DWI (DSI data needs an
+`load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which matches each shell
+of DWIs with b ≥ 500 to the reference shell nearest in anisotropic and isotropic core attenuation, rebuilds the
+b-vectors from that shell converted to the target's attenuation, and estimates the b-value from the attenuation when
+the reference has more than one shell (otherwise the recorded b-value is kept); check the logged best correlation of each DWI (DSI data needs an
 explicit DSI reference, since the template references are multishell, and each DWI with b ≥ 100 takes the b-value and b-vector of its best-correlated reference
 DWI). The parameterless
 form downloads
@@ -218,9 +219,9 @@ cache may be missing (they race on one file): download and check it once, put it
 storage (not per-job `$TMPDIR` on Slurm), and pass that path to every job. Then check orientation.
 
 **Matching another scheme**: `--cmd=convert_btable=<target.sz>` (`convert_btable`) converts shell
-data (not DSI) to the b-table of a shell SRC: both get equivalent b-values from their signal, each
-target shell takes the data shell with the nearest one, converted to the target's equivalent b-value and
-interpolated to the target directions; target b < 500 entries get the mean b0. It relies on the current
+data (not DSI) to the b-table of a shell SRC: each target shell takes the data shell nearest in anisotropic
+and isotropic core attenuation, converted to the target's attenuation and interpolated to the target
+directions (the target's recorded b-values are kept); target b < 500 entries get the mean b0. It relies on the current
 b-vectors, so check or regenerate them first.
 
 Exclude corrupted volumes with `--remove=<indices or b>value>` on `--action=rec` or the `remove`
@@ -265,8 +266,9 @@ populations. For multishell data consider fitting only suitable lower b-values a
 time and space and restore nothing). Verify nonlinear registration, laterality, and attached T1w/T2w
 alignment. For multishell or single-shell data, `dwi` in `other_output` also writes the template-space
 DWI beside the ordinary `.fz`: `<output>_dwi.nii.gz` (4D float) with `<output>_dwi.bval` and
-`<output>_dwi.bvec` (e.g. `subject.qsdr_dwi.nii.gz`), under the original b-table of the SRC (sorted, first b0
-only), not the balanced one used for reconstruction. DSI grids ignore it. The `.fz` itself holds no DWI.
+`<output>_dwi.bvec` (e.g. `subject.qsdr_dwi.nii.gz`), under the scheme-balanced b-table used for reconstruction
+(the first b0, then each shell resampled to 181, 126, 81, or 46 directions by its mean b-value, each direction
+evaluated at the local QSDR Jacobian, no GQI weighting), not the original one. DSI grids ignore it. The `.fz` itself holds no DWI.
 These DWI outputs from a group can be averaged into one `.sz` with `--action=tmp` (GUI: Population Average):
 each must carry the MNI header flag and match the first in dimension, voxel size, srow, and DWI count per
 shell (b0/non-shell volumes counted last), else the error names the file and the difference. Scans with an
@@ -275,7 +277,8 @@ of the highest-correlation scan (the leader), b0/non-shell volumes pair in order
 
 ### 7. Request only needed outputs
 
-Options: `fa`, `md`, `ad`, `rd`, `tensor`, `gfa`, `rdi`, `odf`, and `dwi` (QSDR, shell schemes). Full
+Options: `fa`, `md`, `ad`, `rd`, `tensor`, `gfa`, `rdi`, `odf`, `anif,isof` (anisotropic and isotropic signal
+fractions), and `dwi` (QSDR, shell schemes). Full
 ODF storage greatly enlarges the FZ and is unnecessary for ordinary tractography.
 
 ### 8. Validate the FZ
