@@ -205,9 +205,8 @@ correction to scans sharing it, e.g. `--cmd="swap_bybz+flip_bx"` (swap y/z, then
 **Lost or corrupted bval/bvec**: replace them with `--bval=<file> --bvec=<file>` on `--action=rec` (or
 `load_bval` / `load_bvec`), or `--cmd=regenerate_btable` (`regenerate_btable`), which matches each shell
 of DWIs with b ≥ 500 to the reference shell nearest in anisotropic and isotropic core attenuation, rebuilds the
-b-vectors from that shell converted to the target's attenuation, and estimates the b-value from the attenuation when
-the reference has more than one shell (otherwise the recorded b-value is kept); check the logged best correlation of each DWI (DSI data needs an
-explicit DSI reference, since the template references are multishell, and each DWI with b ≥ 100 takes the b-value and b-vector of its best-correlated reference
+b-vectors from that shell converted to the target's attenuation, and keeps the b-values; check the logged best correlation of each DWI (DSI data needs an
+explicit DSI reference, since the template references are multishell, and each DWI with b ≥ 100 takes the b-vector of its best-correlated reference
 DWI). The parameterless
 form downloads
 `https://github.com/data-others/atlas/releases/download/<template>/<template>.sz` once to the system
@@ -324,7 +323,7 @@ dsi_studio --action=rec --source=subject_raw.sz --rev_pe=subject_rev_b0.nii.gz -
 # QSDR
 dsi_studio --action=rec --source=subject.sz --method=7 --output=subject_qsdr.fz
 # QSDR with template-space DWI (subject_qsdr_dwi.nii.gz/.bval/.bvec)
-dsi_studio --action=rec --source=subject.sz --method=7 --other_output=fa,md,rd,rdi,dwi --output=subject_qsdr.fz
+dsi_studio --action=rec --source=subject.sz --method=7 --other_output=fa,md,rd,anif,isof,dwi --output=subject_qsdr.fz
 # average template-space DWI of a group into one SRC (default output <first>.avg.sz)
 dsi_studio --action=tmp --source=*_qsdr_dwi.nii.gz --output=group_avg.sz
 ```
